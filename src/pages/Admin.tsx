@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
+
+type UsageContext = Database['public']['Enums']['usage_context'];
 
 interface Decor {
   id: string;
@@ -33,7 +36,7 @@ const Admin = () => {
   const [formData, setFormData] = useState({
     name: "",
     referenceCode: "",
-    usageContexts: ["ascenseur"] as string[],
+    usageContexts: ["ascenseur"] as UsageContext[],
     textureUrl: "",
     isActive: true,
   });
@@ -138,7 +141,7 @@ const Admin = () => {
     setFormData({
       name: "",
       referenceCode: "",
-      usageContexts: ["ascenseur"],
+      usageContexts: ["ascenseur"] as UsageContext[],
       textureUrl: "",
       isActive: true,
     });
@@ -150,7 +153,7 @@ const Admin = () => {
     setFormData({
       name: decor.name,
       referenceCode: decor.reference_code,
-      usageContexts: decor.usage_contexts,
+      usageContexts: decor.usage_contexts as UsageContext[],
       textureUrl: decor.texture_image_url,
       isActive: decor.is_active,
     });
