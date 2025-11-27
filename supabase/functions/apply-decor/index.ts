@@ -44,11 +44,23 @@ serve(async (req) => {
     }
 
     // Build 3-layer structured prompt for intelligent surface mapping
-    // Layer 1: Global intention (invariant)
-    const globalIntention = `Apply a realistic renovation with the selected DICA decor "${decor.name}" (ref ${decor.reference_code}) on allowed surfaces only.
-Never modify technical elements, accessories, glazing, lighting, signage, or volumes outside the renovation scope.
+    // Layer 1: Global intention (MODE = PROJECT - strict photo editing)
+    const globalIntention = `🔒 MODE: PROJECT (Strict photo editing)
 
-CRITICAL: The second image provided is the EXACT texture/finish you must apply. Use this reference image to replicate the material properties: metallic sheen, brushed pattern, color tone, reflection properties, and surface finish. The result must match this texture reference precisely.`;
+You MUST use the source image provided. This is a photo retouching task, NOT a scene generation task.
+
+Apply the DICA decor "${decor.name}" (ref ${decor.reference_code}) on allowed surfaces only.
+
+CRITICAL CONSTRAINTS - Preserve from original photo:
+- EXACT framing (same camera angle, same boundaries)
+- EXACT geometry (same dimensions, same proportions)
+- EXACT lighting (same light sources, same shadows, same ambiance)
+- EXACT environment (same objects, same configuration)
+- NO scene changes, NO object additions, NO environmental modifications
+
+The second image provided is the EXACT texture/finish you must apply. Use this reference image to replicate the material properties precisely.
+
+You are retouching the client's actual photo - it must remain the SAME elevator/van/terrace with only surface finishes changed.`;
 
     // Layer 2: Business rules per context
     let contextRules = "";
