@@ -302,29 +302,31 @@ const ProjectDetail = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {decors.map((decor) => (
-              <Card
-                key={decor.id}
-                className={`cursor-pointer transition-all ${
-                  selectedDecor?.id === decor.id ? "ring-2 ring-primary" : ""
-                }`}
-                onClick={() => setSelectedDecor(decor)}
-              >
-                <CardContent className="p-4">
-                  <img
-                    src={decor.texture_image_url}
-                    alt={decor.name}
-                    className="mb-2 h-32 w-full rounded object-cover"
-                  />
-                  <h3 className="font-semibold">{decor.name}</h3>
-                  <p className="text-sm text-muted-foreground">{decor.reference_code}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="max-h-[60vh] overflow-y-auto pr-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {decors.map((decor) => (
+                <Card
+                  key={decor.id}
+                  className={`cursor-pointer transition-all ${
+                    selectedDecor?.id === decor.id ? "ring-2 ring-primary" : ""
+                  }`}
+                  onClick={() => setSelectedDecor(decor)}
+                >
+                  <CardContent className="p-4">
+                    <img
+                      src={decor.texture_image_url}
+                      alt={decor.name}
+                      className="mb-2 h-32 w-full rounded object-cover"
+                    />
+                    <h3 className="font-semibold">{decor.name}</h3>
+                    <p className="text-sm text-muted-foreground">{decor.reference_code}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
 
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
             <Button variant="outline" onClick={() => setShowDecorDialog(false)}>
               Annuler
             </Button>
