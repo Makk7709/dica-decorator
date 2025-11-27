@@ -17,6 +17,7 @@ export type Database = {
       decors: {
         Row: {
           catalog_pdf_url: string | null
+          category: string
           created_at: string
           id: string
           is_active: boolean
@@ -28,6 +29,7 @@ export type Database = {
         }
         Insert: {
           catalog_pdf_url?: string | null
+          category?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -39,6 +41,7 @@ export type Database = {
         }
         Update: {
           catalog_pdf_url?: string | null
+          category?: string
           created_at?: string
           id?: string
           is_active?: boolean

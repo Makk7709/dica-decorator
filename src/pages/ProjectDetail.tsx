@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,6 +28,7 @@ interface Decor {
   reference_code: string;
   texture_image_url: string;
   usage_contexts: string[];
+  category: string;
 }
 
 interface RenderResult {
@@ -331,37 +333,94 @@ const ProjectDetail = () => {
 
       {/* Decor Selection Dialog */}
       <Dialog open={showDecorDialog} onOpenChange={setShowDecorDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-5xl max-h-[85vh]">
           <DialogHeader>
-            <DialogTitle>Choisir un décor</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-2xl">Choisir un décor</DialogTitle>
+            <DialogDescription className="text-base">
               Sélectionnez un décor DICA à appliquer sur votre photo
             </DialogDescription>
           </DialogHeader>
           
-          <div className="max-h-[60vh] overflow-y-auto pr-2">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {decors.map((decor) => (
-                <Card
-                  key={decor.id}
-                  className={`cursor-pointer transition-all ${
-                    selectedDecor?.id === decor.id ? "ring-2 ring-primary" : ""
-                  }`}
-                  onClick={() => setSelectedDecor(decor)}
-                >
-                  <CardContent className="p-4">
-                    <img
-                      src={decor.texture_image_url}
-                      alt={decor.name}
-                      className="mb-2 h-32 w-full rounded object-cover"
-                    />
-                    <h3 className="font-semibold">{decor.name}</h3>
-                    <p className="text-sm text-muted-foreground">{decor.reference_code}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <Tabs defaultValue="metal" className="w-full">
+            <TabsList className="grid w-full grid-cols-5 h-auto">
+              <TabsTrigger value="metal" className="py-3">
+                Métal
+                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                  {decors.filter(d => d.category === 'metal').length}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="unis" className="py-3">
+                Unis
+                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                  {decors.filter(d => d.category === 'unis').length}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="marbre" className="py-3">
+                Marbre
+                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                  {decors.filter(d => d.category === 'marbre').length}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="bois" className="py-3">
+                Bois
+                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                  {decors.filter(d => d.category === 'bois').length}
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="deco" className="py-3">
+                Déco
+                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                  {decors.filter(d => d.category === 'deco').length}
+                </span>
+              </TabsTrigger>
+            </TabsList>
+
+            {['metal', 'unis', 'marbre', 'bois', 'deco'].map((category) => (
+              <TabsContent key={category} value={category} className="mt-6">
+                <div className="max-h-[45vh] overflow-y-auto pr-2">
+                  {decors.filter(d => d.category === category).length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <p className="text-lg text-muted-foreground">
+                        Aucun décor disponible dans cette catégorie
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      {decors
+                        .filter(d => d.category === category)
+                        .map((decor) => (
+                          <Card
+                            key={decor.id}
+                            className={`cursor-pointer transition-all hover:shadow-lg ${
+                              selectedDecor?.id === decor.id 
+                                ? "ring-2 ring-primary shadow-lg" 
+                                : "hover:border-primary/50"
+                            }`}
+                            onClick={() => setSelectedDecor(decor)}
+                          >
+                            <CardContent className="p-3">
+                              <div className="relative mb-2 overflow-hidden rounded-lg">
+                                <img
+                                  src={decor.texture_image_url}
+                                  alt={decor.name}
+                                  className="h-32 w-full object-cover transition-transform hover:scale-105"
+                                />
+                              </div>
+                              <h3 className="font-semibold text-sm leading-tight mb-1">
+                                {decor.name}
+                              </h3>
+                              <p className="text-xs text-muted-foreground">
+                                {decor.reference_code}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
 
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
             <Button variant="outline" onClick={() => setShowDecorDialog(false)}>
@@ -370,6 +429,7 @@ const ProjectDetail = () => {
             <Button
               onClick={handleGenerateRender}
               disabled={!selectedDecor || isGenerating}
+              size="lg"
             >
               {isGenerating ? (
                 <>
