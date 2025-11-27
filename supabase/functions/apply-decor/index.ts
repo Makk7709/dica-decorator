@@ -15,117 +15,149 @@ serve(async (req) => {
     const { photoUrl, textureUrl, photoId, decorId } = await req.json();
     console.log("Applying decor:", { photoUrl, textureUrl, photoId, decorId });
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    const NANO_BANANA_API_KEY = Deno.env.get("NANO_BANANA_API_KEY");
+    if (!NANO_BANANA_API_KEY) {
+      throw new Error("NANO_BANANA_API_KEY not configured");
     }
 
-    // Helper function to convert image URL to base64 data URL
-    async function urlToBase64DataUrl(url: string): Promise<string> {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image from ${url}: ${response.status}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = '';
-      const chunkSize = 8192;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-        binary += String.fromCharCode(...chunk);
-      }
-      const base64 = btoa(binary);
-      
-      // Detect mime type from URL extension
-      const extension = url.split('.').pop()?.toLowerCase();
-      let mimeType = 'image/jpeg';
-      if (extension === 'png') mimeType = 'image/png';
-      else if (extension === 'webp') mimeType = 'image/webp';
-      
-      return `data:${mimeType};base64,${base64}`;
-    }
-
-    // Convert relative texture URL to absolute URL
+    // Convert relative texture URL to absolute URL based on app origin (frontend host)
     let fullTextureUrl = textureUrl;
     if (textureUrl.startsWith("/")) {
-      const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/");
+      const origin =
+        req.headers.get("origin") ||
+        req.headers
+          .get("referer")
+          ?.split("/")
+          .slice(0, 3)
+          .join("/");
+
       if (!origin) {
         throw new Error("Cannot determine app origin from request headers");
       }
+
       fullTextureUrl = `${origin}${textureUrl}`;
       console.log("Converted relative texture URL to:", fullTextureUrl);
     }
 
-    // Convert images to base64 data URLs
-    console.log("Converting images to base64...");
-    const photoDataUrl = await urlToBase64DataUrl(photoUrl);
-    const textureDataUrl = await urlToBase64DataUrl(fullTextureUrl);
-
-    // Call Lovable AI Gateway with Nano Banana image model
-    console.log("Calling Lovable AI for image generation...");
-    const generateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+    // Call Nano Banana API (generate or edit image)
+    const generateResponse = await fetch(
+      "https://api.nanobananaapi.ai/api/v1/nanobanana/generate",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${NANO_BANANA_API_KEY}`,
+        },
+        body: JSON.stringify({
+          prompt:
+            "Apply the decor texture from the second image onto all visible surfaces of the first image as a realistic product mockup. Preserve lighting, reflections and perspective.",
+          numImages: 1,
+          type: "IMAGETOIAMGE",
+          image_size: "16:9",
+          imageUrls: [photoUrl, fullTextureUrl],
+          callBackUrl: "https://example.com/nanobanana-callback",
+        }),
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Apply the decor texture from the second image onto all visible surfaces in the first image as a realistic product mockup. Preserve lighting, reflections, and perspective. Generate a photorealistic result.",
-              },
-              {
-                type: "image_url",
-                image_url: { url: photoDataUrl },
-              },
-              {
-                type: "image_url",
-                image_url: { url: textureDataUrl },
-              },
-            ],
-          },
-        ],
-        modalities: ["image", "text"],
-      }),
-    });
+    );
 
     if (!generateResponse.ok) {
       const errorText = await generateResponse.text();
-      console.error("Lovable AI error:", generateResponse.status, errorText);
-      
-      if (generateResponse.status === 429) {
-        throw new Error("Limite de taux d'API atteinte. Veuillez réessayer dans quelques instants.");
-      } else if (generateResponse.status === 402) {
-        throw new Error("Crédits API insuffisants. Veuillez ajouter des fonds à votre espace de travail Lovable.");
+      console.error(
+        "Nano Banana generate error:",
+        generateResponse.status,
+        errorText,
+      );
+
+      if (generateResponse.status === 401) {
+        throw new Error(
+          "Clé API Nano Banana invalide ou non autorisée. Veuillez vérifier la clé dans la configuration du backend.",
+        );
       }
-      
-      throw new Error(`Erreur API Lovable AI: ${generateResponse.status}`);
+
+      if (generateResponse.status === 429) {
+        throw new Error(
+          "Limite de taux Nano Banana atteinte. Veuillez réessayer dans quelques instants.",
+        );
+      }
+
+      if (generateResponse.status === 402) {
+        throw new Error(
+          "Crédits Nano Banana insuffisants. Veuillez ajouter des fonds à votre compte Nano Banana.",
+        );
+      }
+
+      throw new Error(
+        `Erreur API Nano Banana (generate): ${generateResponse.status}`,
+      );
     }
 
     const generateData = await generateResponse.json();
-    console.log("Lovable AI response received");
+    const taskId = generateData?.data?.taskId as string | undefined;
 
-    // Extract the generated image from the response
-    const generatedImageUrl = generateData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
-    if (!generatedImageUrl) {
-      console.error("No image data in response:", generateData);
-      throw new Error("Aucune image générée dans la réponse");
+    if (!taskId) {
+      console.error("Nano Banana response without taskId:", generateData);
+      throw new Error("Réponse Nano Banana invalide: taskId manquant");
     }
 
-    // The image is a data URL (base64), extract the base64 part
-    const base64Match = generatedImageUrl.match(/^data:image\/\w+;base64,(.+)$/);
-    if (!base64Match) {
-      throw new Error("Format d'image invalide dans la réponse");
+    console.log("Nano Banana taskId:", taskId);
+
+    // Poll task status until result image is available
+    let resultUrl: string | null = null;
+    const maxAttempts = 20;
+    const delayMs = 1000;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const statusResponse = await fetch(
+        `https://api.nanobananaapi.ai/api/v1/nanobanana/record-info?taskId=${encodeURIComponent(
+          taskId,
+        )}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${NANO_BANANA_API_KEY}`,
+          },
+        },
+      );
+
+      if (!statusResponse.ok) {
+        const statusText = await statusResponse.text();
+        console.error(
+          "Nano Banana status error:",
+          statusResponse.status,
+          statusText,
+        );
+        throw new Error(
+          "Erreur lors de la récupération du statut de la tâche Nano Banana",
+        );
+      }
+
+      const statusData = await statusResponse.json();
+      const status = statusData?.data?.successFlag;
+
+      if (status === 1) {
+        resultUrl = statusData?.data?.response?.resultImageUrl ?? null;
+        break;
+      }
+
+      if (status === 2 || status === 3) {
+        const message =
+          statusData?.data?.errorMessage ||
+          "La génération Nano Banana a échoué";
+        console.error("Nano Banana task failed:", statusData);
+        throw new Error(message);
+      }
+
+      // Wait before next poll
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
 
-    const generatedImageBase64 = base64Match[1];
-    const generatedImageBuffer = Uint8Array.from(atob(generatedImageBase64), c => c.charCodeAt(0));
+    if (!resultUrl) {
+      throw new Error(
+        "La génération de l'image prend plus de temps que prévu. Veuillez réessayer dans quelques instants.",
+      );
+    }
+
+    console.log("Generated result URL:", resultUrl);
 
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -146,11 +178,21 @@ serve(async (req) => {
 
     const userId = (photoData as any).projects.user_id;
 
+    // Download the result image
+    const imageResponse = await fetch(resultUrl);
+    if (!imageResponse.ok) {
+      throw new Error("Impossible de télécharger l'image résultat");
+    }
+
+    const imageBlob = await imageResponse.blob();
+    const imageArrayBuffer = await imageBlob.arrayBuffer();
+    const imageBuffer = new Uint8Array(imageArrayBuffer);
+
     // Upload to Supabase Storage
     const fileName = `${userId}/${Date.now()}.png`;
     const { error: uploadError } = await supabase.storage
       .from("render-results")
-      .upload(fileName, generatedImageBuffer, {
+      .upload(fileName, imageBuffer, {
         contentType: "image/png",
       });
 
@@ -159,18 +201,16 @@ serve(async (req) => {
       throw new Error("Erreur lors de l'upload du résultat");
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from("render-results")
-      .getPublicUrl(fileName);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("render-results").getPublicUrl(fileName);
 
     // Save render result to database
-    const { error: insertError } = await supabase
-      .from("render_results")
-      .insert({
-        project_photo_id: photoId,
-        decor_id: decorId,
-        result_image_url: publicUrl,
-      });
+    const { error: insertError } = await supabase.from("render_results").insert({
+      project_photo_id: photoId,
+      decor_id: decorId,
+      result_image_url: publicUrl,
+    });
 
     if (insertError) {
       console.error("Database insert error:", insertError);
@@ -179,13 +219,18 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, resultUrl: publicUrl }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("Error in apply-decor function:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Erreur inconnue" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Erreur inconnue",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });
