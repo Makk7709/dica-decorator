@@ -22,210 +22,97 @@ serve(async (req) => {
       useCase,
     });
 
-    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
-    if (!GOOGLE_AI_API_KEY) {
-      throw new Error("GOOGLE_AI_API_KEY not configured");
+    const GOOGLE_GENERATIVE_AI_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY");
+    if (!GOOGLE_GENERATIVE_AI_API_KEY) {
+      throw new Error("GOOGLE_GENERATIVE_AI_API_KEY not configured");
     }
 
-    // Helper function to convert image URL to base64
-    async function urlToBase64(url: string): Promise<string> {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image from ${url}: ${response.status}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      const bytes = new Uint8Array(arrayBuffer);
-      let binary = "";
-      const chunkSize = 8192;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-        binary += String.fromCharCode(...chunk);
-      }
-      return btoa(binary);
-    }
-
-    // Convert relative texture URL to absolute URL
-    let fullTextureUrl = textureUrl;
-    if (textureUrl.startsWith("/")) {
-      const origin =
-        req.headers.get("origin") ||
-        req.headers
-          .get("referer")
-          ?.split("/")
-          .slice(0, 3)
-          .join("/");
-
-      if (!origin) {
-        throw new Error("Cannot determine app origin from request headers");
-      }
-
-      fullTextureUrl = `${origin}${textureUrl}`;
-      console.log("Converted relative texture URL to:", fullTextureUrl);
-    }
-
-    // Fetch and encode images to base64
-    console.log("Fetching photo from:", photoUrl);
-    const photoBase64 = await urlToBase64(photoUrl);
-
-    console.log("Fetching texture from:", fullTextureUrl);
-    const textureBase64 = await urlToBase64(fullTextureUrl);
-
-    // Build context-aware prompt based on useCase
-    let contextPrompt = "";
-    switch (useCase) {
-      case "ascenseur":
-        contextPrompt =
-          "Generate a photorealistic image showing this elevator cabin interior with the decorative pattern from the second image applied to all wall panels. Maintain the original lighting, metallic edges, reflections, and perspective. The texture should wrap naturally around the surfaces.";
-        break;
-      case "van":
-        contextPrompt =
-          "Generate a photorealistic image of this vehicle interior with the decorative pattern from the second image applied to the visible panels and surfaces. Preserve the curved contours, original lighting, and reflections. The texture should follow the natural shape of the surfaces.";
-        break;
-      case "terrasse":
-        contextPrompt =
-          "Generate a photorealistic image of this outdoor terrace or deck with the decorative pattern from the second image applied to the flooring or wall surfaces. Maintain the natural outdoor lighting, shadows, and perspective. The texture should appear as a realistic surface material.";
-        break;
-      default:
-        contextPrompt =
-          "Generate a photorealistic image where the decorative pattern from the second image is applied onto all visible surfaces in the first image. Create a realistic product mockup that preserves the original lighting, reflections, and perspective. The texture should appear as if it's naturally part of the surfaces.";
-    }
-
-    // Call Google AI Studio API (Gemini 3 Pro Image - more powerful for image editing)
-    console.log("Calling Google AI Studio (Gemini 3 Pro) for image generation...");
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GOOGLE_AI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: contextPrompt,
-                },
-                {
-                  inline_data: {
-                    mime_type: "image/jpeg",
-                    data: photoBase64,
-                  },
-                },
-                {
-                  inline_data: {
-                    mime_type: "image/jpeg",
-                    data: textureBase64,
-                  },
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            response_modalities: ["IMAGE", "TEXT"],
-            temperature: 0.4,
-          },
-        }),
-      },
-    );
-
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error(
-        "Google AI Studio error:",
-        geminiResponse.status,
-        errorText,
-      );
-
-      if (geminiResponse.status === 401) {
-        throw new Error(
-          "Clé API Google AI Studio invalide. Veuillez vérifier GOOGLE_AI_API_KEY.",
-        );
-      }
-
-      if (geminiResponse.status === 429) {
-        throw new Error(
-          "Limite de taux Google AI Studio atteinte. Veuillez réessayer dans quelques instants.",
-        );
-      }
-
-      throw new Error(
-        `Erreur API Google AI Studio: ${geminiResponse.status}`,
-      );
-    }
-
-    const geminiData = await geminiResponse.json();
-    console.log("Gemini response received");
-
-    // Extract generated image from response
-    const generatedImageData =
-      geminiData?.candidates?.[0]?.content?.parts?.[0]?.inline_data?.data;
-
-    if (!generatedImageData) {
-      console.error("No image data in Gemini response:", geminiData);
-      throw new Error("Aucune image générée dans la réponse Gemini");
-    }
-
-    // Decode base64 image
-    const generatedImageBuffer = Uint8Array.from(
-      atob(generatedImageData),
-      (c) => c.charCodeAt(0),
-    );
-
-    // Create Supabase client with service role
+    // Fetch decor information to get name and reference code
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user ID from photo
-    const { data: photoData, error: photoError } = await supabase
-      .from("project_photos")
-      .select("project_id, projects!inner(user_id)")
-      .eq("id", photoId)
+    const { data: decor, error: decorError } = await supabase
+      .from("decors")
+      .select("name, reference_code")
+      .eq("id", decorId)
       .single();
 
-    if (photoError) {
-      console.error("Error fetching photo:", photoError);
-      throw new Error("Photo introuvable");
+    if (decorError || !decor) {
+      console.error("Error fetching decor:", decorError);
+      throw new Error("Décor introuvable");
     }
 
-    const userId = (photoData as any).projects.user_id;
-
-    // Upload to Supabase Storage
-    const fileName = `${userId}/${Date.now()}.png`;
-    const { error: uploadError } = await supabase.storage
-      .from("render-results")
-      .upload(fileName, generatedImageBuffer, {
-        contentType: "image/png",
-      });
-
-    if (uploadError) {
-      console.error("Storage upload error:", uploadError);
-      throw new Error("Erreur lors de l'upload du résultat");
+    // Build simplified prompt based on useCase
+    let prompt = "";
+    switch (useCase) {
+      case "ascenseur":
+        prompt = `Generate a realistic product mockup of an elevator cabin interior, fully renovated with DICA decor "${decor.name}" (ref ${decor.reference_code}). Keep proportions and perspective similar to a professional interior photo.`;
+        break;
+      case "van":
+        prompt = `Generate a realistic product mockup of a van interior, fully renovated with DICA decor "${decor.name}" (ref ${decor.reference_code}). Keep proportions and perspective similar to a professional interior photo.`;
+        break;
+      case "terrasse":
+        prompt = `Generate a realistic product mockup of a terrace or outdoor deck, fully renovated with DICA decor "${decor.name}" (ref ${decor.reference_code}). Keep proportions and perspective similar to a professional outdoor photo.`;
+        break;
+      default:
+        prompt = `Generate a realistic product mockup of a ${useCase} interior, fully renovated with DICA decor "${decor.name}" (ref ${decor.reference_code}). Keep proportions and perspective similar to a professional interior photo.`;
     }
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("render-results").getPublicUrl(fileName);
+    console.log("Calling Google AI Studio (Gemini 2.5 Flash Image)...");
+    
+    // Call Google AI Studio API with simplified text-only prompt
+    const url = 
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=' +
+      GOOGLE_GENERATIVE_AI_API_KEY;
+    
+    const geminiResponse = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              { text: prompt },
+            ],
+          },
+        ],
+        generationConfig: {
+          imageConfig: {
+            aspectRatio: "16:9",
+          },
+        },
+      }),
+    });
 
-    // Save render result to database
-    const { error: insertError } = await supabase
-      .from("render_results")
-      .insert({
-        project_photo_id: photoId,
-        decor_id: decorId,
-        result_image_url: publicUrl,
-      });
-
-    if (insertError) {
-      console.error("Database insert error:", insertError);
-      throw new Error("Erreur lors de la sauvegarde du résultat");
+    // Handle errors with detailed logging
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
+      console.error("Google AI error:", geminiResponse.status, errorText);
+      
+      throw new Error(`Google AI error ${geminiResponse.status}`);
     }
 
-    console.log("Render result saved successfully:", publicUrl);
+    const geminiData = await geminiResponse.json();
+    console.log("Gemini response received successfully");
+
+    // Extract generated image from response
+    const base64 = geminiData?.candidates?.[0]?.content?.parts?.[0]?.inline_data?.data;
+
+    if (!base64) {
+      console.error("No image data in Gemini response:", geminiData);
+      throw new Error("Aucune image générée dans la réponse Gemini");
+    }
+
+    // Return data URL directly
+    const resultUrl = `data:image/png;base64,${base64}`;
+    
+    console.log("Image generated successfully, returning data URL");
 
     return new Response(
-      JSON.stringify({ success: true, resultUrl: publicUrl }),
+      JSON.stringify({ success: true, resultUrl }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
