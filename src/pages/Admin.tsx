@@ -137,13 +137,13 @@ const Admin = () => {
         textureUrl = await handleImageUpload(imageFile);
       }
 
-      const decorData = {
+      const decorData: any = {
         name: formData.name,
-        reference_code: formData.referenceCode,
+        reference_code: formData.referenceCode || `REF_${Date.now()}`,
         category: formData.category.toLowerCase(),
-        usage_contexts: formData.usageContexts,
+        usage_contexts: formData.usageContexts.length > 0 ? formData.usageContexts : ["ascenseur"],
         texture_image_url: textureUrl,
-        is_active: formData.isActive,
+        is_active: true,
       };
 
       if (editingDecor) {

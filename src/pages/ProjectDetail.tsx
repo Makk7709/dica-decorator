@@ -54,10 +54,19 @@ const ProjectDetail = () => {
   const [favoriteRenderIds, setFavoriteRenderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    loadProject();
-    loadDecors();
-    loadFavorites();
+    const loadData = async () => {
+      await loadProject();
+      loadFavorites();
+    };
+    loadData();
   }, [id, user]);
+
+  // Load decors when project is loaded
+  useEffect(() => {
+    if (project?.use_case) {
+      loadDecors(project.use_case);
+    }
+  }, [project?.use_case]);
 
   const loadFavorites = async () => {
     if (!user) return;
@@ -158,12 +167,13 @@ const ProjectDetail = () => {
     }
   };
 
-  const loadDecors = async () => {
+  const loadDecors = async (useCase: string) => {
     try {
       const { data, error } = await supabase
         .from("decors")
         .select("*")
         .eq("is_active", true)
+        .contains("usage_contexts", [useCase])
         .order("name");
 
       if (error) throw error;
