@@ -15,27 +15,14 @@ serve(async (req) => {
     const { photoUrl, textureUrl, photoId, decorId } = await req.json();
     console.log("Applying decor:", { photoUrl, textureUrl, photoId, decorId });
 
-    const NANO_BANANA_API_KEY = Deno.env.get("NANO_BANANA_API_KEY");
-    if (!NANO_BANANA_API_KEY) {
-      throw new Error("NANO_BANANA_API_KEY not configured");
-    }
-
-    // Helper function to convert ArrayBuffer to base64 in chunks
-    function arrayBufferToBase64(buffer: ArrayBuffer): string {
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      const chunkSize = 8192;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-        binary += String.fromCharCode(...chunk);
-      }
-      return btoa(binary);
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY not configured");
     }
 
     // Convert relative texture URL to absolute URL
     let fullTextureUrl = textureUrl;
     if (textureUrl.startsWith("/")) {
-      // Get the origin from the request headers (where the app is hosted)
       const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/");
       if (!origin) {
         throw new Error("Cannot determine app origin from request headers");
@@ -44,84 +31,71 @@ serve(async (req) => {
       console.log("Converted relative texture URL to:", fullTextureUrl);
     }
 
-    // Fetch and encode images
-    console.log("Fetching photo from:", photoUrl);
-    const photoResponse = await fetch(photoUrl);
-    if (!photoResponse.ok) {
-      throw new Error(`Failed to fetch photo: ${photoResponse.status}`);
-    }
-    const photoBuffer = await photoResponse.arrayBuffer();
-    const photoBase64 = arrayBufferToBase64(photoBuffer);
-
-    console.log("Fetching texture from:", fullTextureUrl);
-    const textureResponse = await fetch(fullTextureUrl);
-    if (!textureResponse.ok) {
-      throw new Error(`Failed to fetch texture: ${textureResponse.status}`);
-    }
-    const textureBuffer = await textureResponse.arrayBuffer();
-    const textureBase64 = arrayBufferToBase64(textureBuffer);
-
-    // Call Google AI Studio API (Nano Banana model)
-    console.log("Calling Google AI Studio API...");
-    const generateResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/nano-banana:generateContent?key=${NANO_BANANA_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: "Apply the decor texture from the second image onto all visible surfaces of the first image as a realistic product mockup. Preserve lighting, reflections and perspective.",
-                },
-                {
-                  inline_data: {
-                    mime_type: "image/jpeg",
-                    data: photoBase64,
-                  },
-                },
-                {
-                  inline_data: {
-                    mime_type: "image/jpeg",
-                    data: textureBase64,
-                  },
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 1,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 8192,
-            responseMimeType: "image/jpeg",
+    // Call Lovable AI Gateway with Nano Banana image model
+    console.log("Calling Lovable AI for image generation...");
+    const generateResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Apply the decor texture from the second image onto all visible surfaces in the first image as a realistic product mockup. Preserve lighting, reflections, and perspective. Generate a photorealistic result.",
+              },
+              {
+                type: "image_url",
+                image_url: { url: photoUrl },
+              },
+              {
+                type: "image_url",
+                image_url: { url: fullTextureUrl },
+              },
+            ],
           },
-        }),
-      }
-    );
+        ],
+        modalities: ["image", "text"],
+      }),
+    });
 
     if (!generateResponse.ok) {
       const errorText = await generateResponse.text();
-      console.error("Google AI Studio API error:", generateResponse.status, errorText);
-      throw new Error(`Erreur API Google AI Studio: ${generateResponse.status}`);
+      console.error("Lovable AI error:", generateResponse.status, errorText);
+      
+      if (generateResponse.status === 429) {
+        throw new Error("Limite de taux d'API atteinte. Veuillez réessayer dans quelques instants.");
+      } else if (generateResponse.status === 402) {
+        throw new Error("Crédits API insuffisants. Veuillez ajouter des fonds à votre espace de travail Lovable.");
+      }
+      
+      throw new Error(`Erreur API Lovable AI: ${generateResponse.status}`);
     }
 
     const generateData = await generateResponse.json();
-    console.log("Google AI Studio response:", generateData);
+    console.log("Lovable AI response received");
 
     // Extract the generated image from the response
-    const generatedImageData = generateData?.candidates?.[0]?.content?.parts?.[0]?.inline_data?.data;
+    const generatedImageUrl = generateData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
-    if (!generatedImageData) {
+    if (!generatedImageUrl) {
       console.error("No image data in response:", generateData);
       throw new Error("Aucune image générée dans la réponse");
     }
 
-    // Decode base64 image
-    const generatedImageBuffer = Uint8Array.from(atob(generatedImageData), c => c.charCodeAt(0));
+    // The image is a data URL (base64), extract the base64 part
+    const base64Match = generatedImageUrl.match(/^data:image\/\w+;base64,(.+)$/);
+    if (!base64Match) {
+      throw new Error("Format d'image invalide dans la réponse");
+    }
+
+    const generatedImageBase64 = base64Match[1];
+    const generatedImageBuffer = Uint8Array.from(atob(generatedImageBase64), c => c.charCodeAt(0));
 
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -143,11 +117,11 @@ serve(async (req) => {
     const userId = (photoData as any).projects.user_id;
 
     // Upload to Supabase Storage
-    const fileName = `${userId}/${Date.now()}.jpg`;
+    const fileName = `${userId}/${Date.now()}.png`;
     const { error: uploadError } = await supabase.storage
       .from("render-results")
       .upload(fileName, generatedImageBuffer, {
-        contentType: "image/jpeg",
+        contentType: "image/png",
       });
 
     if (uploadError) {
