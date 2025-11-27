@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import NewProject from "./pages/NewProject";
 import ProjectDetail from "./pages/ProjectDetail";
 import Admin from "./pages/Admin";
+import Creative from "./pages/Creative";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireAdmin>
                   <Admin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/creative"
+              element={
+                <ProtectedRoute>
+                  <Creative />
                 </ProtectedRoute>
               }
             />

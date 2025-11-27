@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, LogOut, Settings, FolderOpen } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface Project {
@@ -72,6 +72,15 @@ const Dashboard = () => {
             <img src="/images/dica-logo.svg" alt="DICA" className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/creative")}
+              className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Libérez votre imagination
+            </Button>
             {userRole === "admin" && (
               <Button
                 variant="outline"
