@@ -19,7 +19,7 @@ const Index = () => {
         {/* Hero Section */}
         <div className="mb-20 text-center">
           <div className="mx-auto mb-8 flex items-center justify-center">
-            <img src="/images/dica-logo.svg" alt="DICA Logo" className="h-24 w-auto" />
+            <img src="/images/dica-logo.png" alt="DICA Logo" className="h-24 w-auto" />
           </div>
           <h1 className="mb-6 text-6xl font-bold tracking-tight text-foreground">
             DICA Visual Studio
