@@ -216,7 +216,13 @@ const ProjectDetail = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
           </Button>
-          <h1 className="text-2xl font-bold">{project.title}</h1>
+          <div className="flex items-center gap-3">
+            <img src="/images/dica-logo.svg" alt="DICA" className="h-8 w-auto" />
+            <div className="text-left">
+              <h1 className="text-lg font-bold leading-tight">{project.title}</h1>
+              <p className="text-xs text-muted-foreground">{project.use_case}</p>
+            </div>
+          </div>
           <div className="w-24" /> {/* Spacer for centering */}
         </div>
       </header>

@@ -8,12 +8,18 @@ const Index = () => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      <div className="container mx-auto px-4 py-16">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background relative">
+      {/* Hero background image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-5"
+        style={{ backgroundImage: "url('/images/dica-hero-bg.jpg')" }}
+      />
+      
+      <div className="container mx-auto px-4 py-16 relative z-10">
         {/* Hero Section */}
         <div className="mb-20 text-center">
-          <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary shadow-xl">
-            <Sparkles className="h-10 w-10 text-primary-foreground" />
+          <div className="mx-auto mb-8 flex items-center justify-center">
+            <img src="/images/dica-logo.svg" alt="DICA Logo" className="h-24 w-auto" />
           </div>
           <h1 className="mb-6 text-6xl font-bold tracking-tight text-foreground">
             DICA Visual Studio
