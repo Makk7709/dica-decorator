@@ -130,8 +130,13 @@ ${qualityDirective}`;
         console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
         
         const textureResponse = await fetch(absoluteTextureUrl);
+        const contentType = textureResponse.headers.get("content-type") ?? "";
+        
         if (!textureResponse.ok) {
           console.error("Failed to fetch texture:", textureResponse.status, await textureResponse.text());
+        } else if (!contentType.startsWith("image/")) {
+          console.error("Texture URL returned non-image content:", contentType);
+          console.error("This usually means the texture file is not accessible at the URL");
         } else {
           const arrayBuffer = await textureResponse.arrayBuffer();
           const bytes = new Uint8Array(arrayBuffer);
@@ -140,7 +145,7 @@ ${qualityDirective}`;
             binary += String.fromCharCode(bytes[i]);
           }
           textureBase64 = btoa(binary);
-          textureMimeType = textureResponse.headers.get("content-type") ?? "image/jpeg";
+          textureMimeType = contentType;
           console.log("Texture fetched and converted to base64 for Gemini");
         }
       }
