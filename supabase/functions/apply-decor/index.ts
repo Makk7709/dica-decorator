@@ -20,6 +20,31 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
+    // Helper function to convert image URL to base64 data URL
+    async function urlToBase64DataUrl(url: string): Promise<string> {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image from ${url}: ${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+        binary += String.fromCharCode(...chunk);
+      }
+      const base64 = btoa(binary);
+      
+      // Detect mime type from URL extension
+      const extension = url.split('.').pop()?.toLowerCase();
+      let mimeType = 'image/jpeg';
+      if (extension === 'png') mimeType = 'image/png';
+      else if (extension === 'webp') mimeType = 'image/webp';
+      
+      return `data:${mimeType};base64,${base64}`;
+    }
+
     // Convert relative texture URL to absolute URL
     let fullTextureUrl = textureUrl;
     if (textureUrl.startsWith("/")) {
@@ -30,6 +55,11 @@ serve(async (req) => {
       fullTextureUrl = `${origin}${textureUrl}`;
       console.log("Converted relative texture URL to:", fullTextureUrl);
     }
+
+    // Convert images to base64 data URLs
+    console.log("Converting images to base64...");
+    const photoDataUrl = await urlToBase64DataUrl(photoUrl);
+    const textureDataUrl = await urlToBase64DataUrl(fullTextureUrl);
 
     // Call Lovable AI Gateway with Nano Banana image model
     console.log("Calling Lovable AI for image generation...");
@@ -51,11 +81,11 @@ serve(async (req) => {
               },
               {
                 type: "image_url",
-                image_url: { url: photoUrl },
+                image_url: { url: photoDataUrl },
               },
               {
                 type: "image_url",
-                image_url: { url: fullTextureUrl },
+                image_url: { url: textureDataUrl },
               },
             ],
           },
