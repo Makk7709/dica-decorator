@@ -29,89 +29,66 @@ serve(async (req) => {
       console.log("Converted relative texture URL to:", fullTextureUrl);
     }
 
-    // Call Nano Banana API (generate or edit image)
-    const generateResponse = await fetch("https://api.nanobananaapi.ai/api/v1/nanobanana/generate", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${NANO_BANANA_API_KEY}`,
-      },
-      body: JSON.stringify({
-        prompt:
-          "Apply the decor texture from the second image onto all visible surfaces of the first image as a realistic product mockup. Preserve lighting, reflections and perspective.",
-        numImages: 1,
-        type: "IMAGETOIAMGE",
-        image_size: "16:9",
-        imageUrls: [photoUrl, fullTextureUrl],
-        callBackUrl: "https://example.com/nanobanana-callback",
-      }),
-    });
+    // Call Google AI Studio API (Nano Banana model)
+    const generateResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/nano-banana:generateContent?key=${NANO_BANANA_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: "Apply the decor texture from the second image onto all visible surfaces of the first image as a realistic product mockup. Preserve lighting, reflections and perspective.",
+                },
+                {
+                  inline_data: {
+                    mime_type: "image/jpeg",
+                    data: await fetch(photoUrl).then(r => r.arrayBuffer()).then(b => btoa(String.fromCharCode(...new Uint8Array(b)))),
+                  },
+                },
+                {
+                  inline_data: {
+                    mime_type: "image/jpeg",
+                    data: await fetch(fullTextureUrl).then(r => r.arrayBuffer()).then(b => btoa(String.fromCharCode(...new Uint8Array(b)))),
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 1,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 8192,
+            responseMimeType: "image/jpeg",
+          },
+        }),
+      }
+    );
 
     if (!generateResponse.ok) {
       const errorText = await generateResponse.text();
-      console.error("Nano Banana generate error:", generateResponse.status, errorText);
-      throw new Error(`Erreur API Nano Banana (generate): ${generateResponse.status}`);
+      console.error("Google AI Studio API error:", generateResponse.status, errorText);
+      throw new Error(`Erreur API Google AI Studio: ${generateResponse.status}`);
     }
 
     const generateData = await generateResponse.json();
-    const taskId = generateData?.data?.taskId as string | undefined;
+    console.log("Google AI Studio response:", generateData);
 
-    if (!taskId) {
-      console.error("Nano Banana response without taskId:", generateData);
-      throw new Error("Réponse Nano Banana invalide: taskId manquant");
+    // Extract the generated image from the response
+    const generatedImageData = generateData?.candidates?.[0]?.content?.parts?.[0]?.inline_data?.data;
+    
+    if (!generatedImageData) {
+      console.error("No image data in response:", generateData);
+      throw new Error("Aucune image générée dans la réponse");
     }
 
-    console.log("Nano Banana taskId:", taskId);
-
-    // Poll task status until result image is available
-    let resultUrl: string | null = null;
-    const maxAttempts = 20;
-    const delayMs = 1000;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const statusResponse = await fetch(
-        `https://api.nanobananaapi.ai/api/v1/nanobanana/record-info?taskId=${encodeURIComponent(
-          taskId,
-        )}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${NANO_BANANA_API_KEY}`,
-          },
-        },
-      );
-
-      if (!statusResponse.ok) {
-        const statusText = await statusResponse.text();
-        console.error("Nano Banana status error:", statusResponse.status, statusText);
-        throw new Error("Erreur lors de la récupération du statut de la tâche Nano Banana");
-      }
-
-      const statusData = await statusResponse.json();
-      const status = statusData?.data?.successFlag;
-
-      if (status === 1) {
-        resultUrl = statusData?.data?.response?.resultImageUrl ?? null;
-        break;
-      }
-
-      if (status === 2 || status === 3) {
-        const message = statusData?.data?.errorMessage || "La génération Nano Banana a échoué";
-        console.error("Nano Banana task failed:", statusData);
-        throw new Error(message);
-      }
-
-      // Wait before next poll
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
-
-    if (!resultUrl) {
-      throw new Error(
-        "La génération de l'image prend plus de temps que prévu. Veuillez réessayer dans quelques instants.",
-      );
-    }
-
-    console.log("Generated result URL:", resultUrl);
+    // Decode base64 image
+    const generatedImageBuffer = Uint8Array.from(atob(generatedImageData), c => c.charCodeAt(0));
 
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -132,22 +109,12 @@ serve(async (req) => {
 
     const userId = (photoData as any).projects.user_id;
 
-    // Download the result image
-    const imageResponse = await fetch(resultUrl);
-    if (!imageResponse.ok) {
-      throw new Error("Impossible de télécharger l'image résultat");
-    }
-
-    const imageBlob = await imageResponse.blob();
-    const imageArrayBuffer = await imageBlob.arrayBuffer();
-    const imageBuffer = new Uint8Array(imageArrayBuffer);
-
     // Upload to Supabase Storage
-    const fileName = `${userId}/${Date.now()}.png`;
+    const fileName = `${userId}/${Date.now()}.jpg`;
     const { error: uploadError } = await supabase.storage
       .from("render-results")
-      .upload(fileName, imageBuffer, {
-        contentType: "image/png",
+      .upload(fileName, generatedImageBuffer, {
+        contentType: "image/jpeg",
       });
 
     if (uploadError) {
