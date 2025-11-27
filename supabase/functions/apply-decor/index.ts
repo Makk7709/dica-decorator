@@ -43,20 +43,51 @@ serve(async (req) => {
       throw new Error("Décor introuvable");
     }
 
-    // Build simplified prompt based on useCase
+    // Build detailed prompt for intelligent surface mapping
     let prompt = "";
     switch (useCase) {
       case "ascenseur":
-        prompt = `Generate a realistic product mockup of an elevator cabin interior, fully renovated with DICA decor "${decor.name}" (ref ${decor.reference_code}). Keep proportions and perspective similar to a professional interior photo.`;
+        prompt = `Analyze this elevator cabin photo and intelligently identify ALL metal/decorative surfaces (walls, panels, ceilings, any visible metallic finishes). Replace EVERY identified surface completely and precisely with the DICA decor "${decor.name}" (ref ${decor.reference_code}). 
+
+CRITICAL REQUIREMENTS:
+- Detect and map 100% of existing metal/decorative surfaces
+- Apply the new texture to ALL detected surfaces without exception
+- Maintain exact geometry, dimensions, perspective, and lighting from the original photo
+- Preserve reflections, shadows, and environmental lighting on the new surfaces
+- Keep all non-metallic elements (buttons, floors, fixtures) completely unchanged
+- The result must look like a professional architectural photo with the original cabin structure but new surface finish`;
         break;
       case "van":
-        prompt = `Generate a realistic product mockup of a van interior, fully renovated with DICA decor "${decor.name}" (ref ${decor.reference_code}). Keep proportions and perspective similar to a professional interior photo.`;
+        prompt = `Analyze this van interior photo and intelligently identify ALL metal/decorative surfaces (walls, panels, ceilings, any visible metallic finishes). Replace EVERY identified surface completely and precisely with the DICA decor "${decor.name}" (ref ${decor.reference_code}). 
+
+CRITICAL REQUIREMENTS:
+- Detect and map 100% of existing metal/decorative surfaces
+- Apply the new texture to ALL detected surfaces without exception
+- Maintain exact geometry, dimensions, perspective, and lighting from the original photo
+- Preserve reflections, shadows, and environmental lighting on the new surfaces
+- Keep all non-metallic elements (seats, fixtures, windows) completely unchanged
+- The result must look like a professional automotive photo with the original van structure but new surface finish`;
         break;
       case "terrasse":
-        prompt = `Generate a realistic product mockup of a terrace or outdoor deck, fully renovated with DICA decor "${decor.name}" (ref ${decor.reference_code}). Keep proportions and perspective similar to a professional outdoor photo.`;
+        prompt = `Analyze this terrace/deck photo and intelligently identify ALL decorative surfaces (flooring, panels, any visible finishes). Replace EVERY identified surface completely and precisely with the DICA decor "${decor.name}" (ref ${decor.reference_code}). 
+
+CRITICAL REQUIREMENTS:
+- Detect and map 100% of existing decorative surfaces
+- Apply the new texture to ALL detected surfaces without exception
+- Maintain exact geometry, dimensions, perspective, and lighting from the original photo
+- Preserve shadows and outdoor lighting on the new surfaces
+- Keep all other elements (furniture, plants, surroundings) completely unchanged
+- The result must look like a professional outdoor photo with the original structure but new surface finish`;
         break;
       default:
-        prompt = `Generate a realistic product mockup of a ${useCase} interior, fully renovated with DICA decor "${decor.name}" (ref ${decor.reference_code}). Keep proportions and perspective similar to a professional interior photo.`;
+        prompt = `Analyze this ${useCase} photo and intelligently identify ALL metal/decorative surfaces. Replace EVERY identified surface completely and precisely with the DICA decor "${decor.name}" (ref ${decor.reference_code}). 
+
+CRITICAL REQUIREMENTS:
+- Detect and map 100% of existing metal/decorative surfaces
+- Apply the new texture to ALL detected surfaces without exception
+- Maintain exact geometry, dimensions, perspective, and lighting from the original photo
+- Preserve reflections, shadows, and environmental lighting on the new surfaces
+- The result must look like a professional photo with the original structure but new surface finish`;
     }
 
     console.log("Calling Google AI Studio (Gemini 2.5 Flash Image)...");
