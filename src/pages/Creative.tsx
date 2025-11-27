@@ -5,11 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, Download, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Message {
   role: "user" | "assistant";
@@ -35,6 +36,12 @@ interface Favorite {
   created_at: string;
 }
 
+interface Project {
+  id: string;
+  title: string;
+  use_case: string;
+}
+
 const Creative = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -52,6 +59,12 @@ const Creative = () => {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveTitle, setSaveTitle] = useState("");
   const [selectedMessageIndex, setSelectedMessageIndex] = useState<number | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [saveToProjectDialogOpen, setSaveToProjectDialogOpen] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [newProjectTitle, setNewProjectTitle] = useState("");
+  const [isSavingToProject, setIsSavingToProject] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -62,6 +75,7 @@ const Creative = () => {
     }
     loadDecors();
     loadFavorites();
+    loadProjects();
   }, [user, navigate]);
 
   useEffect(() => {
@@ -82,6 +96,23 @@ const Creative = () => {
       setFavorites(data || []);
     } catch (error: any) {
       console.error("Error loading favorites:", error);
+    }
+  };
+
+  const loadProjects = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, title, use_case")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (error: any) {
+      console.error("Error loading projects:", error);
     }
   };
 
@@ -306,6 +337,94 @@ const Creative = () => {
     }
   };
 
+  const downloadImage = async (imageUrl: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dica-creative-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Image téléchargée");
+    } catch (error) {
+      console.error("Error downloading image:", error);
+      toast.error("Erreur lors du téléchargement");
+    }
+  };
+
+  const saveImageToProject = async () => {
+    if (!user || !selectedImageUrl) return;
+    
+    setIsSavingToProject(true);
+    try {
+      let projectId = selectedProjectId;
+      
+      // Create new project if needed
+      if (!projectId && newProjectTitle.trim()) {
+        const { data: newProject, error: projectError } = await supabase
+          .from("projects")
+          .insert({
+            user_id: user.id,
+            title: newProjectTitle.trim(),
+            use_case: "autre"
+          })
+          .select()
+          .single();
+
+        if (projectError) throw projectError;
+        projectId = newProject.id;
+      }
+
+      if (!projectId) {
+        toast.error("Veuillez sélectionner ou créer un projet");
+        return;
+      }
+
+      // Convert base64 to blob
+      const base64Data = selectedImageUrl.split(',')[1];
+      const blob = await fetch(`data:image/png;base64,${base64Data}`).then(r => r.blob());
+      
+      // Upload to storage
+      const fileName = `creative-${Date.now()}.png`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("project-photos")
+        .upload(`${user.id}/${fileName}`, blob);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("project-photos")
+        .getPublicUrl(`${user.id}/${fileName}`);
+
+      // Save to project_photos
+      const { error: photoError } = await supabase
+        .from("project_photos")
+        .insert({
+          project_id: projectId,
+          original_image_url: publicUrl
+        });
+
+      if (photoError) throw photoError;
+
+      toast.success("Image ajoutée au projet");
+      setSaveToProjectDialogOpen(false);
+      setSelectedImageUrl(null);
+      setSelectedProjectId("");
+      setNewProjectTitle("");
+      loadProjects();
+    } catch (error: any) {
+      console.error("Error saving to project:", error);
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setIsSavingToProject(false);
+    }
+  };
+
   return (
     <div className="relative min-h-screen bg-background">
       <div 
@@ -370,11 +489,34 @@ const Creative = () => {
                               {message.imageUrl ? (
                                 <div className="space-y-3">
                                   <p className="whitespace-pre-wrap text-sm">{message.content}</p>
-                                  <img 
-                                    src={message.imageUrl} 
-                                    alt="Visualisation générée" 
-                                    className="rounded-lg w-full max-w-2xl"
-                                  />
+                                  <div className="space-y-2">
+                                    <img 
+                                      src={message.imageUrl} 
+                                      alt="Visualisation générée" 
+                                      className="rounded-lg w-full max-w-2xl"
+                                    />
+                                    <div className="flex gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => downloadImage(message.imageUrl!)}
+                                      >
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Télécharger
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedImageUrl(message.imageUrl!);
+                                          setSaveToProjectDialogOpen(true);
+                                        }}
+                                      >
+                                        <FolderPlus className="h-4 w-4 mr-2" />
+                                        Enregistrer dans un projet
+                                      </Button>
+                                    </div>
+                                  </div>
                                 </div>
                               ) : (
                                 <p className="whitespace-pre-wrap text-sm">{message.content}</p>
@@ -529,6 +671,79 @@ const Creative = () => {
                     ) : (
                       <>
                         <Heart className="mr-2 h-4 w-4" />
+                        Enregistrer
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={saveToProjectDialogOpen} onOpenChange={setSaveToProjectDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Enregistrer dans un projet</DialogTitle>
+                <DialogDescription>
+                  Choisissez un projet existant ou créez-en un nouveau
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                {projects.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Projet existant</label>
+                    <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un projet" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Ou</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nouveau projet</label>
+                  <Input
+                    value={newProjectTitle}
+                    onChange={(e) => {
+                      setNewProjectTitle(e.target.value);
+                      setSelectedProjectId("");
+                    }}
+                    placeholder="Nom du nouveau projet"
+                  />
+                </div>
+
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" onClick={() => setSaveToProjectDialogOpen(false)}>
+                    Annuler
+                  </Button>
+                  <Button 
+                    onClick={saveImageToProject} 
+                    disabled={isSavingToProject || (!selectedProjectId && !newProjectTitle.trim())}
+                  >
+                    {isSavingToProject ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Enregistrement...
+                      </>
+                    ) : (
+                      <>
+                        <FolderPlus className="mr-2 h-4 w-4" />
                         Enregistrer
                       </>
                     )}
