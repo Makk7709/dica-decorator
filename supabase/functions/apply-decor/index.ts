@@ -43,51 +43,74 @@ serve(async (req) => {
       throw new Error("Décor introuvable");
     }
 
-    // Build detailed prompt for intelligent surface mapping
+    // Build detailed prompt for intelligent surface mapping with texture reference
     let prompt = "";
     switch (useCase) {
       case "ascenseur":
-        prompt = `Analyze this elevator cabin photo and intelligently identify ALL metal/decorative surfaces (walls, panels, ceilings, any visible metallic finishes). Replace EVERY identified surface completely and precisely with the DICA decor "${decor.name}" (ref ${decor.reference_code}). 
+        prompt = `You are a professional surface coating specialist. Your task is to apply the DICA decorative finish "${decor.name}" (ref ${decor.reference_code}) to this elevator cabin photo.
+
+STEP-BY-STEP PROCESS:
+1. IDENTIFY: Detect ALL wall panels, ceiling panels, and any decorative/metallic surfaces in the elevator cabin
+2. ANALYZE: Recognize the current coating/finish on these surfaces (wood veneer, metal, laminate, etc.)
+3. REPLACE: Apply the new DICA decor texture to replace 100% of the identified surfaces - NOT just color tint, but the actual material texture and pattern
+4. PRESERVE: Keep EVERYTHING else identical - buttons, control panels, floor, lighting fixtures, door handles, frames, and all hardware must remain unchanged
 
 CRITICAL REQUIREMENTS:
-- Detect and map 100% of existing metal/decorative surfaces
-- Apply the new texture to ALL detected surfaces without exception
-- Maintain exact geometry, dimensions, perspective, and lighting from the original photo
-- Preserve reflections, shadows, and environmental lighting on the new surfaces
-- Keep all non-metallic elements (buttons, floors, fixtures) completely unchanged
-- The result must look like a professional architectural photo with the original cabin structure but new surface finish`;
+- The DICA decor has a specific brushed metal/textured finish pattern that must be visible on ALL surfaces
+- DO NOT just change the color tone - apply the actual decor texture with its grain, pattern, and finish
+- Cover 100% of wall and ceiling panels with the new decor
+- Maintain exact cabin dimensions, perspective, and lighting
+- Keep all functional elements (buttons, handles, fixtures) completely intact and visible
+- Result must be photorealistic with proper reflections and shadows on the new surface finish`;
         break;
       case "van":
-        prompt = `Analyze this van interior photo and intelligently identify ALL metal/decorative surfaces (walls, panels, ceilings, any visible metallic finishes). Replace EVERY identified surface completely and precisely with the DICA decor "${decor.name}" (ref ${decor.reference_code}). 
+        prompt = `You are a professional surface coating specialist. Your task is to apply the DICA decorative finish "${decor.name}" (ref ${decor.reference_code}) to this van interior photo.
+
+STEP-BY-STEP PROCESS:
+1. IDENTIFY: Detect ALL wall panels, ceiling panels, and decorative surfaces in the van interior
+2. ANALYZE: Recognize the current coating/finish on these surfaces (wood veneer, plastic panels, metal, etc.)
+3. REPLACE: Apply the new DICA decor texture to replace 100% of the identified surfaces - NOT just color tint, but the actual material texture and pattern
+4. PRESERVE: Keep EVERYTHING else identical - seats, windows, door handles, fixtures, and all hardware must remain unchanged and clearly visible
 
 CRITICAL REQUIREMENTS:
-- Detect and map 100% of existing metal/decorative surfaces
-- Apply the new texture to ALL detected surfaces without exception
-- Maintain exact geometry, dimensions, perspective, and lighting from the original photo
-- Preserve reflections, shadows, and environmental lighting on the new surfaces
-- Keep all non-metallic elements (seats, fixtures, windows) completely unchanged
-- The result must look like a professional automotive photo with the original van structure but new surface finish`;
+- The DICA decor has a specific brushed metal/textured finish pattern that must be visible on ALL panel surfaces
+- DO NOT just change the color tone - apply the actual decor texture with its grain, pattern, and finish
+- Cover 100% of wall and ceiling panels with the new decor, including wooden surfaces
+- ALL door handles, fixtures, and hardware MUST remain visible and unchanged
+- Maintain exact van dimensions, perspective, and lighting
+- Result must be photorealistic with proper reflections and shadows on the new surface finish`;
         break;
       case "terrasse":
-        prompt = `Analyze this terrace/deck photo and intelligently identify ALL decorative surfaces (flooring, panels, any visible finishes). Replace EVERY identified surface completely and precisely with the DICA decor "${decor.name}" (ref ${decor.reference_code}). 
+        prompt = `You are a professional surface coating specialist. Your task is to apply the DICA decorative finish "${decor.name}" (ref ${decor.reference_code}) to this terrace/deck photo.
+
+STEP-BY-STEP PROCESS:
+1. IDENTIFY: Detect ALL flooring, deck panels, and decorative surfaces
+2. ANALYZE: Recognize the current material (wood decking, composite, etc.)
+3. REPLACE: Apply the new DICA decor texture to replace 100% of the identified surfaces - NOT just color tint, but the actual material texture and pattern
+4. PRESERVE: Keep all furniture, plants, railings, and surrounding elements unchanged
 
 CRITICAL REQUIREMENTS:
-- Detect and map 100% of existing decorative surfaces
-- Apply the new texture to ALL detected surfaces without exception
-- Maintain exact geometry, dimensions, perspective, and lighting from the original photo
-- Preserve shadows and outdoor lighting on the new surfaces
-- Keep all other elements (furniture, plants, surroundings) completely unchanged
-- The result must look like a professional outdoor photo with the original structure but new surface finish`;
+- The DICA decor has a specific finish pattern that must be visible on ALL surfaces
+- DO NOT just change the color tone - apply the actual decor texture with its grain, pattern, and finish
+- Cover 100% of decorative surfaces with the new decor
+- Maintain exact perspective, outdoor lighting, and shadows
+- Result must be photorealistic with proper outdoor lighting effects`;
         break;
       default:
-        prompt = `Analyze this ${useCase} photo and intelligently identify ALL metal/decorative surfaces. Replace EVERY identified surface completely and precisely with the DICA decor "${decor.name}" (ref ${decor.reference_code}). 
+        prompt = `You are a professional surface coating specialist. Your task is to apply the DICA decorative finish "${decor.name}" (ref ${decor.reference_code}) to this photo.
+
+STEP-BY-STEP PROCESS:
+1. IDENTIFY: Detect ALL decorative/metallic surfaces
+2. ANALYZE: Recognize the current coating/finish on these surfaces
+3. REPLACE: Apply the new DICA decor texture to replace 100% of the identified surfaces - NOT just color tint, but the actual material texture and pattern
+4. PRESERVE: Keep all other elements unchanged
 
 CRITICAL REQUIREMENTS:
-- Detect and map 100% of existing metal/decorative surfaces
-- Apply the new texture to ALL detected surfaces without exception
-- Maintain exact geometry, dimensions, perspective, and lighting from the original photo
-- Preserve reflections, shadows, and environmental lighting on the new surfaces
-- The result must look like a professional photo with the original structure but new surface finish`;
+- The DICA decor has a specific finish pattern that must be visible on ALL surfaces
+- DO NOT just change the color tone - apply the actual decor texture
+- Cover 100% of applicable surfaces
+- Maintain exact perspective and lighting
+- Result must be photorealistic`;
     }
 
     console.log("Calling Google AI Studio (Gemini 2.5 Flash Image)...");
