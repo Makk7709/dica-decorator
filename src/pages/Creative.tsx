@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 interface Message {
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string;
 }
 
 interface Decor {
@@ -184,11 +185,31 @@ const Creative = () => {
       }),
     });
 
-    if (!resp.ok || !resp.body) {
+    if (!resp.ok) {
       if (resp.status === 429 || resp.status === 402) {
         const errorData = await resp.json();
         throw new Error(errorData.error);
       }
+      throw new Error("Échec de la connexion au service IA");
+    }
+
+    const contentType = resp.headers.get("content-type");
+    
+    // Check if it's an image response (JSON)
+    if (contentType?.includes("application/json")) {
+      const data = await resp.json();
+      if (data.type === "image") {
+        setMessages(prev => [...prev, { 
+          role: "assistant", 
+          content: data.text,
+          imageUrl: data.imageUrl
+        }]);
+        return;
+      }
+    }
+
+    // Stream text response
+    if (!resp.body) {
       throw new Error("Échec de la connexion au service IA");
     }
 
@@ -331,7 +352,18 @@ const Creative = () => {
                                   : "bg-muted"
                               }`}
                             >
-                              <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                              {message.imageUrl ? (
+                                <div className="space-y-3">
+                                  <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                                  <img 
+                                    src={message.imageUrl} 
+                                    alt="Visualisation générée" 
+                                    className="rounded-lg w-full max-w-2xl"
+                                  />
+                                </div>
+                              ) : (
+                                <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                              )}
                             </div>
                             {message.role === "assistant" && index > 0 && (
                               <Button

@@ -20,7 +20,61 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build system prompt with decor context
+    // Detect if user wants an image generation
+    const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
+    const imageKeywords = ["mood board", "moodboard", "plaquette", "visualise", "visualisation", "image", "photo", "crée", "créer", "génère", "imagine", "design"];
+    const wantsImage = imageKeywords.some(keyword => lastUserMessage.includes(keyword));
+
+    if (wantsImage) {
+      // Generate image using Gemini 3 Pro Image Preview
+      console.log("Generating image with Gemini 3 Pro Image Preview");
+      
+      const imagePrompt = `Crée une visualisation professionnelle haute qualité pour DICA France basée sur cette demande: ${lastUserMessage}
+
+DÉCORS DISPONIBLES À UTILISER:
+${decorContext}
+
+RÈGLES DE CRÉATION:
+- Utilise UNIQUEMENT les décors DICA listés ci-dessus
+- Crée une composition professionnelle et esthétique
+- Inclus les noms et références des décors dans la composition
+- Style: moderne, épuré, premium
+- Format: paysage (16:9)
+- Qualité: haute résolution`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-pro-image-preview",
+          messages: [
+            { role: "user", content: imagePrompt }
+          ],
+          modalities: ["image", "text"]
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Image generation failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      const textContent = data.choices?.[0]?.message?.content || "Voici votre visualisation :";
+
+      return new Response(JSON.stringify({ 
+        type: "image",
+        imageUrl,
+        text: textContent
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Text-only response using streaming
     const systemPrompt = `Tu es un assistant créatif spécialisé dans la visualisation de décors DICA France.
     
 DÉCORS DISPONIBLES:
@@ -28,16 +82,10 @@ ${decorContext}
 
 RÈGLES IMPORTANTES:
 - Tu dois UNIQUEMENT utiliser les décors DICA listés ci-dessus
-- Tu peux créer des mood boards, plaquettes, visualisations créatives
+- Tu peux suggérer des associations de décors pour différents espaces
 - Réponds en français de manière professionnelle et créative
-- Pour les demandes de création visuelle, décris précisément ce que tu vas créer
 - Utilise les noms et références exactes des décors DICA
-
-CAPACITÉS:
-- Créer des mood boards combinant plusieurs décors
-- Concevoir des plaquettes de présentation par catégorie
-- Suggérer des associations de décors pour différents espaces
-- Visualiser des applications concrètes (salle de bain, ascenseur, terrasse, etc.)`;
+- Si l'utilisateur veut une visualisation graphique, suggère-lui d'utiliser des mots-clés comme "mood board", "plaquette", "visualise", "crée", "imagine"`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
