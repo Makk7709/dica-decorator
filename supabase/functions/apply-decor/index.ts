@@ -90,10 +90,10 @@ serve(async (req) => {
           "Generate a photorealistic image where the decorative pattern from the second image is applied onto all visible surfaces in the first image. Create a realistic product mockup that preserves the original lighting, reflections, and perspective. The texture should appear as if it's naturally part of the surfaces.";
     }
 
-    // Call Google AI Studio API (Gemini with image generation)
-    console.log("Calling Google AI Studio (Gemini) for image generation...");
+    // Call Google AI Studio API (Gemini 3 Pro Image - more powerful for image editing)
+    console.log("Calling Google AI Studio (Gemini 3 Pro) for image generation...");
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GOOGLE_AI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${GOOGLE_AI_API_KEY}`,
       {
         method: "POST",
         headers: {
