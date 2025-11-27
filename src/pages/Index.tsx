@@ -22,7 +22,7 @@ const Index = () => {
         <Button
           size="lg"
           onClick={() => navigate(user ? "/dashboard" : "/auth")}
-          className="h-16 px-12 text-xl font-semibold shadow-2xl hover:shadow-3xl transition-all backdrop-blur-sm bg-primary/95 hover:bg-primary"
+          className="h-16 px-12 text-xl font-semibold shadow-2xl hover:shadow-3xl transition-all backdrop-blur-sm bg-primary/95 hover:bg-primary animate-fade-in hover:scale-110 hover:-translate-y-1"
         >
           Entrer
         </Button>
