@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Project {
@@ -179,6 +179,27 @@ const ProjectDetail = () => {
     }
   };
 
+  const handleDeleteRender = async (renderId: string, photoId: string) => {
+    try {
+      const { error } = await supabase
+        .from("render_results")
+        .delete()
+        .eq("id", renderId);
+
+      if (error) throw error;
+
+      toast.success("Résultat supprimé");
+      
+      // Update local state
+      setRenders(prev => ({
+        ...prev,
+        [photoId]: prev[photoId].filter(r => r.id !== renderId)
+      }));
+    } catch (error: any) {
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
   if (!project) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -273,17 +294,26 @@ const ProjectDetail = () => {
                         alt="Rendu"
                         className="w-full rounded-lg border"
                       />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full"
-                        asChild
-                      >
-                        <a href={render.result_image_url} download>
-                          <Download className="mr-2 h-4 w-4" />
-                          Télécharger
-                        </a>
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          asChild
+                        >
+                          <a href={render.result_image_url} download>
+                            <Download className="mr-2 h-4 w-4" />
+                            Télécharger
+                          </a>
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteRender(render.id, photo.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </CardContent>
