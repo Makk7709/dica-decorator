@@ -35,8 +35,11 @@ serve(async (req) => {
     // Convert relative texture URL to absolute URL
     let fullTextureUrl = textureUrl;
     if (textureUrl.startsWith("/")) {
-      // Extract the origin from the request
-      const origin = new URL(req.url).origin;
+      // Get the origin from the request headers (where the app is hosted)
+      const origin = req.headers.get("origin") || req.headers.get("referer")?.split("/").slice(0, 3).join("/");
+      if (!origin) {
+        throw new Error("Cannot determine app origin from request headers");
+      }
       fullTextureUrl = `${origin}${textureUrl}`;
       console.log("Converted relative texture URL to:", fullTextureUrl);
     }
