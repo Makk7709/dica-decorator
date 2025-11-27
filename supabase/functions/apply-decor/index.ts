@@ -81,9 +81,10 @@ Allowed surfaces: horizontal floor surfaces, visible vertical cladding (railings
 Forbidden surfaces: vegetation, furniture, textiles, decorative equipment`;
         break;
       default:
-        contextRules = `Context: Generic surface renovation
-Allowed surfaces: decorative wall and floor coverings
-Forbidden surfaces: technical elements, accessories, equipment`;
+        contextRules = `Context: Furniture/surface renovation (tables, counters, furniture)
+Allowed surfaces: ONLY the horizontal work surfaces (table tops, countertops, shelves, furniture panels) that are the main subject
+Forbidden surfaces: walls, floors, background elements, decorative items, technical equipment, accessories
+CRITICAL: DO NOT modify walls or background - focus ONLY on the main furniture piece or work surface in focus`;
     }
 
     // Layer 2.5: Material-specific rules based on decor category
@@ -134,12 +135,15 @@ Do NOT alter the fundamental visual characteristics of this material.`;
 
     // Layer 3: Visual quality directive (always present)
     const qualityDirective = `Universal rules:
-- If in doubt → DO NOT modify the surface
+- IDENTIFY the main subject of renovation first (the prominent furniture/surface in the photo)
+- If in doubt about ANY surface → DO NOT modify it
+- WALLS and BACKGROUND are NEVER renovation targets unless explicitly in the context rules
 - Preserve perspective, shadows, joints, existing relief
 - NO global lighting transformation
 - Decor must follow surfaces (not float above them)
 - Result must be photographic and credible for a craftsperson
 
+CRITICAL TARGETING: Only modify surfaces that are clearly the MAIN SUBJECT of the renovation, not background elements.
 IMPORTANT: Ignore surfaces that already include a visible different material or pattern. If in doubt, keep the original material.`;
 
     // Assemble final prompt
@@ -185,10 +189,9 @@ ${qualityDirective}`;
     // Fetch decor texture as reference
     try {
       if (textureUrl) {
-        // Build absolute URL from the app domain (not the edge function domain)
-        const appUrl = Deno.env.get("VITE_SUPABASE_URL")?.replace('/rest/v1', '') || 
-                       req.headers.get("origin") || 
-                       "https://f7dcdcd1-f792-4761-bfa4-14b3a0277d1d.lovableproject.com";
+        // Build absolute URL - use the request referer to get the actual app domain
+        const referer = req.headers.get("referer") || req.headers.get("origin") || "";
+        const appUrl = referer ? new URL(referer).origin : "https://f7dcdcd1-f792-4761-bfa4-14b3a0277d1d.lovableproject.com";
         const absoluteTextureUrl = `${appUrl}${textureUrl}`;
         console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
         
