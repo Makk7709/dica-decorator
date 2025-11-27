@@ -61,19 +61,20 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
+        <div className="container mx-auto flex h-20 items-center justify-between px-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-md">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-bold">DICA Visual Studio</h1>
+            <h1 className="text-2xl font-bold">DICA Visual Studio</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {userRole === "admin" && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigate("/admin")}
+                className="border-2"
               >
                 <Settings className="mr-2 h-4 w-4" />
                 Admin
@@ -88,15 +89,15 @@ const Dashboard = () => {
       </header>
 
       {/* Main content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex items-center justify-between">
+      <main className="container mx-auto px-4 py-12">
+        <div className="mb-12 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold">Mes Projets</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-4xl font-bold mb-2">Mes Projets</h2>
+            <p className="text-lg text-muted-foreground">
               Visualisez vos décors DICA sur vos photos
             </p>
           </div>
-          <Button onClick={handleCreateProject} size="lg" className="shadow-md">
+          <Button onClick={handleCreateProject} size="lg" className="h-12 px-6 shadow-lg hover:shadow-xl transition-all">
             <Plus className="mr-2 h-5 w-5" />
             Nouveau Projet
           </Button>
@@ -131,19 +132,19 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
               <Card
                 key={project.id}
-                className="cursor-pointer transition-all hover:shadow-lg"
+                className="group cursor-pointer border-2 transition-all hover:shadow-xl hover:border-primary/50"
                 onClick={() => navigate(`/project/${project.id}`)}
               >
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FolderOpen className="h-5 w-5 text-primary" />
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <FolderOpen className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
                     {project.title}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-base">
                     {project.use_case} • {new Date(project.created_at).toLocaleDateString()}
                   </CardDescription>
                 </CardHeader>

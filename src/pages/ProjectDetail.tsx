@@ -211,30 +211,30 @@ const ProjectDetail = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+        <div className="container mx-auto flex h-20 items-center justify-between px-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="border-2">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
           </Button>
-          <h1 className="text-lg font-semibold">{project.title}</h1>
+          <h1 className="text-2xl font-bold">{project.title}</h1>
           <div className="w-24" /> {/* Spacer for centering */}
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-12">
         {/* Upload Section */}
-        <Card className="mb-8">
+        <Card className="mb-12 border-2">
           <CardHeader>
-            <CardTitle>Photos du projet</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl">Photos du projet</CardTitle>
+            <CardDescription className="text-base">
               Uploadez une ou plusieurs photos pour appliquer des décors
             </CardDescription>
           </CardHeader>
           <CardContent>
             <label htmlFor="photo-upload">
-              <Button asChild disabled={isUploading}>
+              <Button asChild disabled={isUploading} size="lg" className="h-12 px-6 shadow-lg">
                 <span className="cursor-pointer">
-                  <Upload className="mr-2 h-4 w-4" />
+                  <Upload className="mr-2 h-5 w-5" />
                   {isUploading ? "Upload en cours..." : "Ajouter une photo"}
                 </span>
               </Button>
@@ -251,27 +251,27 @@ const ProjectDetail = () => {
 
         {/* Photos Grid */}
         {photos.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <Upload className="mb-4 h-16 w-16 text-muted-foreground" />
-              <h3 className="mb-2 text-xl font-semibold">Aucune photo</h3>
-              <p className="text-center text-muted-foreground">
+          <Card className="border-2 border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-20">
+              <Upload className="mb-6 h-20 w-20 text-muted-foreground" />
+              <h3 className="mb-3 text-2xl font-semibold">Aucune photo</h3>
+              <p className="text-center text-lg text-muted-foreground">
                 Commencez par uploader une photo de votre produit
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-8 md:grid-cols-2">
             {photos.map((photo) => (
-              <Card key={photo.id}>
+              <Card key={photo.id} className="border-2">
                 <CardHeader>
-                  <CardTitle className="text-base">Photo originale</CardTitle>
+                  <CardTitle className="text-xl">Photo originale</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
                   <img
                     src={photo.original_image_url}
                     alt="Photo projet"
-                    className="w-full rounded-lg border"
+                    className="w-full rounded-lg border-2"
                   />
                   
                   <Button
@@ -279,26 +279,26 @@ const ProjectDetail = () => {
                       setSelectedPhoto(photo);
                       setShowDecorDialog(true);
                     }}
-                    className="w-full"
+                    className="w-full h-12 shadow-lg hover:shadow-xl transition-all"
                   >
-                    <Sparkles className="mr-2 h-4 w-4" />
+                    <Sparkles className="mr-2 h-5 w-5" />
                     Appliquer un décor
                   </Button>
 
                   {/* Renders for this photo */}
                   {renders[photo.id]?.map((render) => (
-                    <div key={render.id} className="space-y-2 border-t pt-4">
-                      <p className="text-sm font-medium">Résultat avec décor</p>
+                    <div key={render.id} className="space-y-3 border-t-2 pt-6">
+                      <p className="text-base font-semibold">Résultat avec décor</p>
                       <img
                         src={render.result_image_url}
                         alt="Rendu"
-                        className="w-full rounded-lg border"
+                        className="w-full rounded-lg border-2"
                       />
-                      <div className="flex gap-2">
+                      <div className="flex gap-3">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1"
+                          className="flex-1 border-2"
                           asChild
                         >
                           <a href={render.result_image_url} download>
