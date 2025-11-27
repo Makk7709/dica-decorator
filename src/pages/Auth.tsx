@@ -70,7 +70,13 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
+    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
+      {/* Background image */}
+      <div 
+        className="fixed inset-0 bg-cover bg-center opacity-30"
+        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')" }}
+      />
+      <div className="relative z-10 w-full flex items-center justify-center">
       <Card className="w-full max-w-md shadow-card">
         <CardHeader className="space-y-1 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-primary">
@@ -178,6 +184,7 @@ const Auth = () => {
           <p className="text-xs">Mot de passe : PassTemporaire@123</p>
         </CardFooter>
       </Card>
+      </div>
     </div>
   );
 };

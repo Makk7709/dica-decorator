@@ -58,7 +58,13 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen bg-background">
+      {/* Background image */}
+      <div 
+        className="fixed inset-0 bg-cover bg-center opacity-30"
+        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')" }}
+      />
+      <div className="relative z-10">
       {/* Header */}
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
@@ -157,6 +163,7 @@ const Dashboard = () => {
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 };
