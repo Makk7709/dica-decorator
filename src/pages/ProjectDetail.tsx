@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info } from "lucide-react";
 import { toast } from "sonner";
 
 interface Project {
@@ -455,6 +456,13 @@ const ProjectDetail = () => {
               Sélectionnez un décor DICA à appliquer sur votre photo
             </DialogDescription>
           </DialogHeader>
+
+          <Alert className="mt-4">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              En fonction de la qualité des images sources, il est parfois nécessaire de faire plusieurs générations pour obtenir le résultat attendu.
+            </AlertDescription>
+          </Alert>
           
           <Tabs defaultValue="metal" className="w-full">
             <TabsList className="grid w-full grid-cols-5 h-auto">
