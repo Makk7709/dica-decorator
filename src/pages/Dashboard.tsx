@@ -62,7 +62,7 @@ const Dashboard = () => {
       {/* Background image */}
       <div 
         className="fixed inset-0 bg-cover opacity-30"
-        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 20%" }}
+        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 45%" }}
       />
       <div className="relative z-10">
       {/* Header */}
