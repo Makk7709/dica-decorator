@@ -99,10 +99,28 @@ serve(async (req) => {
     console.log("Gemini response received successfully");
 
     // Extract generated image from response
-    const base64 = geminiData?.candidates?.[0]?.content?.parts?.[0]?.inline_data?.data;
+    const parts = geminiData?.candidates?.[0]?.content?.parts;
+    
+    if (!parts || parts.length === 0) {
+      console.error("No parts in Gemini response:", geminiData);
+      throw new Error("Aucune image générée dans la réponse Gemini");
+    }
+
+    // Find the part containing image data
+    let base64 = null;
+    for (const part of parts) {
+      if (part.inline_data?.data) {
+        base64 = part.inline_data.data;
+        break;
+      }
+      if (part.inlineData?.data) {
+        base64 = part.inlineData.data;
+        break;
+      }
+    }
 
     if (!base64) {
-      console.error("No image data in Gemini response:", geminiData);
+      console.error("No image data found in parts:", JSON.stringify(parts, null, 2));
       throw new Error("Aucune image générée dans la réponse Gemini");
     }
 
