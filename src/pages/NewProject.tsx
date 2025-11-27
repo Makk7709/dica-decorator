@@ -54,7 +54,7 @@ const NewProject = () => {
       {/* Background image */}
       <div 
         className="fixed inset-0 bg-cover opacity-30"
-        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 45%" }}
+        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 70%" }}
       />
       <div className="relative z-10">
       <header className="border-b bg-card shadow-sm">
