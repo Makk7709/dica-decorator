@@ -75,19 +75,19 @@ serve(async (req) => {
     switch (useCase) {
       case "ascenseur":
         contextPrompt =
-          "This is an elevator cabin interior. Apply the decor texture realistically to all visible wall panels, preserving metallic edges, lighting reflections, and perspective.";
+          "Generate a photorealistic image showing this elevator cabin interior with the decorative pattern from the second image applied to all wall panels. Maintain the original lighting, metallic edges, reflections, and perspective. The texture should wrap naturally around the surfaces.";
         break;
       case "van":
         contextPrompt =
-          "This is a vehicle interior (van or similar). Apply the decor texture to the visible panels and surfaces, maintaining curved contours, lighting, and reflections.";
+          "Generate a photorealistic image of this vehicle interior with the decorative pattern from the second image applied to the visible panels and surfaces. Preserve the curved contours, original lighting, and reflections. The texture should follow the natural shape of the surfaces.";
         break;
       case "terrasse":
         contextPrompt =
-          "This is an outdoor terrace or deck. Apply the decor texture to the flooring or wall surfaces, preserving natural lighting, shadows, and perspective.";
+          "Generate a photorealistic image of this outdoor terrace or deck with the decorative pattern from the second image applied to the flooring or wall surfaces. Maintain the natural outdoor lighting, shadows, and perspective. The texture should appear as a realistic surface material.";
         break;
       default:
         contextPrompt =
-          "Apply the decor texture from the second image onto all visible surfaces of the first image as a realistic product mockup. Preserve lighting, reflections, and perspective.";
+          "Generate a photorealistic image where the decorative pattern from the second image is applied onto all visible surfaces in the first image. Create a realistic product mockup that preserves the original lighting, reflections, and perspective. The texture should appear as if it's naturally part of the surfaces.";
     }
 
     // Call Google AI Studio API (Gemini with image generation)
@@ -122,7 +122,8 @@ serve(async (req) => {
             },
           ],
           generationConfig: {
-            response_modalities: ["IMAGE"],
+            response_modalities: ["IMAGE", "TEXT"],
+            temperature: 0.4,
           },
         }),
       },
