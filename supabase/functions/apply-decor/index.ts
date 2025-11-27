@@ -128,6 +128,10 @@ serve(async (req) => {
       const errorText = await geminiResponse.text();
       console.error("Google AI error:", geminiResponse.status, errorText);
       
+      if (geminiResponse.status === 429) {
+        throw new Error("Quota d'API Google AI dépassé. Veuillez patienter quelques minutes avant de réessayer ou mettre à niveau votre plan Google AI Studio.");
+      }
+      
       throw new Error(`Google AI error ${geminiResponse.status}`);
     }
 
