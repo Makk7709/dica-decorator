@@ -50,7 +50,13 @@ const NewProject = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative min-h-screen bg-background">
+      {/* Background image */}
+      <div 
+        className="fixed inset-0 bg-cover bg-center opacity-30"
+        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')" }}
+      />
+      <div className="relative z-10">
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto flex h-16 items-center px-4">
           <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
@@ -121,6 +127,7 @@ const NewProject = () => {
           </CardContent>
         </Card>
       </main>
+      </div>
     </div>
   );
 };
