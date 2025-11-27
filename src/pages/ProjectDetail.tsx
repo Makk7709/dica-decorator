@@ -262,6 +262,31 @@ const ProjectDetail = () => {
     }
   };
 
+  const handleDeletePhoto = async (photoId: string) => {
+    try {
+      // Delete all render results for this photo first
+      const { error: renderError } = await supabase
+        .from("render_results")
+        .delete()
+        .eq("project_photo_id", photoId);
+
+      if (renderError) throw renderError;
+
+      // Delete the photo itself
+      const { error: photoError } = await supabase
+        .from("project_photos")
+        .delete()
+        .eq("id", photoId);
+
+      if (photoError) throw photoError;
+
+      toast.success("Photo supprimée");
+      loadProject();
+    } catch (error: any) {
+      toast.error("Erreur lors de la suppression de la photo");
+    }
+  };
+
   if (!project) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -348,16 +373,26 @@ const ProjectDetail = () => {
                     className="w-full rounded-lg border-2"
                   />
                   
-                  <Button
-                    onClick={() => {
-                      setSelectedPhoto(photo);
-                      setShowDecorDialog(true);
-                    }}
-                    className="w-full h-12 shadow-lg hover:shadow-xl transition-all"
-                  >
-                    <Sparkles className="mr-2 h-5 w-5" />
-                    Appliquer un décor
-                  </Button>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        setSelectedPhoto(photo);
+                        setShowDecorDialog(true);
+                      }}
+                      className="flex-1 h-12 shadow-lg hover:shadow-xl transition-all"
+                    >
+                      <Sparkles className="mr-2 h-5 w-5" />
+                      Appliquer un décor
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="lg"
+                      onClick={() => handleDeletePhoto(photo.id)}
+                      className="h-12 px-4"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </div>
 
                   {/* Renders for this photo */}
                   {renders[photo.id]?.map((render) => (
