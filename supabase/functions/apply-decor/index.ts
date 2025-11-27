@@ -22,9 +22,9 @@ serve(async (req) => {
       useCase,
     });
 
-    const GOOGLE_GENERATIVE_AI_API_KEY = Deno.env.get("GOOGLE_GENERATIVE_AI_API_KEY");
-    if (!GOOGLE_GENERATIVE_AI_API_KEY) {
-      throw new Error("GOOGLE_GENERATIVE_AI_API_KEY not configured");
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+    if (!GOOGLE_AI_API_KEY) {
+      throw new Error("GOOGLE_AI_API_KEY not configured");
     }
 
     // Fetch decor information to get name and reference code
@@ -64,7 +64,7 @@ serve(async (req) => {
     // Call Google AI Studio API with simplified text-only prompt
     const url = 
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=' +
-      GOOGLE_GENERATIVE_AI_API_KEY;
+      GOOGLE_AI_API_KEY;
     
     const geminiResponse = await fetch(url, {
       method: "POST",
