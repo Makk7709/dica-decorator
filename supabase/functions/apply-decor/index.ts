@@ -13,13 +13,15 @@ serve(async (req) => {
   }
 
   try {
-    const { photoUrl, textureUrl, photoId, decorId, useCase } = await req.json();
+    const { photoUrl, textureUrl, photoId, decorId, useCase, renderCount = 1, format = "square" } = await req.json();
     console.log("Applying decor:", {
       photoUrl,
       textureUrl,
       photoId,
       decorId,
       useCase,
+      renderCount,
+      format,
     });
 
     const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
@@ -240,95 +242,111 @@ ${qualityDirective}`;
       });
     }
     
+    // Determine aspect ratio based on format
+    let aspectRatio = "1:1"; // square
+    if (format === "portrait") {
+      aspectRatio = "9:16";
+    } else if (format === "landscape") {
+      aspectRatio = "16:9";
+    }
+    
     // Call Google AI Studio API with Gemini 3 Pro Image Preview
     const url =
       "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=" +
       GOOGLE_AI_API_KEY;
 
-    const geminiResponse = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: requestParts,
-          },
-        ],
-        generationConfig: {
-          imageConfig: {
-            aspectRatio: "16:9",
-          },
+    // Generate multiple renders as requested
+    const generatedUrls: string[] = [];
+    
+    for (let i = 0; i < renderCount; i++) {
+      console.log(`Generating render ${i + 1}/${renderCount}...`);
+      
+      const geminiResponse = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      }),
-    });
-
-    // Handle errors with detailed logging
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error("Google AI error:", geminiResponse.status, errorText);
-      
-      if (geminiResponse.status === 429) {
-        throw new Error("Quota d'API Google AI dépassé. Veuillez patienter quelques minutes avant de réessayer ou mettre à niveau votre plan Google AI Studio.");
-      }
-      
-      throw new Error(`Google AI error ${geminiResponse.status}`);
-    }
-
-    const geminiData = await geminiResponse.json();
-    console.log("Gemini response received successfully");
-
-    // Extract generated image from response
-    const responseParts = geminiData?.candidates?.[0]?.content?.parts;
-    
-    if (!responseParts || responseParts.length === 0) {
-      console.error("No parts in Gemini response:", geminiData);
-      throw new Error("Aucune image générée dans la réponse Gemini");
-    }
-
-    // Find the part containing image data
-    let base64 = null;
-    for (const part of responseParts) {
-      if (part.inline_data?.data) {
-        base64 = part.inline_data.data;
-        break;
-      }
-      if (part.inlineData?.data) {
-        base64 = part.inlineData.data;
-        break;
-      }
-    }
-
-    if (!base64) {
-      console.error("No image data found in parts:", JSON.stringify(responseParts, null, 2));
-      throw new Error("Aucune image générée dans la réponse Gemini");
-    }
-
-    // Return data URL directly
-    const resultUrl = `data:image/png;base64,${base64}`;
-    
-    console.log("Image generated successfully, saving to database");
-
-    // Save result to database
-    const { error: insertError } = await supabase
-      .from("render_results")
-      .insert({
-        project_photo_id: photoId,
-        decor_id: decorId,
-        result_image_url: resultUrl,
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: requestParts,
+            },
+          ],
+          generationConfig: {
+            imageConfig: {
+              aspectRatio,
+            },
+          },
+        }),
       });
 
-    if (insertError) {
-      console.error("Error saving render result:", insertError);
-      throw new Error("Erreur lors de la sauvegarde du rendu");
+      // Handle errors with detailed logging
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
+        console.error("Google AI error:", geminiResponse.status, errorText);
+        
+        if (geminiResponse.status === 429) {
+          throw new Error("Quota d'API Google AI dépassé. Veuillez patienter quelques minutes avant de réessayer ou mettre à niveau votre plan Google AI Studio.");
+        }
+        
+        throw new Error(`Google AI error ${geminiResponse.status}`);
+      }
+
+      const geminiData = await geminiResponse.json();
+      console.log(`Gemini response ${i + 1} received successfully`);
+
+      // Extract generated image from response
+      const responseParts = geminiData?.candidates?.[0]?.content?.parts;
+      
+      if (!responseParts || responseParts.length === 0) {
+        console.error("No parts in Gemini response:", geminiData);
+        throw new Error("Aucune image générée dans la réponse Gemini");
+      }
+
+      // Find the part containing image data
+      let base64 = null;
+      for (const part of responseParts) {
+        if (part.inline_data?.data) {
+          base64 = part.inline_data.data;
+          break;
+        }
+        if (part.inlineData?.data) {
+          base64 = part.inlineData.data;
+          break;
+        }
+      }
+
+      if (!base64) {
+        console.error("No image data found in parts:", JSON.stringify(responseParts, null, 2));
+        throw new Error("Aucune image générée dans la réponse Gemini");
+      }
+
+      // Return data URL directly
+      const resultUrl = `data:image/png;base64,${base64}`;
+      generatedUrls.push(resultUrl);
+      
+      console.log(`Image ${i + 1} generated successfully, saving to database`);
+
+      // Save result to database
+      const { error: insertError } = await supabase
+        .from("render_results")
+        .insert({
+          project_photo_id: photoId,
+          decor_id: decorId,
+          result_image_url: resultUrl,
+        });
+
+      if (insertError) {
+        console.error("Error saving render result:", insertError);
+        throw new Error("Erreur lors de la sauvegarde du rendu");
+      }
+
+      console.log(`Render result ${i + 1} saved successfully`);
     }
 
-    console.log("Render result saved successfully");
-
     return new Response(
-      JSON.stringify({ success: true, resultUrl }),
+      JSON.stringify({ success: true, resultUrls: generatedUrls }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
