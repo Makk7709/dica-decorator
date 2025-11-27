@@ -94,7 +94,12 @@ serve(async (req) => {
     const generateData = await generateResponse.json();
     const taskId = generateData?.data?.taskId as string | undefined;
 
+    // Handle cases where Nano Banana returns an error payload with code/msg but 200 HTTP
     if (!taskId) {
+      if (generateData?.code && generateData?.msg) {
+        console.error("Nano Banana error payload:", generateData);
+        throw new Error(`Erreur Nano Banana (${generateData.code}): ${generateData.msg}`);
+      }
       console.error("Nano Banana response without taskId:", generateData);
       throw new Error("Réponse Nano Banana invalide: taskId manquant");
     }
