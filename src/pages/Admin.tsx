@@ -407,6 +407,25 @@ const Admin = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="textureFile">Image Texture</Label>
+                      
+                      {/* Preview current image */}
+                      {formData.textureUrl && !imageFile && (
+                        <div className="mb-3 rounded-lg border-2 border-primary/20 p-3">
+                          <p className="mb-2 text-sm font-medium">Image actuelle:</p>
+                          <img
+                            src={formData.textureUrl}
+                            alt="Texture actuelle"
+                            className="h-32 w-full rounded object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                          <p className="mt-2 text-xs text-muted-foreground break-all">
+                            {formData.textureUrl}
+                          </p>
+                        </div>
+                      )}
+                      
                       <div className="flex items-center gap-2">
                         <Input
                           id="textureFile"
@@ -418,7 +437,7 @@ const Admin = () => {
                         {imageFile && <CheckCircle className="h-5 w-5 text-success" />}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Ou entrez une URL ci-dessous
+                        {editingDecor ? "Uploadez une nouvelle image pour remplacer l'actuelle" : "Ou entrez une URL ci-dessous"}
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -429,7 +448,7 @@ const Admin = () => {
                         placeholder="https://... ou /decor-textures/..."
                         value={formData.textureUrl}
                         onChange={(e) => setFormData({ ...formData, textureUrl: e.target.value })}
-                        required={!imageFile}
+                        required={!imageFile && !editingDecor}
                       />
                     </div>
                     <div className="flex justify-end gap-2">
