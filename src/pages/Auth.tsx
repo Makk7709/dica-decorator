@@ -73,8 +73,8 @@ const Auth = () => {
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
       {/* Background image */}
       <div 
-        className="fixed inset-0 bg-cover bg-center opacity-30"
-        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')" }}
+        className="fixed inset-0 bg-cover opacity-30"
+        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 20%" }}
       />
       <div className="relative z-10 w-full flex items-center justify-center">
       <Card className="w-full max-w-md shadow-card">

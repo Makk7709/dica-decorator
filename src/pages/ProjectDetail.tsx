@@ -214,8 +214,8 @@ const ProjectDetail = () => {
     <div className="relative min-h-screen bg-background">
       {/* Background image */}
       <div 
-        className="fixed inset-0 bg-cover bg-center opacity-30"
-        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')" }}
+        className="fixed inset-0 bg-cover opacity-30"
+        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 20%" }}
       />
       <div className="relative z-10">
       <header className="border-b bg-card shadow-sm">
