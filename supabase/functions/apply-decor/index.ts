@@ -127,7 +127,23 @@ serve(async (req) => {
     // Return data URL directly
     const resultUrl = `data:image/png;base64,${base64}`;
     
-    console.log("Image generated successfully, returning data URL");
+    console.log("Image generated successfully, saving to database");
+
+    // Save result to database
+    const { error: insertError } = await supabase
+      .from("render_results")
+      .insert({
+        project_photo_id: photoId,
+        decor_id: decorId,
+        result_image_url: resultUrl,
+      });
+
+    if (insertError) {
+      console.error("Error saving render result:", insertError);
+      throw new Error("Erreur lors de la sauvegarde du rendu");
+    }
+
+    console.log("Render result saved successfully");
 
     return new Response(
       JSON.stringify({ success: true, resultUrl }),
