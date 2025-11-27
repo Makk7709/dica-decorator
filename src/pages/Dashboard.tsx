@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, LogOut, Settings, FolderOpen, Sparkles } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 
 interface Project {
@@ -63,10 +63,7 @@ const Dashboard = () => {
       <header className="border-b bg-card shadow-sm">
         <div className="container mx-auto flex h-20 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-md">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold">DICA Visual Studio</h1>
+            <img src="/images/dica-logo.svg" alt="DICA" className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-3">
             {userRole === "admin" && (

@@ -1,0 +1,12 @@
+<svg width="350" height="120" viewBox="0 0 350 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Circle with D -->
+  <circle cx="60" cy="60" r="55" stroke="#E94E5D" stroke-width="8" fill="none"/>
+  <text x="60" y="82" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#E94E5D" text-anchor="middle">D</text>
+  
+  <!-- DICA Text -->
+  <text x="140" y="75" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="#2D2D2D" letter-spacing="8">DICA</text>
+  
+  <!-- Subtitle -->
+  <line x1="140" y1="88" x2="340" y2="88" stroke="#E94E5D" stroke-width="2"/>
+  <text x="140" y="108" font-family="Georgia, serif" font-size="18" font-style="italic" fill="#6B6B6B">Stratifié et Compact HPL</text>
+</svg>
