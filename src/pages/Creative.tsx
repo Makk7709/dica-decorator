@@ -23,6 +23,7 @@ interface Decor {
   reference_code: string;
   category: string;
   usage_contexts: string[];
+  texture_image_url: string;
 }
 
 interface Favorite {
@@ -138,11 +139,13 @@ const Creative = () => {
     try {
       const { data, error } = await supabase
         .from("decors")
-        .select("*")
+        .select("id, name, reference_code, category, usage_contexts, texture_image_url")
         .eq("is_active", true)
-        .order("category", { ascending: true });
+        .order("category", { ascending: true })
+        .order("name", { ascending: true });
 
       if (error) throw error;
+      console.log(`Décors chargés: ${data?.length || 0} décors actifs`);
       setDecors(data || []);
     } catch (error: any) {
       console.error("Error loading decors:", error);
@@ -151,6 +154,11 @@ const Creative = () => {
   };
 
   const buildDecorContext = () => {
+    if (decors.length === 0) {
+      console.warn("Aucun décor disponible pour le contexte");
+      return "Aucun décor DICA disponible actuellement.";
+    }
+
     const decorsByCategory = decors.reduce((acc, decor) => {
       if (!acc[decor.category]) {
         acc[decor.category] = [];
@@ -159,13 +167,20 @@ const Creative = () => {
       return acc;
     }, {} as Record<string, Decor[]>);
 
-    let context = "";
+    let context = `CATALOGUE DICA - ${decors.length} décors disponibles:\n`;
+    
     for (const [category, categoryDecors] of Object.entries(decorsByCategory)) {
-      context += `\n\nCatégorie ${category.toUpperCase()}:\n`;
+      context += `\n📁 Catégorie ${category.toUpperCase()} (${categoryDecors.length} décors):\n`;
       categoryDecors.forEach(decor => {
-        context += `- ${decor.name} (Réf: ${decor.reference_code}) - Usage: ${decor.usage_contexts.join(", ")}\n`;
+        context += `  • ${decor.name} (Réf: ${decor.reference_code})\n`;
+        context += `    Contextes d'usage: ${decor.usage_contexts.join(", ")}\n`;
+        if (decor.texture_image_url) {
+          context += `    Texture disponible: ${decor.texture_image_url}\n`;
+        }
       });
     }
+    
+    console.log(`Contexte décors construit: ${decors.length} décors dans ${Object.keys(decorsByCategory).length} catégories`);
     return context;
   };
 

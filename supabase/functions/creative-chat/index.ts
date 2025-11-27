@@ -13,7 +13,10 @@ serve(async (req) => {
 
   try {
     const { messages, decorContext } = await req.json();
-    console.log('Creative chat request received with', messages.length, 'messages');
+    console.log('Creative chat request received');
+    console.log('- Messages:', messages.length);
+    console.log('- Decor context length:', decorContext?.length || 0, 'characters');
+    console.log('- Decor context preview:', decorContext?.substring(0, 200));
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -27,20 +30,31 @@ serve(async (req) => {
 
     if (wantsImage) {
       // Generate image using Gemini 3 Pro Image Preview
-      console.log("Generating image with Gemini 3 Pro Image Preview");
+      console.log("=== IMAGE GENERATION REQUESTED ===");
+      console.log("User message:", lastUserMessage);
+      console.log("Available decors context:", decorContext?.substring(0, 500));
       
-      const imagePrompt = `Crée une visualisation professionnelle haute qualité pour DICA France basée sur cette demande: ${lastUserMessage}
+      if (!decorContext || decorContext.trim().length < 50) {
+        console.error("Decor context is empty or too short!");
+        throw new Error("Contexte des décors non disponible");
+      }
+      
+      const imagePrompt = `Crée une visualisation professionnelle haute qualité pour DICA France basée sur cette demande: "${lastUserMessage}"
 
-DÉCORS DISPONIBLES À UTILISER:
 ${decorContext}
 
-RÈGLES DE CRÉATION:
-- Utilise UNIQUEMENT les décors DICA listés ci-dessus
-- Crée une composition professionnelle et esthétique
-- Inclus les noms et références des décors dans la composition
-- Style: moderne, épuré, premium
-- Format: paysage (16:9)
-- Qualité: haute résolution`;
+RÈGLES DE CRÉATION STRICTES:
+- Tu DOIS utiliser UNIQUEMENT les décors DICA listés ci-dessus avec leurs noms et références EXACTS
+- Crée une composition professionnelle et esthétique de type mood board ou plaquette
+- Affiche clairement les noms et références des décors utilisés sur l'image
+- Style: moderne, épuré, premium, professionnel
+- Format: paysage (16:9) adapté à la présentation
+- Qualité: haute résolution
+- Disposition: grille organisée ou composition harmonieuse
+
+IMPORTANT: Utilise les vraies textures et finitions des décors DICA mentionnés dans le catalogue ci-dessus.`;
+
+      console.log("Full image prompt length:", imagePrompt.length, "characters");
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
