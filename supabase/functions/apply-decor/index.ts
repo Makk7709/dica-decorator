@@ -88,7 +88,7 @@ ${contextRules}
 
 ${qualityDirective}`;
 
-    console.log("Calling Google AI Studio (Gemini 2.5 Flash Image)...");
+    console.log("Calling Google AI Studio (Gemini 3 Pro Image Preview)...");
 
     // Fetch the original photo and the decor texture to send as reference images to Gemini
     let photoBase64: string | null = null;
@@ -122,9 +122,11 @@ ${qualityDirective}`;
     // Fetch decor texture as reference
     try {
       if (textureUrl) {
-        // Build absolute URL from relative path
-        const url = new URL(req.url);
-        const absoluteTextureUrl = `${url.protocol}//${url.host}${textureUrl}`;
+        // Build absolute URL from the app domain (not the edge function domain)
+        const appUrl = Deno.env.get("VITE_SUPABASE_URL")?.replace('/rest/v1', '') || 
+                       req.headers.get("origin") || 
+                       "https://f7dcdcd1-f792-4761-bfa4-14b3a0277d1d.lovableproject.com";
+        const absoluteTextureUrl = `${appUrl}${textureUrl}`;
         console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
         
         const textureResponse = await fetch(absoluteTextureUrl);
@@ -167,9 +169,9 @@ ${qualityDirective}`;
       });
     }
     
-    // Call Google AI Studio API with prompt and (if available) the original photo as reference
+    // Call Google AI Studio API with Gemini 3 Pro Image Preview
     const url =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" +
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=" +
       GOOGLE_AI_API_KEY;
 
     const geminiResponse = await fetch(url, {
