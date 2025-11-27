@@ -31,6 +31,7 @@ interface Category {
   id: string;
   name: string;
   display_order: number;
+  image_url: string | null;
   is_active: boolean;
 }
 
@@ -60,8 +61,10 @@ const Admin = () => {
   const [categoryFormData, setCategoryFormData] = useState({
     name: "",
     displayOrder: 0,
+    imageUrl: "",
     isActive: true,
   });
+  const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (userRole !== "admin") {
@@ -176,9 +179,18 @@ const Admin = () => {
     setIsSubmitting(true);
 
     try {
+      let imageUrl = categoryFormData.imageUrl;
+
+      // Upload image if file is selected
+      if (categoryImageFile) {
+        setUploadingImage(true);
+        imageUrl = await handleImageUpload(categoryImageFile);
+      }
+
       const categoryData = {
         name: categoryFormData.name,
         display_order: categoryFormData.displayOrder,
+        image_url: imageUrl || null,
         is_active: categoryFormData.isActive,
       };
 
@@ -206,6 +218,7 @@ const Admin = () => {
       toast.error(error.message || "Erreur lors de la sauvegarde");
     } finally {
       setIsSubmitting(false);
+      setUploadingImage(false);
     }
   };
 
@@ -275,9 +288,11 @@ const Admin = () => {
     setCategoryFormData({
       name: "",
       displayOrder: 0,
+      imageUrl: "",
       isActive: true,
     });
     setEditingCategory(null);
+    setCategoryImageFile(null);
   };
 
   const openEditDialog = (decor: Decor) => {
@@ -298,6 +313,7 @@ const Admin = () => {
     setCategoryFormData({
       name: category.name,
       displayOrder: category.display_order,
+      imageUrl: category.image_url || "",
       isActive: category.is_active,
     });
     setIsCategoryDialogOpen(true);
@@ -552,12 +568,38 @@ const Admin = () => {
                         required
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="categoryImage">Image de la catégorie</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="categoryImage"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setCategoryImageFile(e.target.files?.[0] || null)}
+                          className="flex-1"
+                        />
+                        {categoryImageFile && <CheckCircle className="h-5 w-5 text-success" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Ou entrez une URL ci-dessous
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="categoryImageUrl">URL Image</Label>
+                      <Input
+                        id="categoryImageUrl"
+                        type="url"
+                        placeholder="https://..."
+                        value={categoryFormData.imageUrl}
+                        onChange={(e) => setCategoryFormData({ ...categoryFormData, imageUrl: e.target.value })}
+                      />
+                    </div>
                     <div className="flex justify-end gap-2">
                       <Button type="button" variant="outline" onClick={() => setIsCategoryDialogOpen(false)}>
                         Annuler
                       </Button>
-                      <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+                      <Button type="submit" disabled={isSubmitting || uploadingImage}>
+                        {uploadingImage ? "Upload en cours..." : isSubmitting ? "Enregistrement..." : "Enregistrer"}
                       </Button>
                     </div>
                   </form>
@@ -579,7 +621,14 @@ const Admin = () => {
                     </CardTitle>
                     <CardDescription>Ordre: {category.display_order}</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
+                    {category.image_url && (
+                      <img
+                        src={category.image_url}
+                        alt={category.name}
+                        className="h-24 w-full rounded object-cover"
+                      />
+                    )}
                     <div className="flex gap-2">
                       <Button
                         size="sm"
