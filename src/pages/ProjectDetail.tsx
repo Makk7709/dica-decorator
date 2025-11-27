@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 interface Project {
@@ -53,6 +55,8 @@ const ProjectDetail = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDecorDialog, setShowDecorDialog] = useState(false);
   const [favoriteRenderIds, setFavoriteRenderIds] = useState<Set<string>>(new Set());
+  const [renderCount, setRenderCount] = useState<number>(1);
+  const [renderFormat, setRenderFormat] = useState<"square" | "portrait" | "landscape">("square");
 
   useEffect(() => {
     loadProject();
@@ -225,18 +229,73 @@ const ProjectDetail = () => {
           photoId: selectedPhoto.id,
           decorId: selectedDecor.id,
           useCase: project.use_case,
+          renderCount,
+          format: renderFormat,
         },
       });
 
       if (error) throw error;
 
-      toast.success("Rendu généré avec succès !");
+      const count = renderCount > 1 ? `${renderCount} rendus générés` : "Rendu généré";
+      toast.success(`${count} avec succès !`);
       setShowDecorDialog(false);
       setSelectedPhoto(null);
       setSelectedDecor(null);
       loadProject();
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la génération du rendu");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRegenerateRender = async (renderId: string, photoId: string) => {
+    if (!user || !project) return;
+
+    const photo = photos.find(p => p.id === photoId);
+    const render = renders[photoId]?.find(r => r.id === renderId);
+    
+    if (!photo || !render || !render.decor_id) {
+      toast.error("Impossible de régénérer ce rendu");
+      return;
+    }
+
+    const decor = decors.find(d => d.id === render.decor_id);
+    if (!decor) {
+      toast.error("Décor introuvable");
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      // Delete the old render first
+      const { error: deleteError } = await supabase
+        .from("render_results")
+        .delete()
+        .eq("id", renderId);
+
+      if (deleteError) throw deleteError;
+
+      // Generate new render with same parameters
+      const { data, error } = await supabase.functions.invoke("apply-decor", {
+        body: {
+          photoUrl: photo.original_image_url,
+          textureUrl: decor.texture_image_url,
+          photoId: photo.id,
+          decorId: decor.id,
+          useCase: project.use_case,
+          renderCount: 1,
+          format: renderFormat,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success("Variante régénérée avec succès !");
+      loadProject();
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la régénération");
     } finally {
       setIsGenerating(false);
     }
@@ -395,51 +454,74 @@ const ProjectDetail = () => {
                     </Button>
                   </div>
 
-                  {/* Renders for this photo */}
-                  {renders[photo.id]?.map((render) => (
-                    <div key={render.id} className="space-y-3 border-t-2 pt-6">
-                      <p className="text-base font-semibold">Résultat avec décor</p>
-                      <img
-                        src={render.result_image_url}
-                        alt="Rendu"
-                        className="w-full rounded-lg border-2"
-                      />
-                      <div className="flex gap-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 border-2"
-                          onClick={() => toggleFavorite(render.id)}
-                        >
-                          <Heart 
-                            className={`mr-2 h-4 w-4 ${
-                              favoriteRenderIds.has(render.id) 
-                                ? "fill-current text-red-500" 
-                                : ""
-                            }`} 
-                          />
-                          {favoriteRenderIds.has(render.id) ? "Favori" : "Ajouter aux favoris"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-2"
-                          asChild
-                        >
-                          <a href={render.result_image_url} download>
-                            <Download className="h-4 w-4" />
-                          </a>
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteRender(render.id, photo.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                  {/* Renders Grid */}
+                  {renders[photo.id] && renders[photo.id].length > 0 && (
+                    <div className="space-y-4 border-t-2 pt-6">
+                      <p className="text-base font-semibold">Rendus générés ({renders[photo.id].length})</p>
+                      <div className={`grid gap-4 ${
+                        renders[photo.id].length === 1 
+                          ? "grid-cols-1" 
+                          : "grid-cols-2"
+                      }`}>
+                        {renders[photo.id].map((render) => (
+                          <Card key={render.id} className="overflow-hidden">
+                            <CardContent className="p-3 space-y-3">
+                              <img
+                                src={render.result_image_url}
+                                alt="Rendu"
+                                className="w-full rounded-lg border-2 aspect-square object-cover"
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-2"
+                                  onClick={() => toggleFavorite(render.id)}
+                                >
+                                  <Heart 
+                                    className={`mr-2 h-4 w-4 ${
+                                      favoriteRenderIds.has(render.id) 
+                                        ? "fill-current text-red-500" 
+                                        : ""
+                                    }`} 
+                                  />
+                                  {favoriteRenderIds.has(render.id) ? "Favori" : "Favori"}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-2"
+                                  asChild
+                                >
+                                  <a href={render.result_image_url} download>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    DL
+                                  </a>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-2"
+                                  onClick={() => handleRegenerateRender(render.id, photo.id)}
+                                  disabled={isGenerating}
+                                >
+                                  <RotateCcw className="mr-2 h-4 w-4" />
+                                  Regénérer
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteRender(render.id, photo.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
                     </div>
-                  ))}
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -463,8 +545,40 @@ const ProjectDetail = () => {
               En fonction de la qualité des images sources, il est parfois nécessaire de faire plusieurs générations pour obtenir le résultat attendu.
             </AlertDescription>
           </Alert>
+
+          {/* Generation Parameters */}
+          <div className="grid grid-cols-2 gap-4 mt-6 p-4 border rounded-lg bg-muted/30">
+            <div className="space-y-2">
+              <Label htmlFor="render-count">Nombre de rendus</Label>
+              <Select value={renderCount.toString()} onValueChange={(v) => setRenderCount(parseInt(v))}>
+                <SelectTrigger id="render-count">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 rendu</SelectItem>
+                  <SelectItem value="2">2 rendus</SelectItem>
+                  <SelectItem value="3">3 rendus</SelectItem>
+                  <SelectItem value="4">4 rendus</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="render-format">Format / Taille</Label>
+              <Select value={renderFormat} onValueChange={(v: any) => setRenderFormat(v)}>
+                <SelectTrigger id="render-format">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="square">Carré (1024×1024)</SelectItem>
+                  <SelectItem value="portrait">Portrait (768×1344)</SelectItem>
+                  <SelectItem value="landscape">Paysage (1344×768)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           
-          <Tabs defaultValue="metal" className="w-full">
+          <Tabs defaultValue="metal" className="w-full mt-4">
             <TabsList className="grid w-full grid-cols-5 h-auto">
               <TabsTrigger value="metal" className="py-3">
                 Métal
@@ -562,7 +676,7 @@ const ProjectDetail = () => {
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Générer le rendu
+                  {renderCount > 1 ? `Générer ${renderCount} rendus` : "Générer le rendu"}
                 </>
               )}
             </Button>
