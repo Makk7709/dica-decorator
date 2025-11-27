@@ -46,7 +46,9 @@ serve(async (req) => {
     // Build 3-layer structured prompt for intelligent surface mapping
     // Layer 1: Global intention (invariant)
     const globalIntention = `Apply a realistic renovation with the selected DICA decor "${decor.name}" (ref ${decor.reference_code}) on allowed surfaces only.
-Never modify technical elements, accessories, glazing, lighting, signage, or volumes outside the renovation scope.`;
+Never modify technical elements, accessories, glazing, lighting, signage, or volumes outside the renovation scope.
+
+CRITICAL: The second image provided is the EXACT texture/finish you must apply. Use this reference image to replicate the material properties: metallic sheen, brushed pattern, color tone, reflection properties, and surface finish. The result must match this texture reference precisely.`;
 
     // Layer 2: Business rules per context
     let contextRules = "";
@@ -88,10 +90,13 @@ ${qualityDirective}`;
 
     console.log("Calling Google AI Studio (Gemini 2.5 Flash Image)...");
 
-    // Try to fetch the original photo and send it as reference image to Gemini
+    // Fetch the original photo and the decor texture to send as reference images to Gemini
     let photoBase64: string | null = null;
     let photoMimeType = "image/jpeg";
+    let textureBase64: string | null = null;
+    let textureMimeType = "image/jpeg";
 
+    // Fetch original photo
     try {
       if (photoUrl) {
         console.log("Fetching original photo for Gemini:", photoUrl);
@@ -113,14 +118,51 @@ ${qualityDirective}`;
     } catch (e) {
       console.error("Error fetching/converting photo:", e);
     }
+
+    // Fetch decor texture as reference
+    try {
+      if (textureUrl) {
+        // Build absolute URL from relative path
+        const url = new URL(req.url);
+        const absoluteTextureUrl = `${url.protocol}//${url.host}${textureUrl}`;
+        console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
+        
+        const textureResponse = await fetch(absoluteTextureUrl);
+        if (!textureResponse.ok) {
+          console.error("Failed to fetch texture:", textureResponse.status, await textureResponse.text());
+        } else {
+          const arrayBuffer = await textureResponse.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = "";
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          textureBase64 = btoa(binary);
+          textureMimeType = textureResponse.headers.get("content-type") ?? "image/jpeg";
+          console.log("Texture fetched and converted to base64 for Gemini");
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching/converting texture:", e);
+    }
     
-    // Build parts: prompt + optional reference image
+    // Build parts: prompt + photo + texture reference
     const requestParts: any[] = [{ text: prompt }];
+    
     if (photoBase64) {
       requestParts.push({
         inlineData: {
           mimeType: photoMimeType,
           data: photoBase64,
+        },
+      });
+    }
+    
+    if (textureBase64) {
+      requestParts.push({
+        inlineData: {
+          mimeType: textureMimeType,
+          data: textureBase64,
         },
       });
     }
