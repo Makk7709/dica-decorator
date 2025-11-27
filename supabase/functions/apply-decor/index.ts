@@ -189,19 +189,10 @@ ${qualityDirective}`;
     // Fetch decor texture as reference
     try {
       if (textureUrl) {
-        // Build absolute URL - check if textureUrl is already absolute
-        let absoluteTextureUrl: string;
-        
-        if (textureUrl.startsWith('http://') || textureUrl.startsWith('https://')) {
-          // Already an absolute URL (e.g., Supabase storage URL)
-          absoluteTextureUrl = textureUrl;
-        } else {
-          // Relative URL - build from app domain
-          const referer = req.headers.get("referer") || req.headers.get("origin") || "";
-          const appUrl = referer ? new URL(referer).origin : "https://f7dcdcd1-f792-4761-bfa4-14b3a0277d1d.lovableproject.com";
-          absoluteTextureUrl = `${appUrl}${textureUrl}`;
-        }
-        
+        // Build absolute URL - use the request referer to get the actual app domain
+        const referer = req.headers.get("referer") || req.headers.get("origin") || "";
+        const appUrl = referer ? new URL(referer).origin : "https://f7dcdcd1-f792-4761-bfa4-14b3a0277d1d.lovableproject.com";
+        const absoluteTextureUrl = `${appUrl}${textureUrl}`;
         console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
         
         const textureResponse = await fetch(absoluteTextureUrl);
