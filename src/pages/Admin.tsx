@@ -282,6 +282,7 @@ const Admin = () => {
     });
     setEditingDecor(null);
     setImageFile(null);
+    setUploadingImage(false);
   };
 
   const resetCategoryForm = () => {
@@ -293,6 +294,7 @@ const Admin = () => {
     });
     setEditingCategory(null);
     setCategoryImageFile(null);
+    setUploadingImage(false);
   };
 
   const openEditDialog = (decor: Decor) => {
