@@ -150,7 +150,7 @@ const ProjectDetail = () => {
   };
 
   const handleGenerateRender = async () => {
-    if (!selectedPhoto || !selectedDecor || !user) return;
+    if (!selectedPhoto || !selectedDecor || !user || !project) return;
 
     setIsGenerating(true);
 
@@ -161,6 +161,7 @@ const ProjectDetail = () => {
           textureUrl: selectedDecor.texture_image_url,
           photoId: selectedPhoto.id,
           decorId: selectedDecor.id,
+          useCase: project.use_case,
         },
       });
 
