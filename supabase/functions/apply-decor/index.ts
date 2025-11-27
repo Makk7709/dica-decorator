@@ -29,40 +29,86 @@ serve(async (req) => {
       console.log("Converted relative texture URL to:", fullTextureUrl);
     }
 
-    // Call Nano Banana API
-    const response = await fetch("https://api.nanobanana.ai/v1/generate", {
+    // Call Nano Banana API (generate or edit image)
+    const generateResponse = await fetch("https://api.nanobananaapi.ai/api/v1/nanobanana/generate", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${NANO_BANANA_API_KEY}`,
       },
       body: JSON.stringify({
-        image_url: photoUrl,
-        texture_url: fullTextureUrl,
-        mode: "auto_mapping",
-        output_format: "png",
-        style: "realistic_product_mockup",
+        prompt:
+          "Apply the decor texture from the second image onto all visible surfaces of the first image as a realistic product mockup. Preserve lighting, reflections and perspective.",
+        numImages: 1,
+        type: "IMAGETOIAMGE",
+        image_size: "16:9",
+        imageUrls: [photoUrl, fullTextureUrl],
+        callBackUrl: "https://example.com/nanobanana-callback",
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Nano Banana API error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        throw new Error("Limite de taux d'API atteinte. Veuillez réessayer dans quelques instants.");
-      } else if (response.status === 402) {
-        throw new Error("Crédits API insuffisants. Veuillez ajouter des fonds à votre compte Nano Banana.");
-      }
-      
-      throw new Error(`Erreur API Nano Banana: ${response.status}`);
+    if (!generateResponse.ok) {
+      const errorText = await generateResponse.text();
+      console.error("Nano Banana generate error:", generateResponse.status, errorText);
+      throw new Error(`Erreur API Nano Banana (generate): ${generateResponse.status}`);
     }
 
-    const data = await response.json();
-    const resultUrl = data.result_url;
+    const generateData = await generateResponse.json();
+    const taskId = generateData?.data?.taskId as string | undefined;
+
+    if (!taskId) {
+      console.error("Nano Banana response without taskId:", generateData);
+      throw new Error("Réponse Nano Banana invalide: taskId manquant");
+    }
+
+    console.log("Nano Banana taskId:", taskId);
+
+    // Poll task status until result image is available
+    let resultUrl: string | null = null;
+    const maxAttempts = 20;
+    const delayMs = 1000;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const statusResponse = await fetch(
+        `https://api.nanobananaapi.ai/api/v1/nanobanana/record-info?taskId=${encodeURIComponent(
+          taskId,
+        )}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${NANO_BANANA_API_KEY}`,
+          },
+        },
+      );
+
+      if (!statusResponse.ok) {
+        const statusText = await statusResponse.text();
+        console.error("Nano Banana status error:", statusResponse.status, statusText);
+        throw new Error("Erreur lors de la récupération du statut de la tâche Nano Banana");
+      }
+
+      const statusData = await statusResponse.json();
+      const status = statusData?.data?.successFlag;
+
+      if (status === 1) {
+        resultUrl = statusData?.data?.response?.resultImageUrl ?? null;
+        break;
+      }
+
+      if (status === 2 || status === 3) {
+        const message = statusData?.data?.errorMessage || "La génération Nano Banana a échoué";
+        console.error("Nano Banana task failed:", statusData);
+        throw new Error(message);
+      }
+
+      // Wait before next poll
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
 
     if (!resultUrl) {
-      throw new Error("Aucune URL de résultat retournée par l'API");
+      throw new Error(
+        "La génération de l'image prend plus de temps que prévu. Veuillez réessayer dans quelques instants.",
+      );
     }
 
     console.log("Generated result URL:", resultUrl);
