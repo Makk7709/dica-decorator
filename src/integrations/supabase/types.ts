@@ -145,6 +145,35 @@ export type Database = {
         }
         Relationships: []
       }
+      render_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          render_result_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          render_result_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          render_result_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "render_favorites_render_result_id_fkey"
+            columns: ["render_result_id"]
+            isOneToOne: false
+            referencedRelation: "render_results"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       render_results: {
         Row: {
           created_at: string

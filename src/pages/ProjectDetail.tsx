@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart } from "lucide-react";
 import { toast } from "sonner";
 
 interface Project {
@@ -51,11 +51,71 @@ const ProjectDetail = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDecorDialog, setShowDecorDialog] = useState(false);
+  const [favoriteRenderIds, setFavoriteRenderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadProject();
     loadDecors();
+    loadFavorites();
   }, [id, user]);
+
+  const loadFavorites = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("render_favorites")
+        .select("render_result_id")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      
+      const favoriteIds = new Set(data?.map(f => f.render_result_id) || []);
+      setFavoriteRenderIds(favoriteIds);
+    } catch (error: any) {
+      console.error("Error loading favorites:", error);
+    }
+  };
+
+  const toggleFavorite = async (renderId: string) => {
+    if (!user) return;
+
+    const isFavorite = favoriteRenderIds.has(renderId);
+
+    try {
+      if (isFavorite) {
+        const { error } = await supabase
+          .from("render_favorites")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("render_result_id", renderId);
+
+        if (error) throw error;
+        
+        setFavoriteRenderIds(prev => {
+          const next = new Set(prev);
+          next.delete(renderId);
+          return next;
+        });
+        toast.success("Retiré des favoris");
+      } else {
+        const { error } = await supabase
+          .from("render_favorites")
+          .insert({
+            user_id: user.id,
+            render_result_id: renderId
+          });
+
+        if (error) throw error;
+        
+        setFavoriteRenderIds(prev => new Set(prev).add(renderId));
+        toast.success("Ajouté aux favoris");
+      }
+    } catch (error: any) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Erreur lors de la mise à jour des favoris");
+    }
+  };
 
   const loadProject = async () => {
     if (!user || !id) return;
@@ -313,11 +373,25 @@ const ProjectDetail = () => {
                           variant="outline"
                           size="sm"
                           className="flex-1 border-2"
+                          onClick={() => toggleFavorite(render.id)}
+                        >
+                          <Heart 
+                            className={`mr-2 h-4 w-4 ${
+                              favoriteRenderIds.has(render.id) 
+                                ? "fill-current text-red-500" 
+                                : ""
+                            }`} 
+                          />
+                          {favoriteRenderIds.has(render.id) ? "Favori" : "Ajouter aux favoris"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-2"
                           asChild
                         >
                           <a href={render.result_image_url} download>
-                            <Download className="mr-2 h-4 w-4" />
-                            Télécharger
+                            <Download className="h-4 w-4" />
                           </a>
                         </Button>
                         <Button
