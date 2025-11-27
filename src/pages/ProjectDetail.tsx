@@ -531,7 +531,7 @@ const ProjectDetail = () => {
 
       {/* Decor Selection Dialog */}
       <Dialog open={showDecorDialog} onOpenChange={setShowDecorDialog}>
-        <DialogContent className="max-w-5xl max-h-[85vh]">
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-2xl">Choisir un décor</DialogTitle>
             <DialogDescription className="text-base">
@@ -539,127 +539,129 @@ const ProjectDetail = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <Alert className="mt-4">
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              En fonction de la qualité des images sources, il est parfois nécessaire de faire plusieurs générations pour obtenir le résultat attendu.
-            </AlertDescription>
-          </Alert>
+          <div className="flex-1 overflow-y-auto space-y-4">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                En fonction de la qualité des images sources, il est parfois nécessaire de faire plusieurs générations pour obtenir le résultat attendu.
+              </AlertDescription>
+            </Alert>
 
-          {/* Generation Parameters */}
-          <div className="grid grid-cols-2 gap-4 mt-6 p-4 border rounded-lg bg-muted/30">
-            <div className="space-y-2">
-              <Label htmlFor="render-count">Nombre de rendus</Label>
-              <Select value={renderCount.toString()} onValueChange={(v) => setRenderCount(parseInt(v))}>
-                <SelectTrigger id="render-count">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 rendu</SelectItem>
-                  <SelectItem value="2">2 rendus</SelectItem>
-                  <SelectItem value="3">3 rendus</SelectItem>
-                  <SelectItem value="4">4 rendus</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Generation Parameters */}
+            <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
+              <div className="space-y-2">
+                <Label htmlFor="render-count">Nombre de rendus</Label>
+                <Select value={renderCount.toString()} onValueChange={(v) => setRenderCount(parseInt(v))}>
+                  <SelectTrigger id="render-count">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 rendu</SelectItem>
+                    <SelectItem value="2">2 rendus</SelectItem>
+                    <SelectItem value="3">3 rendus</SelectItem>
+                    <SelectItem value="4">4 rendus</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="render-format">Format / Taille</Label>
-              <Select value={renderFormat} onValueChange={(v: any) => setRenderFormat(v)}>
-                <SelectTrigger id="render-format">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="square">Carré (1024×1024)</SelectItem>
-                  <SelectItem value="portrait">Portrait (768×1344)</SelectItem>
-                  <SelectItem value="landscape">Paysage (1344×768)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label htmlFor="render-format">Format / Taille</Label>
+                <Select value={renderFormat} onValueChange={(v: any) => setRenderFormat(v)}>
+                  <SelectTrigger id="render-format">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="square">Carré (1024×1024)</SelectItem>
+                    <SelectItem value="portrait">Portrait (768×1344)</SelectItem>
+                    <SelectItem value="landscape">Paysage (1344×768)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            
+            <Tabs defaultValue="metal" className="w-full">
+              <TabsList className="grid w-full grid-cols-5 h-auto">
+                <TabsTrigger value="metal" className="py-3">
+                  Métal
+                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                    {decors.filter(d => d.category.toLowerCase() === 'metal').length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="unis" className="py-3">
+                  Unis
+                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                    {decors.filter(d => d.category.toLowerCase() === 'unis').length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="marbre" className="py-3">
+                  Marbre
+                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                    {decors.filter(d => d.category.toLowerCase() === 'marbre').length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="bois" className="py-3">
+                  Bois
+                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                    {decors.filter(d => d.category.toLowerCase() === 'bois').length}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="deco" className="py-3">
+                  Déco
+                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                    {decors.filter(d => d.category.toLowerCase() === 'deco').length}
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+
+              {['metal', 'unis', 'marbre', 'bois', 'deco'].map((category) => (
+                <TabsContent key={category} value={category} className="mt-6">
+                  <div className="max-h-[35vh] overflow-y-auto pr-2">
+                    {decors.filter(d => d.category.toLowerCase() === category).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <p className="text-lg text-muted-foreground">
+                          Aucun décor disponible dans cette catégorie
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {decors
+                          .filter(d => d.category.toLowerCase() === category)
+                          .map((decor) => (
+                            <Card
+                              key={decor.id}
+                              className={`cursor-pointer transition-all hover:shadow-lg ${
+                                selectedDecor?.id === decor.id 
+                                  ? "ring-2 ring-primary shadow-lg" 
+                                  : "hover:border-primary/50"
+                              }`}
+                              onClick={() => setSelectedDecor(decor)}
+                            >
+                              <CardContent className="p-3">
+                                <div className="relative mb-2 overflow-hidden rounded-lg">
+                                  <img
+                                    src={decor.texture_image_url}
+                                    alt={decor.name}
+                                    className="h-32 w-full object-cover transition-transform hover:scale-105"
+                                  />
+                                </div>
+                                <h3 className="font-semibold text-sm leading-tight mb-1">
+                                  {decor.name}
+                                </h3>
+                                <p className="text-xs text-muted-foreground">
+                                  {decor.reference_code}
+                                </p>
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              ))}
+            </Tabs>
           </div>
-          
-          <Tabs defaultValue="metal" className="w-full mt-4">
-            <TabsList className="grid w-full grid-cols-5 h-auto">
-              <TabsTrigger value="metal" className="py-3">
-                Métal
-                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                  {decors.filter(d => d.category.toLowerCase() === 'metal').length}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="unis" className="py-3">
-                Unis
-                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                  {decors.filter(d => d.category.toLowerCase() === 'unis').length}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="marbre" className="py-3">
-                Marbre
-                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                  {decors.filter(d => d.category.toLowerCase() === 'marbre').length}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="bois" className="py-3">
-                Bois
-                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                  {decors.filter(d => d.category.toLowerCase() === 'bois').length}
-                </span>
-              </TabsTrigger>
-              <TabsTrigger value="deco" className="py-3">
-                Déco
-                <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                  {decors.filter(d => d.category.toLowerCase() === 'deco').length}
-                </span>
-              </TabsTrigger>
-            </TabsList>
 
-            {['metal', 'unis', 'marbre', 'bois', 'deco'].map((category) => (
-              <TabsContent key={category} value={category} className="mt-6">
-                <div className="max-h-[45vh] overflow-y-auto pr-2">
-                  {decors.filter(d => d.category.toLowerCase() === category).length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <p className="text-lg text-muted-foreground">
-                        Aucun décor disponible dans cette catégorie
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                      {decors
-                        .filter(d => d.category.toLowerCase() === category)
-                        .map((decor) => (
-                          <Card
-                            key={decor.id}
-                            className={`cursor-pointer transition-all hover:shadow-lg ${
-                              selectedDecor?.id === decor.id 
-                                ? "ring-2 ring-primary shadow-lg" 
-                                : "hover:border-primary/50"
-                            }`}
-                            onClick={() => setSelectedDecor(decor)}
-                          >
-                            <CardContent className="p-3">
-                              <div className="relative mb-2 overflow-hidden rounded-lg">
-                                <img
-                                  src={decor.texture_image_url}
-                                  alt={decor.name}
-                                  className="h-32 w-full object-cover transition-transform hover:scale-105"
-                                />
-                              </div>
-                              <h3 className="font-semibold text-sm leading-tight mb-1">
-                                {decor.name}
-                              </h3>
-                              <p className="text-xs text-muted-foreground">
-                                {decor.reference_code}
-                              </p>
-                            </CardContent>
-                          </Card>
-                        ))}
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-
-          <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4 border-t bg-background">
             <Button variant="outline" onClick={() => setShowDecorDialog(false)}>
               Annuler
             </Button>
