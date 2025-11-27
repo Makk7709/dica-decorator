@@ -140,7 +140,7 @@ const Admin = () => {
       const decorData = {
         name: formData.name,
         reference_code: formData.referenceCode,
-        category: formData.category,
+        category: formData.category.toLowerCase(),
         usage_contexts: formData.usageContexts,
         texture_image_url: textureUrl,
         is_active: formData.isActive,
@@ -188,7 +188,7 @@ const Admin = () => {
       }
 
       const categoryData = {
-        name: categoryFormData.name,
+        name: categoryFormData.name.toLowerCase(),
         display_order: categoryFormData.displayOrder,
         image_url: imageUrl || null,
         is_active: categoryFormData.isActive,
