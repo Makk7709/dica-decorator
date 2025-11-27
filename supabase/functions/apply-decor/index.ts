@@ -20,6 +20,18 @@ serve(async (req) => {
       throw new Error("NANO_BANANA_API_KEY not configured");
     }
 
+    // Helper function to convert ArrayBuffer to base64 in chunks
+    function arrayBufferToBase64(buffer: ArrayBuffer): string {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+        binary += String.fromCharCode(...chunk);
+      }
+      return btoa(binary);
+    }
+
     // Convert relative texture URL to absolute URL
     let fullTextureUrl = textureUrl;
     if (textureUrl.startsWith("/")) {
@@ -29,7 +41,25 @@ serve(async (req) => {
       console.log("Converted relative texture URL to:", fullTextureUrl);
     }
 
+    // Fetch and encode images
+    console.log("Fetching photo from:", photoUrl);
+    const photoResponse = await fetch(photoUrl);
+    if (!photoResponse.ok) {
+      throw new Error(`Failed to fetch photo: ${photoResponse.status}`);
+    }
+    const photoBuffer = await photoResponse.arrayBuffer();
+    const photoBase64 = arrayBufferToBase64(photoBuffer);
+
+    console.log("Fetching texture from:", fullTextureUrl);
+    const textureResponse = await fetch(fullTextureUrl);
+    if (!textureResponse.ok) {
+      throw new Error(`Failed to fetch texture: ${textureResponse.status}`);
+    }
+    const textureBuffer = await textureResponse.arrayBuffer();
+    const textureBase64 = arrayBufferToBase64(textureBuffer);
+
     // Call Google AI Studio API (Nano Banana model)
+    console.log("Calling Google AI Studio API...");
     const generateResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/nano-banana:generateContent?key=${NANO_BANANA_API_KEY}`,
       {
@@ -47,13 +77,13 @@ serve(async (req) => {
                 {
                   inline_data: {
                     mime_type: "image/jpeg",
-                    data: await fetch(photoUrl).then(r => r.arrayBuffer()).then(b => btoa(String.fromCharCode(...new Uint8Array(b)))),
+                    data: photoBase64,
                   },
                 },
                 {
                   inline_data: {
                     mime_type: "image/jpeg",
-                    data: await fetch(fullTextureUrl).then(r => r.arrayBuffer()).then(b => btoa(String.fromCharCode(...new Uint8Array(b)))),
+                    data: textureBase64,
                   },
                 },
               ],
