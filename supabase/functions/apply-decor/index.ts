@@ -20,6 +20,15 @@ serve(async (req) => {
       throw new Error("NANO_BANANA_API_KEY not configured");
     }
 
+    // Convert relative texture URL to absolute URL
+    let fullTextureUrl = textureUrl;
+    if (textureUrl.startsWith("/")) {
+      // Extract the origin from the request
+      const origin = new URL(req.url).origin;
+      fullTextureUrl = `${origin}${textureUrl}`;
+      console.log("Converted relative texture URL to:", fullTextureUrl);
+    }
+
     // Call Nano Banana API
     const response = await fetch("https://api.nanobanana.ai/v1/generate", {
       method: "POST",
@@ -29,7 +38,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         image_url: photoUrl,
-        texture_url: textureUrl,
+        texture_url: fullTextureUrl,
         mode: "auto_mapping",
         output_format: "png",
         style: "realistic_product_mockup",
