@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
@@ -12,15 +13,38 @@ serve(async (req) => {
   }
 
   try {
-    const { photoUrl, textureUrl, photoId, decorId } = await req.json();
-    console.log("Applying decor:", { photoUrl, textureUrl, photoId, decorId });
+    const { photoUrl, textureUrl, photoId, decorId, useCase } = await req.json();
+    console.log("Applying decor:", {
+      photoUrl,
+      textureUrl,
+      photoId,
+      decorId,
+      useCase,
+    });
 
-    const NANO_BANANA_API_KEY = Deno.env.get("NANO_BANANA_API_KEY");
-    if (!NANO_BANANA_API_KEY) {
-      throw new Error("NANO_BANANA_API_KEY not configured");
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+    if (!GOOGLE_AI_API_KEY) {
+      throw new Error("GOOGLE_AI_API_KEY not configured");
     }
 
-    // Convert relative texture URL to absolute URL based on app origin (frontend host)
+    // Helper function to convert image URL to base64
+    async function urlToBase64(url: string): Promise<string> {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image from ${url}: ${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+        binary += String.fromCharCode(...chunk);
+      }
+      return btoa(binary);
+    }
+
+    // Convert relative texture URL to absolute URL
     let fullTextureUrl = textureUrl;
     if (textureUrl.startsWith("/")) {
       const origin =
@@ -39,130 +63,113 @@ serve(async (req) => {
       console.log("Converted relative texture URL to:", fullTextureUrl);
     }
 
-    // Call Nano Banana API (generate or edit image)
-    const generateResponse = await fetch(
-      "https://api.nanobananaapi.ai/api/v1/nanobanana/generate",
+    // Fetch and encode images to base64
+    console.log("Fetching photo from:", photoUrl);
+    const photoBase64 = await urlToBase64(photoUrl);
+
+    console.log("Fetching texture from:", fullTextureUrl);
+    const textureBase64 = await urlToBase64(fullTextureUrl);
+
+    // Build context-aware prompt based on useCase
+    let contextPrompt = "";
+    switch (useCase) {
+      case "ascenseur":
+        contextPrompt =
+          "This is an elevator cabin interior. Apply the decor texture realistically to all visible wall panels, preserving metallic edges, lighting reflections, and perspective.";
+        break;
+      case "van":
+        contextPrompt =
+          "This is a vehicle interior (van or similar). Apply the decor texture to the visible panels and surfaces, maintaining curved contours, lighting, and reflections.";
+        break;
+      case "terrasse":
+        contextPrompt =
+          "This is an outdoor terrace or deck. Apply the decor texture to the flooring or wall surfaces, preserving natural lighting, shadows, and perspective.";
+        break;
+      default:
+        contextPrompt =
+          "Apply the decor texture from the second image onto all visible surfaces of the first image as a realistic product mockup. Preserve lighting, reflections, and perspective.";
+    }
+
+    // Call Google AI Studio API (Gemini with image generation)
+    console.log("Calling Google AI Studio (Gemini) for image generation...");
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${GOOGLE_AI_API_KEY}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${NANO_BANANA_API_KEY}`,
         },
         body: JSON.stringify({
-          prompt:
-            "Apply the decor texture from the second image onto all visible surfaces of the first image as a realistic product mockup. Preserve lighting, reflections and perspective.",
-          numImages: 1,
-          type: "IMAGETOIAMGE",
-          image_size: "16:9",
-          imageUrls: [photoUrl, fullTextureUrl],
-          callBackUrl: "https://example.com/nanobanana-callback",
+          contents: [
+            {
+              parts: [
+                {
+                  text: contextPrompt,
+                },
+                {
+                  inline_data: {
+                    mime_type: "image/jpeg",
+                    data: photoBase64,
+                  },
+                },
+                {
+                  inline_data: {
+                    mime_type: "image/jpeg",
+                    data: textureBase64,
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            response_modalities: ["IMAGE"],
+          },
         }),
       },
     );
 
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
+    if (!geminiResponse.ok) {
+      const errorText = await geminiResponse.text();
       console.error(
-        "Nano Banana generate error:",
-        generateResponse.status,
+        "Google AI Studio error:",
+        geminiResponse.status,
         errorText,
       );
 
-      if (generateResponse.status === 401) {
+      if (geminiResponse.status === 401) {
         throw new Error(
-          "Clé API Nano Banana invalide ou non autorisée. Veuillez vérifier la clé dans la configuration du backend.",
+          "Clé API Google AI Studio invalide. Veuillez vérifier GOOGLE_AI_API_KEY.",
         );
       }
 
-      if (generateResponse.status === 429) {
+      if (geminiResponse.status === 429) {
         throw new Error(
-          "Limite de taux Nano Banana atteinte. Veuillez réessayer dans quelques instants.",
-        );
-      }
-
-      if (generateResponse.status === 402) {
-        throw new Error(
-          "Crédits Nano Banana insuffisants. Veuillez ajouter des fonds à votre compte Nano Banana.",
+          "Limite de taux Google AI Studio atteinte. Veuillez réessayer dans quelques instants.",
         );
       }
 
       throw new Error(
-        `Erreur API Nano Banana (generate): ${generateResponse.status}`,
+        `Erreur API Google AI Studio: ${geminiResponse.status}`,
       );
     }
 
-    const generateData = await generateResponse.json();
-    const taskId = generateData?.data?.taskId as string | undefined;
+    const geminiData = await geminiResponse.json();
+    console.log("Gemini response received");
 
-    // Handle cases where Nano Banana returns an error payload with code/msg but 200 HTTP
-    if (!taskId) {
-      if (generateData?.code && generateData?.msg) {
-        console.error("Nano Banana error payload:", generateData);
-        throw new Error(`Erreur Nano Banana (${generateData.code}): ${generateData.msg}`);
-      }
-      console.error("Nano Banana response without taskId:", generateData);
-      throw new Error("Réponse Nano Banana invalide: taskId manquant");
+    // Extract generated image from response
+    const generatedImageData =
+      geminiData?.candidates?.[0]?.content?.parts?.[0]?.inline_data?.data;
+
+    if (!generatedImageData) {
+      console.error("No image data in Gemini response:", geminiData);
+      throw new Error("Aucune image générée dans la réponse Gemini");
     }
 
-    console.log("Nano Banana taskId:", taskId);
-
-    // Poll task status until result image is available
-    let resultUrl: string | null = null;
-    const maxAttempts = 20;
-    const delayMs = 1000;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const statusResponse = await fetch(
-        `https://api.nanobananaapi.ai/api/v1/nanobanana/record-info?taskId=${encodeURIComponent(
-          taskId,
-        )}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${NANO_BANANA_API_KEY}`,
-          },
-        },
-      );
-
-      if (!statusResponse.ok) {
-        const statusText = await statusResponse.text();
-        console.error(
-          "Nano Banana status error:",
-          statusResponse.status,
-          statusText,
-        );
-        throw new Error(
-          "Erreur lors de la récupération du statut de la tâche Nano Banana",
-        );
-      }
-
-      const statusData = await statusResponse.json();
-      const status = statusData?.data?.successFlag;
-
-      if (status === 1) {
-        resultUrl = statusData?.data?.response?.resultImageUrl ?? null;
-        break;
-      }
-
-      if (status === 2 || status === 3) {
-        const message =
-          statusData?.data?.errorMessage ||
-          "La génération Nano Banana a échoué";
-        console.error("Nano Banana task failed:", statusData);
-        throw new Error(message);
-      }
-
-      // Wait before next poll
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-    }
-
-    if (!resultUrl) {
-      throw new Error(
-        "La génération de l'image prend plus de temps que prévu. Veuillez réessayer dans quelques instants.",
-      );
-    }
-
-    console.log("Generated result URL:", resultUrl);
+    // Decode base64 image
+    const generatedImageBuffer = Uint8Array.from(
+      atob(generatedImageData),
+      (c) => c.charCodeAt(0),
+    );
 
     // Create Supabase client with service role
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -183,21 +190,11 @@ serve(async (req) => {
 
     const userId = (photoData as any).projects.user_id;
 
-    // Download the result image
-    const imageResponse = await fetch(resultUrl);
-    if (!imageResponse.ok) {
-      throw new Error("Impossible de télécharger l'image résultat");
-    }
-
-    const imageBlob = await imageResponse.blob();
-    const imageArrayBuffer = await imageBlob.arrayBuffer();
-    const imageBuffer = new Uint8Array(imageArrayBuffer);
-
     // Upload to Supabase Storage
     const fileName = `${userId}/${Date.now()}.png`;
     const { error: uploadError } = await supabase.storage
       .from("render-results")
-      .upload(fileName, imageBuffer, {
+      .upload(fileName, generatedImageBuffer, {
         contentType: "image/png",
       });
 
@@ -211,16 +208,20 @@ serve(async (req) => {
     } = supabase.storage.from("render-results").getPublicUrl(fileName);
 
     // Save render result to database
-    const { error: insertError } = await supabase.from("render_results").insert({
-      project_photo_id: photoId,
-      decor_id: decorId,
-      result_image_url: publicUrl,
-    });
+    const { error: insertError } = await supabase
+      .from("render_results")
+      .insert({
+        project_photo_id: photoId,
+        decor_id: decorId,
+        result_image_url: publicUrl,
+      });
 
     if (insertError) {
       console.error("Database insert error:", insertError);
       throw new Error("Erreur lors de la sauvegarde du résultat");
     }
+
+    console.log("Render result saved successfully:", publicUrl);
 
     return new Response(
       JSON.stringify({ success: true, resultUrl: publicUrl }),
