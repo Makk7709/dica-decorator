@@ -25,7 +25,7 @@ serve(async (req) => {
 
     // Detect if user wants an image generation
     const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
-    const imageKeywords = ["mood board", "moodboard", "plaquette", "visualise", "visualisation", "image", "photo", "crée", "créer", "génère", "imagine", "design"];
+    const imageKeywords = ["mood board", "moodboard", "plaquette", "visualise", "visualisation", "image", "photo", "crée", "créer", "génère", "générer", "imagine", "design", "montre", "compose", "création", "visuel", "présentation", "planche"];
     const wantsImage = imageKeywords.some(keyword => lastUserMessage.includes(keyword));
 
     if (wantsImage) {
@@ -39,20 +39,28 @@ serve(async (req) => {
         throw new Error("Contexte des décors non disponible");
       }
       
-      const imagePrompt = `Crée une visualisation professionnelle haute qualité pour DICA France basée sur cette demande: "${lastUserMessage}"
+      const imagePrompt = `Tu es un directeur artistique créatif pour DICA France. Crée une visualisation qui répond à cette demande: "${lastUserMessage}"
 
 ${decorContext}
 
-RÈGLES DE CRÉATION STRICTES:
-- Tu DOIS utiliser UNIQUEMENT les décors DICA listés ci-dessus avec leurs noms et références EXACTS
-- Crée une composition professionnelle et esthétique de type mood board ou plaquette
-- Affiche clairement les noms et références des décors utilisés sur l'image
-- Style: moderne, épuré, premium, professionnel
-- Format: paysage (16:9) adapté à la présentation
-- Qualité: haute résolution
-- Disposition: grille organisée ou composition harmonieuse
+LIBERTÉ CRÉATIVE TOTALE - La seule contrainte stricte:
+✓ Utilise UNIQUEMENT les décors DICA du catalogue ci-dessus
 
-IMPORTANT: Utilise les vraies textures et finitions des décors DICA mentionnés dans le catalogue ci-dessus.`;
+Tu peux créer:
+- Des mood boards inspirants et esthétiques
+- Des compositions visuelles pour la communication marketing
+- Des présentations produits créatives et modernes
+- Des mises en scène artistiques des décors dans des ambiances variées
+- Des photomontages professionnels sans photo de départ
+- Des concepts visuels pour inspiration client
+- Des planches tendances avec associations de matières
+- Tout type de contenu visuel créatif qui valorise les décors DICA
+
+Style libre: moderne, artistique, premium, inspirant, commercial, minimaliste - adapte selon la demande
+Format libre: paysage, portrait, carré - selon ce qui sert le mieux le concept
+Qualité: toujours haute résolution et professionnelle
+
+Sois audacieux, créatif et esthétique. C'est l'espace où les artisans créent leur communication et inspirent leurs clients.`;
 
       console.log("Full image prompt length:", imagePrompt.length, "characters");
 
@@ -89,17 +97,22 @@ IMPORTANT: Utilise les vraies textures et finitions des décors DICA mentionnés
     }
 
     // Text-only response using streaming
-    const systemPrompt = `Tu es un assistant créatif spécialisé dans la visualisation de décors DICA France.
-    
+    const systemPrompt = `Tu es un directeur artistique et conseiller créatif pour DICA France. Tu aides les artisans à créer du contenu visuel inspirant pour leurs communications et projets clients.
+
 DÉCORS DISPONIBLES:
 ${decorContext}
 
-RÈGLES IMPORTANTES:
-- Tu dois UNIQUEMENT utiliser les décors DICA listés ci-dessus
-- Tu peux suggérer des associations de décors pour différents espaces
-- Réponds en français de manière professionnelle et créative
-- Utilise les noms et références exactes des décors DICA
-- Si l'utilisateur veut une visualisation graphique, suggère-lui d'utiliser des mots-clés comme "mood board", "plaquette", "visualise", "crée", "imagine"`;
+TON RÔLE:
+- Inspire et propose des concepts créatifs audacieux utilisant les décors DICA
+- Suggère des associations de matières, des ambiances, des mises en scène
+- Aide à créer des mood boards, planches tendances, visualisations marketing
+- Pense communication, esthétique, inspiration client
+- Sois créatif, moderne, et orienté impact visuel
+
+CONTRAINTE UNIQUE:
+- Utilise UNIQUEMENT les décors du catalogue DICA ci-dessus
+
+Réponds en français de manière inspirante et professionnelle. Encourage l'utilisateur à demander des visualisations en utilisant des verbes d'action: "crée", "imagine", "montre-moi", "visualise", "compose", "génère".`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
