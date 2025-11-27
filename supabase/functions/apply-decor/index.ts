@@ -60,12 +60,49 @@ serve(async (req) => {
     }
 
     console.log("Calling Google AI Studio (Gemini 2.5 Flash Image)...");
+
+    // Try to fetch the original photo and send it as reference image to Gemini
+    let photoBase64: string | null = null;
+    let photoMimeType = "image/jpeg";
+
+    try {
+      if (photoUrl) {
+        console.log("Fetching original photo for Gemini:", photoUrl);
+        const photoResponse = await fetch(photoUrl);
+        if (!photoResponse.ok) {
+          console.error("Failed to fetch photo:", photoResponse.status, await photoResponse.text());
+        } else {
+          const arrayBuffer = await photoResponse.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = "";
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          photoBase64 = btoa(binary);
+          photoMimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
+          console.log("Photo fetched and converted to base64 for Gemini");
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching/converting photo:", e);
+    }
     
-    // Call Google AI Studio API with simplified text-only prompt
-    const url = 
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=' +
+    // Build parts: prompt + optional reference image
+    const requestParts: any[] = [{ text: prompt }];
+    if (photoBase64) {
+      requestParts.push({
+        inlineData: {
+          mimeType: photoMimeType,
+          data: photoBase64,
+        },
+      });
+    }
+    
+    // Call Google AI Studio API with prompt and (if available) the original photo as reference
+    const url =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=" +
       GOOGLE_AI_API_KEY;
-    
+
     const geminiResponse = await fetch(url, {
       method: "POST",
       headers: {
@@ -74,9 +111,8 @@ serve(async (req) => {
       body: JSON.stringify({
         contents: [
           {
-            parts: [
-              { text: prompt },
-            ],
+            role: "user",
+            parts: requestParts,
           },
         ],
         generationConfig: {
@@ -99,16 +135,16 @@ serve(async (req) => {
     console.log("Gemini response received successfully");
 
     // Extract generated image from response
-    const parts = geminiData?.candidates?.[0]?.content?.parts;
+    const responseParts = geminiData?.candidates?.[0]?.content?.parts;
     
-    if (!parts || parts.length === 0) {
+    if (!responseParts || responseParts.length === 0) {
       console.error("No parts in Gemini response:", geminiData);
       throw new Error("Aucune image générée dans la réponse Gemini");
     }
 
     // Find the part containing image data
     let base64 = null;
-    for (const part of parts) {
+    for (const part of responseParts) {
       if (part.inline_data?.data) {
         base64 = part.inline_data.data;
         break;
@@ -120,7 +156,7 @@ serve(async (req) => {
     }
 
     if (!base64) {
-      console.error("No image data found in parts:", JSON.stringify(parts, null, 2));
+      console.error("No image data found in parts:", JSON.stringify(responseParts, null, 2));
       throw new Error("Aucune image générée dans la réponse Gemini");
     }
 
