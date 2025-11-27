@@ -34,7 +34,7 @@ serve(async (req) => {
 
     const { data: decor, error: decorError } = await supabase
       .from("decors")
-      .select("name, reference_code")
+      .select("name, reference_code, category")
       .eq("id", decorId)
       .single();
 
@@ -74,10 +74,59 @@ Allowed surfaces: decorative wall and floor coverings
 Forbidden surfaces: technical elements, accessories, equipment`;
     }
 
+    // Layer 2.5: Material-specific rules based on decor category
+    let materialRules = "";
+    const category = decor.category?.toLowerCase() || "";
+    
+    if (category.includes("metal") || category.includes("métal")) {
+      materialRules = `Material type: METAL
+Visual properties to preserve:
+- Visible brushing lines (directional)
+- Directional reflections
+- NO wood grain or mineral texture
+- NO matte paint effect
+Keep metallic sheen and linear surface structure.`;
+    } else if (category.includes("uni")) {
+      materialRules = `Material type: SOLID COLOR (Unis)
+Visual properties to preserve:
+- Smooth surface, no grain or pattern
+- Diffuse light, NO metallic reflections
+- NO veins, NO additional texture
+Keep uniform, flat appearance.`;
+    } else if (category.includes("marbre")) {
+      materialRules = `Material type: MARBLE
+Visual properties to preserve:
+- Mineral veins with realistic continuity
+- Light gloss but NOT metallic
+- Matte depth + subtle reflections
+Keep natural stone appearance with elegant veining.`;
+    } else if (category.includes("bois")) {
+      materialRules = `Material type: WOOD
+Visual properties to preserve:
+- Wood grain oriented to match existing panels
+- Warm, non-metallic light
+- Wood structure: NO icy or glossy effects
+Keep natural wood texture and warmth.`;
+    } else if (category.includes("déco") || category.includes("deco")) {
+      materialRules = `Material type: DECORATIVE
+Visual properties to preserve:
+- Preserve pattern (graphic or textured)
+- NO added shine unless intended
+- Respect contrast, density, and pattern repetition
+Keep decorative motif integrity.`;
+    } else {
+      materialRules = `Material type: ${decor.category}
+Preserve all intrinsic material properties shown in the reference texture.
+Do NOT alter the fundamental visual characteristics of this material.`;
+    }
+
     // Layer 3: Visual quality directive (always present)
-    const qualityDirective = `Maintain proportions, perspective, and realistic texture.
-Respect shadows, relief, joints, and straight lines.
-The result must be photographic, clean, ready for commercial presentation.
+    const qualityDirective = `Universal rules:
+- If in doubt → DO NOT modify the surface
+- Preserve perspective, shadows, joints, existing relief
+- NO global lighting transformation
+- Decor must follow surfaces (not float above them)
+- Result must be photographic and credible for a craftsperson
 
 IMPORTANT: Ignore surfaces that already include a visible different material or pattern. If in doubt, keep the original material.`;
 
@@ -85,6 +134,8 @@ IMPORTANT: Ignore surfaces that already include a visible different material or 
     const prompt = `${globalIntention}
 
 ${contextRules}
+
+${materialRules}
 
 ${qualityDirective}`;
 
