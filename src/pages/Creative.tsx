@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, Download, FolderPlus } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, Download, FolderPlus, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +16,7 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   imageUrl?: string;
+  sourceImageUrl?: string;
 }
 
 interface Decor {
@@ -65,6 +66,9 @@ const Creative = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [newProjectTitle, setNewProjectTitle] = useState("");
   const [isSavingToProject, setIsSavingToProject] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -215,7 +219,47 @@ const Creative = () => {
     return context;
   };
 
-  const streamChat = async (userMessage: string) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Veuillez sélectionner une image");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 10 Mo");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const fileName = `source-${Date.now()}.${file.name.split('.').pop()}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("project-photos")
+        .upload(`${user.id}/${fileName}`, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("project-photos")
+        .getPublicUrl(`${user.id}/${fileName}`);
+
+      setUploadedImage(publicUrl);
+      toast.success("Image uploadée");
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error("Erreur lors de l'upload");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const streamChat = async (userMessage: string, sourceImageUrl?: string) => {
     const decorContext = buildDecorContext();
     const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/creative-chat`;
     
@@ -227,7 +271,8 @@ const Creative = () => {
       },
       body: JSON.stringify({ 
         messages: [...messages, { role: "user", content: userMessage }],
-        decorContext
+        decorContext,
+        sourceImageUrl
       }),
     });
 
@@ -314,12 +359,18 @@ const Creative = () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
+    const sourceImage = uploadedImage;
     setInput("");
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setUploadedImage(null);
+    setMessages(prev => [...prev, { 
+      role: "user", 
+      content: userMessage,
+      sourceImageUrl: sourceImage || undefined
+    }]);
     setIsLoading(true);
 
     try {
-      await streamChat(userMessage);
+      await streamChat(userMessage, sourceImage || undefined);
     } catch (error: any) {
       console.error("Error:", error);
       toast.error(error.message || "Erreur lors de la communication avec l'IA");
@@ -486,6 +537,15 @@ const Creative = () => {
                                   : "bg-muted"
                               }`}
                             >
+                              {message.sourceImageUrl && message.role === "user" && (
+                                <div className="mb-2">
+                                  <img 
+                                    src={message.sourceImageUrl} 
+                                    alt="Photo source" 
+                                    className="rounded-lg max-h-40 w-auto"
+                                  />
+                                </div>
+                              )}
                               {message.imageUrl ? (
                                 <div className="space-y-3">
                                   <p className="whitespace-pre-wrap text-sm">{message.content}</p>
@@ -543,7 +603,45 @@ const Creative = () => {
                     </div>
                   </ScrollArea>
 
+                  {uploadedImage && (
+                    <div className="relative inline-block">
+                      <img 
+                        src={uploadedImage} 
+                        alt="Image source à envoyer" 
+                        className="rounded-lg max-h-32 w-auto border-2 border-primary"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6"
+                        onClick={() => setUploadedImage(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
                   <div className="flex gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isLoading || isUploading}
+                      title="Uploader une photo source"
+                    >
+                      {isUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ImagePlus className="h-4 w-4" />
+                      )}
+                    </Button>
                     <Input
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
