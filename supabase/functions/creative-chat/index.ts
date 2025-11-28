@@ -12,10 +12,11 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, decorContext } = await req.json();
+    const { messages, decorContext, sourceImageUrl } = await req.json();
     console.log('Creative chat request received');
     console.log('- Messages:', messages.length);
     console.log('- Decor context length:', decorContext?.length || 0, 'characters');
+    console.log('- Source image URL:', sourceImageUrl || 'none');
     console.log('- Decor context preview:', decorContext?.substring(0, 200));
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -39,9 +40,11 @@ serve(async (req) => {
         throw new Error("Contexte des décors non disponible");
       }
       
-      const imagePrompt = `🧠 MODE: ASSISTANT_CREA (Liberté créative contrôlée)
+      const basePrompt = `🧠 MODE: ASSISTANT_CREA (Liberté créative contrôlée)
 
 Tu es un directeur artistique pour DICA France. Crée une visualisation qui répond à: "${lastUserMessage}"
+
+${sourceImageUrl ? `📷 PHOTO SOURCE FOURNIE: Le client a uploadé une photo de référence. Tu dois t'en inspirer pour comprendre le style, l'ambiance, les volumes et les surfaces. Utilise cette photo comme base visuelle pour appliquer les décors DICA de manière réaliste et cohérente avec l'existant.` : ''}
 
 ${decorContext}
 
@@ -80,7 +83,22 @@ Applique les décors DICA selon leur matériau:
 
 Le résultat doit inspirer et convaincre les clients tout en restant crédible professionnellement.`;
 
-      console.log("Full image prompt length:", imagePrompt.length, "characters");
+      console.log("Full image prompt length:", basePrompt.length, "characters");
+
+      // Build messages array with optional source image
+      const imageMessages = sourceImageUrl 
+        ? [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: basePrompt },
+                { type: "image_url", image_url: { url: sourceImageUrl } }
+              ]
+            }
+          ]
+        : [
+            { role: "user", content: basePrompt }
+          ];
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -90,9 +108,7 @@ Le résultat doit inspirer et convaincre les clients tout en restant crédible p
         },
         body: JSON.stringify({
           model: "google/gemini-3-pro-image-preview",
-          messages: [
-            { role: "user", content: imagePrompt }
-          ],
+          messages: imageMessages,
           modalities: ["image", "text"]
         }),
       });
