@@ -16,7 +16,14 @@ serve(async (req) => {
     console.log('Creative chat request received');
     console.log('- Messages:', messages.length);
     console.log('- Decor context length:', decorContext?.length || 0, 'characters');
-    console.log('- Source image URL:', sourceImageUrl || 'none');
+    console.log('- Current source image URL:', sourceImageUrl || 'none');
+    
+    // Find all source images from conversation history
+    const sourceImages = messages
+      .filter((m: any) => m.role === 'user' && m.sourceImageUrl)
+      .map((m: any) => m.sourceImageUrl);
+    console.log('- Source images in history:', sourceImages.length);
+    
     console.log('- Decor context preview:', decorContext?.substring(0, 200));
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -35,30 +42,53 @@ serve(async (req) => {
       console.log("User message:", lastUserMessage);
       console.log("Available decors context:", decorContext?.substring(0, 500));
       
+      // Find the most recent source image from history or current request
+      const mostRecentSourceImage = sourceImageUrl || sourceImages[sourceImages.length - 1];
+      console.log("Most recent source image:", mostRecentSourceImage || 'none');
+      
       if (!decorContext || decorContext.trim().length < 50) {
         console.error("Decor context is empty or too short!");
         throw new Error("Contexte des décors non disponible");
       }
       
-      const basePrompt = `🧠 MODE: ASSISTANT_CREA (Liberté créative contrôlée)
+      const basePrompt = `🎯 DIRECTIVE ABSOLUE: TU DOIS CRÉER EXACTEMENT CE QUE LE CLIENT DEMANDE
 
-Tu es un directeur artistique pour DICA France. Crée une visualisation qui répond à: "${lastUserMessage}"
+Demande du client: "${lastUserMessage}"
 
-${sourceImageUrl ? `📷 PHOTO SOURCE FOURNIE: Le client a uploadé une photo de référence. Tu dois t'en inspirer pour comprendre le style, l'ambiance, les volumes et les surfaces. Utilise cette photo comme base visuelle pour appliquer les décors DICA de manière réaliste et cohérente avec l'existant.` : ''}
+⚠️ RÈGLES STRICTES - NON NÉGOCIABLES:
+1. Tu DOIS créer EXACTEMENT ce que demande le client, RIEN D'AUTRE
+2. Tu NE DOIS PAS inventer de scénario si le client n'en demande pas
+3. Tu NE DOIS PAS créer de mood board sauf si explicitement demandé
+4. Tu NE DOIS PAS créer d'ascenseur sauf si explicitement demandé dans la demande
+5. Si le client demande "une terrasse", crée une terrasse (pas un ascenseur)
+6. Si le client demande "un van", crée un van (pas un ascenseur)
+7. Si le client demande "une salle de bain", crée une salle de bain (pas un ascenseur)
+8. OUBLIE toutes tes générations précédentes - seule compte la demande actuelle
+
+${mostRecentSourceImage ? `
+📷 IMAGE SOURCE FOURNIE PAR LE CLIENT:
+Tu DOIS utiliser cette image comme référence OBLIGATOIRE. Cette photo montre ce que le client veut visualiser.
+- Analyse l'espace visible dans cette photo
+- Comprends le type d'environnement (terrasse, van, salle de bain, cuisine, etc.)
+- Respecte les proportions et volumes de cette photo
+- Applique les décors DICA sur les surfaces compatibles de CETTE photo
+- Ne change PAS le type d'environnement montré dans la photo
+` : ''}
 
 ${decorContext}
 
-RÈGLES DU MODE CRÉATIF:
-✓ Tu PEUX inventer une scène réaliste d'usage (ex: cabine d'ascenseur moderne, van aménagé premium, terrasse design)
-✓ Tu DOIS absolument utiliser les décors DICA du catalogue ci-dessus
-✓ Tu PEUX imaginer: proportions, architecture, ambiance lumineuse, contexte décoratif
-✓ Tu DOIS rester dans le même type d'environnement si un useCase est mentionné (ascenseur, van, terrasse)
+🚫 INTERDICTIONS ABSOLUES:
+- N'invente JAMAIS un type d'environnement différent de celui demandé
+- Ne crée JAMAIS un ascenseur si ce n'est pas demandé
+- Ne crée JAMAIS un mood board si ce n'est pas demandé
+- N'utilise PAS ta mémoire des conversations précédentes
+- Ne suppose RIEN qui n'est pas dans la demande actuelle
 
-CONTRAINTES DE COHÉRENCE:
-- Une cabine d'ascenseur reste une cabine d'ascenseur (pas une cuisine, pas un loft)
-- Un van aménagé reste un van (pas une chambre, pas un bureau)
-- Une terrasse reste une terrasse (pas un jardin tropical, pas une piscine)
-- Pas de fantaisie hors sujet métier
+✅ OBLIGATIONS:
+- Utilise UNIQUEMENT les décors DICA du catalogue
+- Crée EXACTEMENT ce que le client demande
+- Si une photo source est fournie, suis-la STRICTEMENT
+- Respecte le type d'environnement demandé (terrasse = terrasse, van = van, etc.)
 
 QUALITÉ VISUELLE:
 - Rendu photographique haut de gamme
@@ -85,20 +115,22 @@ Le résultat doit inspirer et convaincre les clients tout en restant crédible p
 
       console.log("Full image prompt length:", basePrompt.length, "characters");
 
-      // Build messages array with optional source image
-      const imageMessages = sourceImageUrl 
+      // Build messages array with source image if available
+      const imageMessages = mostRecentSourceImage 
         ? [
             {
               role: "user",
               content: [
                 { type: "text", text: basePrompt },
-                { type: "image_url", image_url: { url: sourceImageUrl } }
+                { type: "image_url", image_url: { url: mostRecentSourceImage } }
               ]
             }
           ]
         : [
             { role: "user", content: basePrompt }
           ];
+
+      console.log("Sending request with source image:", mostRecentSourceImage ? 'YES' : 'NO');
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -131,26 +163,38 @@ Le résultat doit inspirer et convaincre les clients tout en restant crédible p
     }
 
     // Text-only response using streaming
-    const systemPrompt = `Tu es un directeur artistique et conseiller créatif pour DICA France, opérant en 🧠 MODE ASSISTANT_CREA.
+    const systemPrompt = `Tu es un assistant créatif pour DICA France.
+
+🎯 RÈGLE ABSOLUE: Tu DOIS suivre EXACTEMENT ce que demande le client
 
 DÉCORS DISPONIBLES:
 ${decorContext}
 
-TON RÔLE (mode créatif avec liberté contrôlée):
-- Inspire et propose des concepts créatifs audacieux utilisant UNIQUEMENT les décors DICA
-- Suggère des associations de matières, des ambiances, des mises en scène réalistes
-- Aide à créer des mood boards, planches tendances, visualisations marketing premium
-- Pense communication professionnelle, esthétique DICA, inspiration client
-- Reste dans le métier: ascenseur = ascenseur, van = van, terrasse = terrasse
-- Sois créatif mais crédible et cohérent avec l'univers DICA France
+⚠️ DIRECTIVES CRITIQUES:
+1. Lis attentivement la demande du client
+2. Crée UNIQUEMENT ce qui est demandé
+3. N'invente PAS de contenu différent de la demande
+4. N'utilise PAS ta mémoire des conversations précédentes
+5. Chaque demande est INDÉPENDANTE
 
-CONTRAINTES:
-- Utilise UNIQUEMENT les décors du catalogue DICA ci-dessus
-- Respecte les propriétés des matériaux (Métal/Unis/Bois/Marbres/Déco)
-- Reste dans des scénarios d'usage réalistes pour le métier
-- Qualité visuelle: photographique, premium, marketing haut de gamme
+TON RÔLE:
+- Conseiller sur les décors DICA disponibles
+- Suggérer des associations de matières pertinentes
+- Aider à visualiser des concepts créatifs DEMANDÉS par le client
+- Répondre précisément aux questions sur les décors
 
-Réponds en français de manière inspirante et professionnelle. Encourage l'utilisateur à demander des visualisations en utilisant des verbes d'action: "crée", "imagine", "montre-moi", "visualise", "compose", "génère".`;
+🚫 INTERDICTIONS:
+- Ne suggère PAS des ascenseurs si non demandés
+- Ne suggère PAS des mood boards si non demandés
+- N'invente PAS un contexte différent de celui demandé
+- Ne réutilise PAS d'éléments de conversations précédentes
+
+✅ OBLIGATIONS:
+- Utilise UNIQUEMENT les décors du catalogue DICA
+- Reste dans le contexte demandé par le client
+- Propose des visualisations UNIQUEMENT si demandées
+
+Réponds en français de manière claire et professionnelle.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
