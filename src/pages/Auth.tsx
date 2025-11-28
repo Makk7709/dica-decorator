@@ -8,12 +8,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { z } from "zod";
+
+// Validation schemas
+const emailSchema = z.string().email("Email invalide").trim();
+const passwordSchema = z
+  .string()
+  .min(8, "Le mot de passe doit contenir au moins 8 caractères")
+  .regex(/[A-Z]/, "Le mot de passe doit contenir au moins une majuscule")
+  .regex(/[a-z]/, "Le mot de passe doit contenir au moins une minuscule")
+  .regex(/[0-9]/, "Le mot de passe doit contenir au moins un chiffre")
+  .regex(/[^A-Za-z0-9]/, "Le mot de passe doit contenir au moins un caractère spécial");
 
 const Auth = () => {
   const navigate = useNavigate();
   const { user, signIn, signUp } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
   
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ email: "", password: "", confirmPassword: "" });
@@ -26,6 +38,15 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    try {
+      emailSchema.parse(loginData.email);
+    } catch (error: any) {
+      toast.error(error.errors[0]?.message || "Email invalide");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -33,7 +54,8 @@ const Auth = () => {
       toast.success("Connexion réussie !");
       navigate("/dashboard");
     } catch (error: any) {
-      toast.error(error.message || "Erreur de connexion");
+      // Messages d'erreur génériques pour éviter l'énumération de comptes
+      toast.error("Email ou mot de passe incorrect");
     } finally {
       setIsLoading(false);
     }
@@ -42,13 +64,25 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (signupData.password !== signupData.confirmPassword) {
-      toast.error("Les mots de passe ne correspondent pas");
+    // Validation email
+    try {
+      emailSchema.parse(signupData.email);
+    } catch (error: any) {
+      toast.error(error.errors[0]?.message || "Email invalide");
       return;
     }
 
-    if (signupData.password.length < 8) {
-      toast.error("Le mot de passe doit contenir au moins 8 caractères");
+    // Validation mot de passe
+    try {
+      passwordSchema.parse(signupData.password);
+    } catch (error: any) {
+      toast.error(error.errors[0]?.message || "Mot de passe invalide");
+      return;
+    }
+
+    // Vérification correspondance
+    if (signupData.password !== signupData.confirmPassword) {
+      toast.error("Les mots de passe ne correspondent pas");
       return;
     }
 
@@ -56,14 +90,13 @@ const Auth = () => {
 
     try {
       await signUp(signupData.email, signupData.password);
-      toast.success("Compte créé ! Vous pouvez maintenant vous connecter.");
-      setSignupData({ email: "", password: "", confirmPassword: "" });
+      toast.success("Compte créé ! Connexion automatique...");
+      // Connexion automatique après inscription
+      await signIn(signupData.email, signupData.password);
+      navigate("/dashboard");
     } catch (error: any) {
-      if (error.message.includes("already registered")) {
-        toast.error("Cet email est déjà utilisé");
-      } else {
-        toast.error(error.message || "Erreur lors de l'inscription");
-      }
+      // Messages génériques pour éviter l'énumération
+      toast.error("Impossible de créer le compte. Veuillez réessayer.");
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +145,7 @@ const Auth = () => {
                   <div className="relative">
                     <Input
                       id="login-password"
-                      type={showPassword ? "text" : "password"}
+                      type={showLoginPassword ? "text" : "password"}
                       placeholder="••••••••"
                       value={loginData.password}
                       onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
@@ -123,9 +156,9 @@ const Auth = () => {
                       variant="ghost"
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
                     >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
                 </div>
@@ -150,27 +183,41 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Mot de passe</Label>
-                  <Input
-                    id="signup-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={signupData.password}
-                    onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                    required
-                    minLength={8}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="signup-password"
+                      type={showSignupPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={signupData.password}
+                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => setShowSignupPassword(!showSignupPassword)}
+                    >
+                      {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Min. 8 caractères, majuscule, minuscule, chiffre et caractère spécial
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-confirm">Confirmer le mot de passe</Label>
-                  <Input
-                    id="signup-confirm"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={signupData.confirmPassword}
-                    onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                    required
-                    minLength={8}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="signup-confirm"
+                      type={showSignupPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={signupData.confirmPassword}
+                      onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
+                      required
+                    />
+                  </div>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Création..." : "Créer un compte"}
@@ -179,10 +226,6 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2 text-center text-sm text-muted-foreground">
-          <p>Compte démo Admin : admin@dica.com</p>
-          <p className="text-xs">Mot de passe : PassTemporaire@123</p>
-        </CardFooter>
       </Card>
       </div>
     </div>
