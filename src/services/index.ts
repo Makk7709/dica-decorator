@@ -94,3 +94,26 @@ export {
   type GeminiApiRequest,
 } from './gemini-image.service';
 
+// Image Comparison Service - Phase 3.0 (Comparateur Avant/Après)
+export {
+  ImageComparisonService,
+  ComparisonError,
+  type ComparisonConfig,
+  type ComparisonState,
+  type SliderPosition,
+  type ImagePair,
+  type ValidationResult,
+  type ClipPaths,
+  type HandlePosition,
+  type ExportOptions,
+  type ComparisonExport,
+  type AnimationOptions,
+  type LoadResult,
+  type AriaAttributes,
+  type FocusAttributes,
+  type SliderOrientation,
+  type EasingFunction,
+  type ExportFormat,
+  type PresetName,
+} from './image-comparison.service';
+

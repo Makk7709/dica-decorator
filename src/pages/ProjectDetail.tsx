@@ -9,9 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon, Maximize2, X } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon, Maximize2, X, SplitSquareHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/premium-layout";
+import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface Project {
@@ -61,6 +62,12 @@ const ProjectDetail = () => {
   const [renderFormat, setRenderFormat] = useState<"square" | "portrait" | "landscape">("square");
   const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [comparisonMode, setComparisonMode] = useState<{
+    before: string;
+    after: string;
+    decorName?: string;
+    decorCode?: string;
+  } | null>(null);
 
   useEffect(() => {
     loadProject();
@@ -545,15 +552,37 @@ const ProjectDetail = () => {
                               alt="Rendu"
                               className="w-full aspect-square object-cover"
                             />
-                            {/* Icône agrandir en bas à droite */}
-                            <Button
-                              variant="secondary"
-                              size="icon"
-                              className="absolute bottom-2 right-2 h-7 w-7 bg-white/90 hover:bg-white shadow-md z-20"
-                              onClick={() => setZoomedImage(render.result_image_url)}
-                            >
-                              <Maximize2 className="h-3.5 w-3.5 text-foreground" />
-                            </Button>
+                            {/* Icônes en bas à droite */}
+                            <div className="absolute bottom-2 right-2 flex gap-1.5 z-20">
+                              {/* Bouton comparaison avant/après */}
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-7 w-7 bg-white/90 hover:bg-white shadow-md"
+                                onClick={() => {
+                                  const decor = decors.find(d => d.id === render.decor_id);
+                                  setComparisonMode({
+                                    before: photo.original_image_url,
+                                    after: render.result_image_url,
+                                    decorName: decor?.name,
+                                    decorCode: decor?.reference_code,
+                                  });
+                                }}
+                                title="Comparer avant/après"
+                              >
+                                <SplitSquareHorizontal className="h-3.5 w-3.5 text-foreground" />
+                              </Button>
+                              {/* Bouton agrandir */}
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-7 w-7 bg-white/90 hover:bg-white shadow-md"
+                                onClick={() => setZoomedImage(render.result_image_url)}
+                                title="Agrandir"
+                              >
+                                <Maximize2 className="h-3.5 w-3.5 text-foreground" />
+                              </Button>
+                            </div>
                             {/* Overlay actions */}
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 z-10">
                               <div className="flex gap-2">
@@ -830,6 +859,68 @@ const ProjectDetail = () => {
                 </div>
               </>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour comparaison avant/après */}
+      <Dialog open={!!comparisonMode} onOpenChange={(open) => !open && setComparisonMode(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden">
+          <div className="relative">
+            {/* Header */}
+            <div className="absolute top-0 left-0 right-0 z-20 p-4 bg-gradient-to-b from-black/60 to-transparent">
+              <div className="flex items-center justify-between">
+                <div className="text-white">
+                  <h3 className="font-semibold">Comparaison Avant / Après</h3>
+                  {comparisonMode?.decorName && (
+                    <p className="text-sm text-white/80">
+                      {comparisonMode.decorName}
+                      {comparisonMode.decorCode && ` (${comparisonMode.decorCode})`}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 bg-white/10 hover:bg-white/20 text-white"
+                  onClick={() => setComparisonMode(null)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Slider */}
+            {comparisonMode && (
+              <BeforeAfterSlider
+                beforeImage={comparisonMode.before}
+                afterImage={comparisonMode.after}
+                beforeLabel="Photo originale"
+                afterLabel="Avec décor DICA"
+                metadata={{
+                  decorName: comparisonMode.decorName,
+                  decorCode: comparisonMode.decorCode,
+                }}
+                aspectRatio="4/3"
+                className="w-full"
+              />
+            )}
+
+            {/* Footer actions */}
+            <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="flex justify-center gap-3">
+                <Button
+                  variant="secondary"
+                  className="h-10 px-4 bg-white hover:bg-white shadow-lg"
+                  asChild
+                >
+                  <a href={comparisonMode?.after} download className="flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    <span>Télécharger le rendu</span>
+                  </a>
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
