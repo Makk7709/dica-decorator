@@ -126,47 +126,14 @@ const Admin = () => {
   const loadUsers = async () => {
     setIsLoadingUsers(true);
     try {
-      // Fetch users with profiles and quotas
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      if (authError) throw authError;
-
-      const usersData: UserData[] = await Promise.all(
-        authUsers.users.map(async (user) => {
-          // Get profile
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .maybeSingle();
-
-          // Get quota
-          const { data: quota } = await supabase
-            .from("user_quotas")
-            .select("*")
-            .eq("user_id", user.id)
-            .maybeSingle();
-
-          // Count projects
-          const { count } = await supabase
-            .from("projects")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id);
-
-          return {
-            id: user.id,
-            email: user.email || "",
-            first_name: profile?.first_name || null,
-            last_name: profile?.last_name || null,
-            is_active: profile?.is_active ?? true,
-            created_at: user.created_at,
-            quota_limit: quota?.quota_limit || 0,
-            quota_used: quota?.quota_used || 0,
-            project_count: count || 0,
-          };
-        })
-      );
-
-      setUsers(usersData);
+      // Call edge function to get users with admin privileges
+      const { data, error } = await supabase.functions.invoke("get-users-admin");
+      
+      if (error) throw error;
+      
+      if (data?.users) {
+        setUsers(data.users);
+      }
     } catch (error: any) {
       toast.error("Erreur lors du chargement des utilisateurs");
       console.error(error);
