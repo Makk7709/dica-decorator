@@ -59,6 +59,7 @@ const ProjectDetail = () => {
   const [favoriteRenderIds, setFavoriteRenderIds] = useState<Set<string>>(new Set());
   const [renderCount, setRenderCount] = useState<number>(1);
   const [renderFormat, setRenderFormat] = useState<"square" | "portrait" | "landscape">("square");
+  const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
 
   useEffect(() => {
     loadProject();
@@ -233,6 +234,7 @@ const ProjectDetail = () => {
           useCase: project.use_case,
           renderCount,
           format: renderFormat,
+          showReferences, // Ajouter les références DICA sur l'image
         },
       });
 
@@ -652,6 +654,25 @@ const ProjectDetail = () => {
                     <SelectItem value="landscape">Paysage (1344×768)</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Option références DICA */}
+              <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+                <input
+                  type="checkbox"
+                  id="show-references"
+                  checked={showReferences}
+                  onChange={(e) => setShowReferences(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <div className="flex-1">
+                  <Label htmlFor="show-references" className="cursor-pointer font-medium">
+                    Afficher les références DICA
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ajoute le nom et code du décor sur l'image (ex: "Inox Brossé 3020BN")
+                  </p>
+                </div>
               </div>
             </div>
             

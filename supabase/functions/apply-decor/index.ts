@@ -129,7 +129,7 @@ serve(async (req) => {
   }
 
   try {
-    const { photoUrl, textureUrl, photoId, decorId, useCase, renderCount = 1, format = "square" } = await req.json();
+    const { photoUrl, textureUrl, photoId, decorId, useCase, renderCount = 1, format = "square", showReferences = false } = await req.json();
     
     // Limit render count to avoid resource exhaustion
     const safeRenderCount = Math.min(renderCount, RESOURCE_LIMITS.maxRenderCount);
@@ -341,7 +341,42 @@ ${qualityDirective}
 ✓ Le résultat est-il crédible pour un professionnel?
 
 Si UNE seule réponse est NON → Améliorer ou refuser le rendu.
-═══════════════════════════════════════════════════════════════════`;
+═══════════════════════════════════════════════════════════════════
+
+${showReferences ? `
+═══════════════════════════════════════════════════════════════════
+🏷️ ANNOTATIONS RÉFÉRENCES DICA - OBLIGATOIRE
+═══════════════════════════════════════════════════════════════════
+
+Tu DOIS ajouter sur l'image les références du décor appliqué:
+
+DÉCOR À ANNOTER:
+• Nom: ${decor.name}
+• Référence: ${decor.reference_code}
+
+FORMAT D'ANNOTATION:
+• Texte élégant, police sans-serif moderne (style catalogue)
+• Fond semi-transparent derrière le texte pour lisibilité
+• Position: coin inférieur gauche ou près de la surface décorée
+• Couleur: blanc ou noir selon le contraste avec l'arrière-plan
+
+EXEMPLE DE RENDU:
+┌─────────────────────────────┐
+│                             │
+│    [IMAGE DU RENDU]         │
+│                             │
+│  ┌───────────────────────┐  │
+│  │ ${decor.name}         │  │
+│  │ Réf: ${decor.reference_code} │  │
+│  └───────────────────────┘  │
+└─────────────────────────────┘
+
+L'annotation doit être:
+- Professionnelle et discrète
+- Lisible sans dominer l'image
+- Intégrée harmonieusement au rendu
+═══════════════════════════════════════════════════════════════════
+` : ''}`;
 
     console.log(`Calling Gemini API (${GEMINI_CONFIG.model})...`);
 

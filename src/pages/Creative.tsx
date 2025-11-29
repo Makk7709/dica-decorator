@@ -77,6 +77,7 @@ const Creative = () => {
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [currentImageLabel, setCurrentImageLabel] = useState<string>("");
+  const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -299,6 +300,7 @@ const Creative = () => {
         decorContext,
         sourceImageUrls,  // Array of image URLs
         imageLabels,      // Array of labels for each image
+        showReferences,   // Afficher les références DICA sur l'image
       }),
     });
 
@@ -763,6 +765,25 @@ const Creative = () => {
                         <Send className="h-4 w-4" />
                       )}
                     </Button>
+                  </div>
+
+                  {/* Option références DICA */}
+                  <div className="flex items-center space-x-3 p-3 rounded-xl bg-muted/30 border border-border/50">
+                    <input
+                      type="checkbox"
+                      id="show-references-creative"
+                      checked={showReferences}
+                      onChange={(e) => setShowReferences(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="show-references-creative" className="cursor-pointer text-sm font-medium">
+                        🏷️ Afficher les références DICA
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        Ajoute les noms et codes des décors sur l'image générée
+                      </p>
+                    </div>
                   </div>
 
                   {/* Tips */}

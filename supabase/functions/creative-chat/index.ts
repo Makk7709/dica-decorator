@@ -87,7 +87,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, decorContext, sourceImageUrls, imageLabels } = await req.json();
+    const { messages, decorContext, sourceImageUrls, imageLabels, showReferences = false } = await req.json();
     console.log('Creative chat request received');
     console.log('- Messages:', messages.length);
     console.log('- Decor context length:', decorContext?.length || 0, 'characters');
@@ -377,9 +377,39 @@ valeur et clairement visibles. Le client doit pouvoir se projeter
 immédiatement dans son futur projet.
 
 EFFET WOW OBLIGATOIRE - Le client doit être impressionné dès la première image.
-═══════════════════════════════════════════════════════════════════`;
+═══════════════════════════════════════════════════════════════════
+
+${showReferences ? `
+═══════════════════════════════════════════════════════════════════
+🏷️ ANNOTATIONS RÉFÉRENCES DICA - OBLIGATOIRE
+═══════════════════════════════════════════════════════════════════
+
+Tu DOIS ajouter sur l'image les références des décors DICA utilisés.
+
+FORMAT D'ANNOTATION (style catalogue professionnel):
+• Police: sans-serif élégante et moderne
+• Fond: semi-transparent (noir ou blanc selon contraste)
+• Position: en bas de l'image ou près des surfaces décorées
+• Taille: lisible mais pas dominante
+
+STRUCTURE DES ANNOTATIONS:
+┌─────────────────────────────┐
+│  Nom du décor               │
+│  (Réf: CODE_REFERENCE)      │
+└─────────────────────────────┘
+
+EXEMPLES:
+• "Inox Brossé 3020BN"
+• "Uni Olive FC (Réf: 3179_SPA_FC)"
+• "Marble décor - Laiton Brossé 3012 FC"
+
+Si plusieurs décors sont visibles, annote CHACUN d'eux.
+Les annotations doivent être professionnelles et intégrées harmonieusement.
+═══════════════════════════════════════════════════════════════════
+` : ''}`;
 
       console.log("Full image prompt length:", basePrompt.length, "characters");
+      console.log("Show references:", showReferences);
 
       // Build request parts
       const requestParts: any[] = [{ text: basePrompt }];
