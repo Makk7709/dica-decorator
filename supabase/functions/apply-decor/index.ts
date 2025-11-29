@@ -246,29 +246,115 @@ RÈGLE #4: ALIGNEMENT DU GRAIN
 
 ═══════════════════════════════════════════════════════════════════`;
 
-    // Layer 2: Business rules per context
-    let contextRules = "";
+    // Layer 2: Surface identification rules (NO spatial context suggestion)
+    let surfaceRules = "";
     switch (useCase) {
       case "ascenseur":
-        contextRules = `Context: Elevator cabin
-Allowed surfaces: vertical wall panels, door panels, lower wall sections
-Forbidden surfaces: ceiling, floor, lights, buttons, grab bar, mirrors, windows, indicators, structure, any technical or decorative accessories`;
+        surfaceRules = `═══════════════════════════════════════════════════════════════════
+IDENTIFICATION DES SURFACES - PAS DE SUGGESTION D'ESPACE
+═══════════════════════════════════════════════════════════════════
+
+⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie, quel que soit le type d'espace
+(bureau, cuisine, salon, chambre, etc.). Le contexte "ascenseur" sert UNIQUEMENT à 
+identifier les TYPES de surfaces compatibles, PAS à suggérer de générer un ascenseur.
+
+SURFACES COMPATIBLES avec le décor:
+• Panneaux muraux verticaux
+• Surfaces de portes/battants
+• Sections murales basses (soubassements)
+• Revêtements muraux lisses
+
+SURFACES INTERDITES (ne JAMAIS modifier):
+• Plafonds et luminaires
+• Sols et planchers
+• Éléments techniques (boutons, interrupteurs, prises)
+• Barres de maintien, poignées, quincaillerie
+• Miroirs et surfaces vitrées
+• Indicateurs et signalétique
+• Structures apparentes
+• Accessoires décoratifs ou techniques
+
+RÈGLE ABSOLUE: Travaille UNIQUEMENT sur la photo fournie. Si c'est un bureau, 
+reste sur le bureau. Si c'est une cuisine, reste sur la cuisine. NE JAMAIS inventer 
+un autre type d'espace.
+═══════════════════════════════════════════════════════════════════`;
         break;
       case "van":
-        contextRules = `Context: Van interior
-Allowed surfaces: vertical wall coverings, lateral partitions, wall panels
-Forbidden surfaces: furniture, countertop, objects, windows, appliances, door handles, fixtures, hardware, seats`;
+        surfaceRules = `═══════════════════════════════════════════════════════════════════
+IDENTIFICATION DES SURFACES - PAS DE SUGGESTION D'ESPACE
+═══════════════════════════════════════════════════════════════════
+
+⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie, quel que soit le type d'espace.
+Le contexte "van" sert UNIQUEMENT à identifier les TYPES de surfaces compatibles,
+PAS à suggérer de générer un véhicule.
+
+SURFACES COMPATIBLES avec le décor:
+• Revêtements muraux verticaux
+• Cloisons latérales
+• Panneaux de paroi
+
+SURFACES INTERDITES (ne JAMAIS modifier):
+• Mobilier (sièges, placards, lits)
+• Plans de travail et comptoirs
+• Objets et équipements
+• Surfaces vitrées (fenêtres, hublots)
+• Électroménager et appareils
+• Poignées et quincaillerie
+• Accessoires et fixations
+• Sièges et assises
+
+RÈGLE ABSOLUE: Travaille UNIQUEMENT sur la photo fournie. Si c'est un bureau,
+reste sur le bureau. NE JAMAIS inventer un autre type d'espace.
+═══════════════════════════════════════════════════════════════════`;
         break;
       case "terrasse":
-        contextRules = `Context: Outdoor terrace
-Allowed surfaces: horizontal floor surfaces, visible vertical cladding (railings, support walls)
-Forbidden surfaces: vegetation, furniture, textiles, decorative equipment`;
+        surfaceRules = `═══════════════════════════════════════════════════════════════════
+IDENTIFICATION DES SURFACES - PAS DE SUGGESTION D'ESPACE
+═══════════════════════════════════════════════════════════════════
+
+⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie, quel que soit le type d'espace.
+Le contexte "terrasse" sert UNIQUEMENT à identifier les TYPES de surfaces compatibles,
+PAS à suggérer de générer une terrasse.
+
+SURFACES COMPATIBLES avec le décor:
+• Surfaces horizontales de sol
+• Revêtements verticaux visibles (garde-corps, murs porteurs)
+
+SURFACES INTERDITES (ne JAMAIS modifier):
+• Végétation (plantes, arbres)
+• Mobilier extérieur (tables, chaises)
+• Textiles (coussins, voiles)
+• Équipements décoratifs
+• Éléments naturels
+
+RÈGLE ABSOLUE: Travaille UNIQUEMENT sur la photo fournie. Si c'est un bureau,
+reste sur le bureau. NE JAMAIS inventer un autre type d'espace.
+═══════════════════════════════════════════════════════════════════`;
         break;
       default:
-        contextRules = `Context: Furniture/surface renovation (tables, counters, furniture)
-Allowed surfaces: ONLY the horizontal work surfaces (table tops, countertops, shelves, furniture panels) that are the main subject
-Forbidden surfaces: walls, floors, background elements, decorative items, technical equipment, accessories
-CRITICAL: DO NOT modify walls or background - focus ONLY on the main furniture piece or work surface in focus`;
+        surfaceRules = `═══════════════════════════════════════════════════════════════════
+IDENTIFICATION DES SURFACES - PAS DE SUGGESTION D'ESPACE
+═══════════════════════════════════════════════════════════════════
+
+⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie. IDENTIFIE le sujet principal
+(meuble, surface de travail, panneau) et applique le décor UNIQUEMENT dessus.
+
+SURFACES COMPATIBLES avec le décor:
+• Surfaces horizontales de travail (dessus de tables, comptoirs)
+• Panneaux de meubles visibles
+• Étagères et plateaux
+• Surfaces principales au premier plan
+
+SURFACES INTERDITES (ne JAMAIS modifier):
+• Murs d'arrière-plan
+• Sols de l'environnement
+• Éléments décoratifs
+• Équipements techniques
+• Accessoires
+
+RÈGLE CRITIQUE: N'applique le décor QUE sur le sujet principal (le meuble/surface 
+au centre de l'image). JAMAIS sur les murs ou l'environnement en arrière-plan.
+═══════════════════════════════════════════════════════════════════`;
     }
 
     // Layer 2.5: Material-specific rules based on decor category
@@ -348,7 +434,7 @@ pas de générer une nouvelle scène. La photo du client EST ta base de travail.
 
 ${imperativeRules}
 
-${contextRules}
+${surfaceRules}
 
 ${materialRules}
 
