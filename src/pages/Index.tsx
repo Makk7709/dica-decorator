@@ -23,11 +23,11 @@ const Index = () => {
       <div className="absolute inset-0 bg-black/20" />
       
       {/* Content */}
-      <div className="relative z-10 text-center px-4 mt-[60vh]">
+      <div className="relative z-10 text-center px-4 mt-[50vh]">
         <Button
           size="lg"
           onClick={() => navigate(user ? "/dashboard" : "/auth")}
-          className="h-16 px-12 text-xl font-semibold transition-all bg-white text-black hover:bg-white/90 animate-fade-in hover:scale-105 shadow-[0_0_30px_rgba(255,255,255,0.6)] hover:shadow-[0_0_50px_rgba(255,255,255,0.8)] animate-pulse"
+          className="h-12 px-24 text-xl font-semibold transition-all bg-white text-black hover:bg-white/90 animate-fade-in hover:scale-105 shadow-[0_0_30px_rgba(255,255,255,0.6)] hover:shadow-[0_0_50px_rgba(255,255,255,0.8)] animate-pulse w-full max-w-md"
         >
           Entrer
         </Button>
