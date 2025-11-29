@@ -17,6 +17,8 @@ const NewProject = lazy(() => import("./pages/NewProject"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Creative = lazy(() => import("./pages/Creative"));
+const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
+const Presentation = lazy(() => import("./pages/Presentation"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading component
@@ -90,6 +92,22 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Creative />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/analytics"
+                  element={
+                    <ProtectedRoute requireAdmin>
+                      <AdminAnalytics />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/presentation/:projectId"
+                  element={
+                    <ProtectedRoute>
+                      <Presentation />
                     </ProtectedRoute>
                   }
                 />
