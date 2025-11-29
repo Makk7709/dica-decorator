@@ -12,7 +12,6 @@ const Index = () => {
       <video 
         className="absolute inset-0 w-full h-full object-cover"
         autoPlay
-        loop
         muted
         playsInline
       >
