@@ -546,27 +546,27 @@ const ProjectDetail = () => {
                             />
                             {/* Overlay actions */}
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <div className="flex gap-3">
+                              <div className="flex gap-2">
                                 <Button
                                   variant="secondary"
                                   size="sm"
-                                  className="h-10 px-4 bg-white hover:bg-white shadow-lg font-medium"
+                                  className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
                                   asChild
                                 >
-                                  <a href={render.result_image_url} download className="flex items-center gap-2">
-                                    <Download className="h-4 w-4 text-foreground" />
+                                  <a href={render.result_image_url} download className="flex items-center gap-1.5">
+                                    <Download className="h-3.5 w-3.5 text-foreground" />
                                     <span className="text-foreground">Télécharger</span>
                                   </a>
                                 </Button>
                                 <Button
                                   variant="secondary"
                                   size="sm"
-                                  className="h-10 px-4 bg-white hover:bg-white shadow-lg font-medium"
+                                  className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
                                   onClick={() => handleRegenerateRender(render.id, photo.id)}
                                   disabled={isGenerating}
                                 >
-                                  <RotateCcw className="h-4 w-4 text-foreground" />
-                                  <span className="text-foreground ml-2">Recommencer</span>
+                                  <RotateCcw className="h-3.5 w-3.5 text-foreground" />
+                                  <span className="text-foreground ml-1.5">Recommencer</span>
                                 </Button>
                               </div>
                             </div>
