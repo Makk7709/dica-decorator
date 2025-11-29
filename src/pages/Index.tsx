@@ -8,11 +8,16 @@ const Index = () => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center">
-      {/* Full-screen background image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: "url('/images/dica-landing-hero.jpg')" }}
-      />
+      {/* Full-screen background video */}
+      <video 
+        className="absolute inset-0 w-full h-full object-cover"
+        autoPlay
+        loop
+        muted
+        playsInline
+      >
+        <source src="/videos/dica-landing-hero.mp4" type="video/mp4" />
+      </video>
       
       {/* Overlay for better text visibility */}
       <div className="absolute inset-0 bg-black/20" />
