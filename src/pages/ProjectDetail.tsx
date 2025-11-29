@@ -545,18 +545,18 @@ const ProjectDetail = () => {
                               alt="Rendu"
                               className="w-full aspect-square object-cover"
                             />
+                            {/* Icône agrandir en bas à droite */}
+                            <Button
+                              variant="secondary"
+                              size="icon"
+                              className="absolute bottom-2 right-2 h-7 w-7 bg-white/90 hover:bg-white shadow-md"
+                              onClick={() => setZoomedImage(render.result_image_url)}
+                            >
+                              <Maximize2 className="h-3.5 w-3.5 text-foreground" />
+                            </Button>
                             {/* Overlay actions */}
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                               <div className="flex gap-2">
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
-                                  onClick={() => setZoomedImage(render.result_image_url)}
-                                >
-                                  <Maximize2 className="h-3.5 w-3.5 text-foreground" />
-                                  <span className="text-foreground ml-1.5">Agrandir</span>
-                                </Button>
                                 <Button
                                   variant="secondary"
                                   size="sm"
