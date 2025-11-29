@@ -330,6 +330,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_quota_used: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "client"
