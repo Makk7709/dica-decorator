@@ -551,6 +551,41 @@ L'annotation doit être:
 
         console.log(`Render result ${i + 1} saved successfully`);
         
+        // Increment user quota usage
+        try {
+          // Get user_id from project_photos -> projects
+          const { data: photoData } = await supabase
+            .from("project_photos")
+            .select("project_id")
+            .eq("id", photoId)
+            .single();
+          
+          if (photoData) {
+            const { data: projectData } = await supabase
+              .from("projects")
+              .select("user_id")
+              .eq("id", photoData.project_id)
+              .single();
+            
+            if (projectData) {
+              // Increment quota_used for this user
+              const { error: quotaError } = await supabase.rpc('increment_quota_used', {
+                p_user_id: projectData.user_id
+              });
+              
+              if (quotaError) {
+                console.error("Error incrementing quota:", quotaError);
+                // Don't throw - we don't want to fail the generation if quota update fails
+              } else {
+                console.log(`Quota incremented for user ${projectData.user_id}`);
+              }
+            }
+          }
+        } catch (quotaError) {
+          console.error("Error updating quota:", quotaError);
+          // Non-blocking error - generation was successful
+        }
+        
       } catch (renderError) {
         console.error(`Error generating render ${i + 1}:`, renderError);
         
