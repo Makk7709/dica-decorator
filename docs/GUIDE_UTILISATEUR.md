@@ -14,7 +14,8 @@
 6. [Gestion des rendus](#6-gestion-des-rendus)
 7. [Assistant Créatif IA](#7-assistant-créatif-ia)
 8. [Favoris et téléchargements](#8-favoris-et-téléchargements)
-9. [Bonnes pratiques](#9-bonnes-pratiques)
+9. [Mode Nuit et Personnalisation](#9-mode-nuit-et-personnalisation)
+10. [Bonnes pratiques](#10-bonnes-pratiques)
 
 ---
 
@@ -146,8 +147,31 @@ Le cas d'usage détermine quelles surfaces l'IA va modifier :
 
 | Paramètre | Options | Recommandation |
 |-----------|---------|----------------|
-| **Nombre de rendus** | 1 à 4 | 2-3 pour varier les résultats |
+| **Nombre de rendus** | 1 à 2 | 1-2 pour optimiser les ressources |
 | **Format** | Carré (1024×1024), Portrait, Paysage | Selon votre photo |
+| **Afficher les références DICA** | Oui/Non | Oui pour catalogues et présentations |
+
+### 🏷️ Option : Références DICA sur l'image
+
+Activez cette option pour que l'IA ajoute automatiquement les références des décors sur l'image générée :
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│    [RENDU AVEC DÉCOR APPLIQUÉ]      │
+│                                     │
+│   ┌───────────────────────────┐     │
+│   │ Inox Brossé               │     │
+│   │ Réf: 3020BN               │     │
+│   └───────────────────────────┘     │
+└─────────────────────────────────────┘
+```
+
+**Cas d'utilisation** :
+- Présentations clients
+- Catalogues produits
+- Documents commerciaux
+- Comparatifs de finitions
 
 ### Sélection du décor
 
@@ -199,7 +223,7 @@ Chaque décor possède un code unique (ex: `DIC-A23`) qui permet :
 
 ### Accès
 
-Cliquez sur **"Libérez votre imagination"** depuis le tableau de bord.
+Cliquez sur **"Assistant Créatif"** ou **"Libérez votre imagination"** depuis le tableau de bord.
 
 ### Fonctionnalités
 
@@ -207,6 +231,34 @@ L'assistant créatif permet de :
 - 🎨 **Créer des mood boards** avec vos décors préférés
 - 📄 **Générer des plaquettes** de présentation commerciale
 - 💡 **Obtenir des conseils** de design et d'agencement
+- 🖼️ **Combiner plusieurs images** (décor + espace + personnes)
+- 🏷️ **Ajouter les références DICA** sur les images générées
+
+### 📷 Combinaison Multi-Images (Nouveau)
+
+Uploadez jusqu'à **5 images** pour créer une scène combinée :
+
+1. **Ajoutez une étiquette** (ex: "Van", "Décor bois", "Client")
+2. **Cliquez sur "Ajouter"** pour uploader l'image
+3. **Répétez** pour chaque élément
+4. **Décrivez** comment combiner ces éléments
+
+**Exemple de prompt** :
+> "Combine le van avec le décor Inox Brossé et place les clients à l'intérieur"
+
+### 🏷️ Option : Références DICA
+
+Activez **"Afficher les références DICA"** pour que l'IA annote automatiquement les décors sur l'image générée :
+
+```
+┌─────────────────────────────────────┐
+│                                     │
+│    [VAN AMÉNAGÉ AVEC DÉCORS]        │
+│                                     │
+│  Uni Olive FC          Uni Bronze GF│
+│  (Réf: 3179_SPA_FC)    (Réf: 3168)  │
+└─────────────────────────────────────┘
+```
 - 🖼️ **Visualiser des ambiances** personnalisées
 
 ### Comment l'utiliser
@@ -271,7 +323,39 @@ L'assistant créatif permet de :
 
 ---
 
-## 9. Bonnes pratiques
+## 9. Mode Nuit et Personnalisation
+
+### 🌙 Mode Nuit
+
+L'application dispose d'un **mode nuit** pour un confort visuel optimal.
+
+#### Activation
+
+Cliquez sur l'icône **☀️/🌙** dans le header de n'importe quelle page :
+
+| Icône | Mode | Description |
+|-------|------|-------------|
+| ☀️ | Jour | Fond clair, idéal en journée |
+| 🌙 | Nuit | Fond sombre, réduit la fatigue oculaire |
+
+#### Persistance
+
+- Votre choix est **sauvegardé automatiquement**
+- Le mode est conservé entre les sessions
+- Fonctionne sur toutes les pages de l'application
+
+### 🎨 Design Premium
+
+L'interface utilise un design **minimaliste premium** inspiré d'Apple :
+
+- **Fond stratifié** : Évoque les panneaux HPL DICA
+- **Ombres douces** : Style catalogue professionnel
+- **Animations fluides** : Transitions élégantes
+- **Responsive** : S'adapte à tous les écrans
+
+---
+
+## 10. Bonnes pratiques
 
 ### Optimiser vos rendus
 

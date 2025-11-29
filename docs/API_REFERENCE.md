@@ -382,15 +382,21 @@ const { data } = await supabase
 **Request :**
 ```typescript
 interface ApplyDecorRequest {
-  photoUrl: string;      // URL de la photo originale
-  textureUrl: string;    // URL de la texture du décor
-  photoId: string;       // UUID de la photo en base
-  decorId: string;       // UUID du décor
+  photoUrl: string;        // URL de la photo originale
+  textureUrl: string;      // URL de la texture du décor
+  photoId: string;         // UUID de la photo en base
+  decorId: string;         // UUID du décor
   useCase: 'ascenseur' | 'van' | 'terrasse' | 'autre';
-  renderCount?: number;  // 1-4, défaut: 1
+  renderCount?: number;    // 1-2, défaut: 1 (max 2 pour ressources)
   format?: 'square' | 'portrait' | 'landscape';  // défaut: 'square'
+  showReferences?: boolean; // Afficher références DICA sur l'image
 }
 ```
+
+**Limites de ressources :**
+- `renderCount` : Maximum 2 (évite WORKER_LIMIT)
+- Image source : Maximum 2 MB
+- Timeout : 30 secondes
 
 **Response (success) :**
 ```typescript
@@ -437,7 +443,7 @@ const { data, error } = await supabase.functions.invoke('apply-decor', {
 
 **Endpoint :** `POST /functions/v1/creative-chat`
 
-**Description :** Chat IA créatif avec génération optionnelle d'images.
+**Description :** Chat IA créatif avec génération optionnelle d'images et support multi-images.
 
 **Request :**
 ```typescript
@@ -447,10 +453,18 @@ interface CreativeChatRequest {
     content: string;
     imageUrl?: string;
   }>;
-  decorContext: string;       // Catalogue formaté des décors
-  sourceImageUrl?: string;    // Image source optionnelle
+  decorContext: string;         // Catalogue formaté des décors
+  sourceImageUrls?: string[];   // URLs images sources (max 5)
+  imageLabels?: string[];       // Étiquettes pour chaque image
+  showReferences?: boolean;     // Afficher références DICA
 }
 ```
+
+**Fonctionnalités avancées :**
+- **Multi-images** : Combinez jusqu'à 5 images (décors, espaces, personnes)
+- **Annotations DICA** : Références automatiques sur les images générées
+- **Streaming** : Réponses texte en temps réel
+- **Génération IA** : Images haute qualité via Gemini 3 Pro
 
 **Response (texte) - Streaming SSE :**
 ```

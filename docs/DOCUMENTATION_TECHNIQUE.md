@@ -47,7 +47,7 @@
 
 | Service | Modèle | Usage |
 |---------|--------|-------|
-| **Google AI** | Gemini 2.5 Pro Image Preview | Génération d'images |
+| **Google AI** | Gemini 3 Pro Image Preview | Génération d'images |
 | **Google AI** | Gemini 2.5 Flash | Chat créatif (texte) |
 
 ---
@@ -66,7 +66,8 @@ dica-decorator/
 │   │   ├── ui/                 # Composants shadcn
 │   │   └── ProtectedRoute.tsx  # HOC authentification
 │   ├── contexts/
-│   │   └── AuthContext.tsx     # Contexte auth global
+│   │   ├── AuthContext.tsx     # Contexte auth global
+│   │   └── ThemeContext.tsx    # Contexte thème (mode nuit)
 │   ├── integrations/
 │   │   └── supabase/
 │   │       ├── client.ts       # Client Supabase
@@ -464,15 +465,24 @@ interface QuotaService {
 **Payload :**
 ```typescript
 {
-  photoUrl: string;      // URL photo originale
-  textureUrl: string;    // URL texture décor
-  photoId: string;       // ID photo en base
-  decorId: string;       // ID décor
-  useCase: string;       // ascenseur|van|terrasse|autre
-  renderCount: number;   // 1-4
-  format: string;        // square|portrait|landscape
+  photoUrl: string;        // URL photo originale
+  textureUrl: string;      // URL texture décor
+  photoId: string;         // ID photo en base
+  decorId: string;         // ID décor
+  useCase: string;         // ascenseur|van|terrasse|autre
+  renderCount: number;     // 1-2 (limité pour ressources)
+  format: string;          // square|portrait|landscape
+  showReferences: boolean; // Afficher références DICA sur l'image
 }
 ```
+
+**Limites de ressources :**
+
+| Paramètre | Limite | Raison |
+|-----------|--------|--------|
+| renderCount | Max 2 | Éviter WORKER_LIMIT error |
+| Image size | Max 2 MB | Optimisation mémoire |
+| Timeout | 30s | Éviter timeouts |
 
 **Réponse :**
 ```typescript
@@ -511,11 +521,19 @@ MATÉRIAU: [metal|unis|marbre|bois|deco]
 **Payload :**
 ```typescript
 {
-  messages: Message[];     // Historique conversation
-  decorContext: string;    // Catalogue décors formaté
-  sourceImageUrl?: string; // Image source optionnelle
+  messages: Message[];       // Historique conversation
+  decorContext: string;      // Catalogue décors formaté
+  sourceImageUrls?: string[];// URLs images sources (max 5)
+  imageLabels?: string[];    // Étiquettes pour chaque image
+  showReferences: boolean;   // Afficher références DICA
 }
 ```
+
+**Fonctionnalités :**
+- **Multi-images** : Combinez jusqu'à 5 images (décors, espaces, personnes)
+- **Annotations** : Références DICA automatiques sur les images
+- **Streaming** : Réponses texte en temps réel
+- **Génération** : Images haute qualité via Gemini 3 Pro
 
 **Réponse (streaming) :**
 ```

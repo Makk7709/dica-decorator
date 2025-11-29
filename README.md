@@ -28,6 +28,9 @@
 - 🎨 **Assistant Créatif** - Génération de mood boards et plaquettes commerciales
 - 📁 **Gestion de Projets** - Organisation par clients avec historique complet
 - 🏢 **Multi-Organisations** - Support revendeurs avec quotas personnalisés
+- 🏷️ **Références DICA** - Annotations automatiques des codes décors sur les images
+- 🌙 **Mode Nuit** - Interface adaptable jour/nuit
+- 📷 **Multi-Images** - Combinez jusqu'à 5 images pour créer des scènes
 
 ### Cas d'usage supportés
 
@@ -110,8 +113,8 @@ npm run lint         # Linter ESLint
 
 | Service | Modèle | Usage |
 |---------|--------|-------|
-| **Google AI** | Gemini 2.5 Pro | Génération images |
-| **Google AI** | Gemini 2.5 Flash | Chat créatif |
+| **Google AI** | Gemini 3 Pro Image Preview | Génération images |
+| **Google AI** | Gemini 2.5 Flash | Chat créatif (texte) |
 
 ---
 
@@ -241,7 +244,7 @@ Application propriétaire développée pour **DICA France**.
 
 <div align="center">
 
-**DICA Decorator v1.0.0**
+**DICA Decorator v1.1.0**
 
 *Transformez votre catalogue en expérience visuelle*
 
