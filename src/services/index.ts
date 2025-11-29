@@ -139,3 +139,20 @@ export {
   type PageContent,
 } from './pdf-export.service';
 
+// Share Link Service - Phase 3.2 (Partage par Lien)
+export {
+  ShareLinkService,
+  ShareLinkError,
+  type ShareLinkConfig,
+  type ShareLinkData,
+  type ShareLinkPermissions,
+  type ShareLinkValidation,
+  type ExpirationPreset,
+  type AccessLog,
+  type ShareLinkStats,
+  type CreateShareLinkInput,
+  type AccessLogInput,
+  type BatchCreateInput,
+  type ListLinksOptions,
+} from './share-link.service';
+
