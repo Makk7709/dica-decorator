@@ -141,10 +141,10 @@ export class ImageStorageService {
       });
 
     if (error) {
-      if (error.message?.includes('Quota') || error.statusCode === '413') {
+      if (error.message?.includes('Quota') || error.message?.includes('413')) {
         throw new StorageQuotaExceededError(error.message);
       }
-      throw new ImageUploadError(error.message, error.statusCode);
+      throw new ImageUploadError(error.message);
     }
 
     // Get public URL
