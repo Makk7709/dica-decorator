@@ -291,6 +291,7 @@ const ProjectDetail = () => {
           useCase: project.use_case,
           renderCount: 1,
           format: renderFormat,
+          showReferences, // Inclure les références DICA lors de la régénération
         },
       });
 
