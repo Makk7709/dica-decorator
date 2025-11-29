@@ -217,14 +217,38 @@ DEMANDE CLIENT (À RESPECTER À 100%):
 TYPE D'ESPACE DÉTECTÉ: ${detectedSpace.toUpperCase()}
 
 ═══════════════════════════════════════════════════════════════════
+🚨 RÈGLE ABSOLUE #1 - AUCUNE EXCEPTION POSSIBLE
+═══════════════════════════════════════════════════════════════════
+
+LE TYPE D'ESPACE EST: ${detectedSpace.toUpperCase()}
+
+TU DOIS CRÉER EXACTEMENT: ${detectedSpace.toUpperCase()}
+
+⚠️ ATTENTION CRITIQUE:
+- Si c'est un VAN → Crée l'INTÉRIEUR d'un VAN AMÉNAGÉ (camping-car, fourgon)
+- Si c'est une CUISINE → Crée une CUISINE avec meubles, plan de travail
+- Si c'est un ASCENSEUR → Crée une CABINE D'ASCENSEUR
+- Si c'est une TERRASSE → Crée un ESPACE EXTÉRIEUR/BALCON
+
+🚫 INTERDICTION ABSOLUE:
+- NE CRÉE JAMAIS UN ASCENSEUR si le client demande un VAN
+- NE CRÉE JAMAIS UN VAN si le client demande une CUISINE
+- NE TE LAISSE PAS INFLUENCER par les "contextes d'usage" des décors
+- Les contextes d'usage (ascenseur, van, terrasse) sont des SUGGESTIONS, pas des ORDRES
+
+VÉRIFIE AVANT DE GÉNÉRER:
+✓ Est-ce que je crée bien un ${detectedSpace} ?
+✓ Est-ce que l'image correspondra à la demande "${userRequest}" ?
+✓ Ai-je ignoré les "contextes d'usage" des décors pour respecter la demande ?
+
+═══════════════════════════════════════════════════════════════════
 ⚠️ RÈGLES NON-NÉGOCIABLES - ÉCHEC = IMAGE REJETÉE
 ═══════════════════════════════════════════════════════════════════
 
 1. ✅ SUJET OBLIGATOIRE: ${detectedSpace.toUpperCase()}
    → Tu DOIS créer un(e) ${detectedSpace}, PAS autre chose
-   → Si le client demande un VAN, crée UN VAN AMÉNAGÉ
-   → Si le client demande une CUISINE, crée UNE CUISINE
-   → JAMAIS de rue, ville, paysage non demandé
+   → Les décors peuvent être utilisés PARTOUT, même si leur "contexte d'usage" dit autre chose
+   → SEULE la demande du client compte, pas les métadonnées des décors
 
 2. ✅ PANNEAUX DICA OBLIGATOIREMENT VISIBLES
    → Les panneaux stratifiés DICA doivent occuper MIN 40% de l'image
@@ -234,9 +258,32 @@ TYPE D'ESPACE DÉTECTÉ: ${detectedSpace.toUpperCase()}
 
 3. ✅ QUALITÉ PHOTOGRAPHIQUE PREMIUM
    → Photo de catalogue professionnel haut de gamme
-   → Éclairage studio parfait, ombres douces
+   → Éclairage naturel réaliste (pour un van, lumière douce comme un jour de pluie)
    → Netteté maximale sur les panneaux DICA
    → Rendu hyperréaliste type publicité luxe
+
+═══════════════════════════════════════════════════════════════════
+🎯 EXEMPLES CONCRETS PAR TYPE D'ESPACE
+═══════════════════════════════════════════════════════════════════
+
+SI C'EST UN VAN:
+- Intérieur d'un fourgon aménagé / camping-car
+- Avec banquettes, rangements, mini-cuisine
+- Espace cosy et compact
+- Lumière naturelle venant des fenêtres latérales
+- Panneaux DICA sur les murs intérieurs, placards, comptoir
+
+SI C'EST UNE CUISINE:
+- Espace cuisine avec îlot ou plan de travail
+- Meubles hauts et bas
+- Crédence derrière la zone de cuisson
+- Panneaux DICA sur les façades de meubles ou la crédence
+
+SI C'EST UN ASCENSEUR:
+- Cabine d'ascenseur avec portes métalliques
+- Parois verticales
+- Rampes de maintien
+- Panneaux DICA sur les murs de la cabine
 
 ${imageDescription}
 
@@ -244,6 +291,10 @@ ${imageDescription}
 📦 CATALOGUE PANNEAUX DICA DISPONIBLES
 ═══════════════════════════════════════════════════════════════════
 ${decorContext}
+
+⚠️ IMPORTANT: Les "contextes d'usage" listés (ascenseur, van, terrasse) 
+sont des EXEMPLES, pas des LIMITATIONS. Tous les décors peuvent être 
+utilisés dans N'IMPORTE QUEL espace selon la demande du client.
 
 ═══════════════════════════════════════════════════════════════════
 🎨 RÈGLES D'APPLICATION DES PANNEAUX PAR CATÉGORIE
@@ -278,6 +329,18 @@ MARBRE (Carrare, Noir, etc.):
 - ❌ PAS d'image sans panneaux DICA visibles
 - ❌ PAS de qualité médiocre ou floue
 - ❌ PAS d'invention ou d'interprétation libre
+- ❌ NE CHANGE JAMAIS LE TYPE D'ESPACE (van ≠ ascenseur ≠ cuisine)
+
+═══════════════════════════════════════════════════════════════════
+✅ CHECKLIST FINALE AVANT GÉNÉRATION
+═══════════════════════════════════════════════════════════════════
+Avant de générer l'image, VÉRIFIE:
+□ L'espace créé est bien un ${detectedSpace.toUpperCase()}
+□ L'image correspondra à la demande: "${userRequest}"
+□ Les panneaux DICA sont clairement visibles (40%+ de l'image)
+□ La qualité est professionnelle et réaliste
+□ Tu n'as PAS créé un ascenseur si la demande était un van
+□ Tu n'as PAS créé un autre type d'espace que celui demandé
 
 ═══════════════════════════════════════════════════════════════════
 ✨ RÉSULTAT ATTENDU
