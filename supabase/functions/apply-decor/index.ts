@@ -17,8 +17,8 @@ const corsHeaders = {
 // ============================================================================
 
 const RESOURCE_LIMITS = {
-  // Max image size in bytes (2MB to stay safe)
-  maxImageSize: 2 * 1024 * 1024,
+  // Max image size in bytes (12MB to keep original photos instead of dropping them)
+  maxImageSize: 12 * 1024 * 1024,
   // Max renders per request (to avoid timeout)
   maxRenderCount: 2,
   // Timeout for fetch operations (30s)
