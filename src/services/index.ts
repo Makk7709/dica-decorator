@@ -179,3 +179,17 @@ export {
   type TrendDirection,
 } from './analytics.service';
 
+// Presentation Service - Phase 5.0 (Mode Présentation Fullscreen)
+export {
+  PresentationService,
+  PresentationError,
+  type PresentationConfig,
+  type Slide,
+  type SlideType,
+  type SlideTransition,
+  type PresentationState,
+  type NavigationDirection,
+  type AutoplayConfig,
+  type TransitionClasses,
+} from './presentation.service';
+
