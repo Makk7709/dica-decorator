@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/premium-layout";
 import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { compressImage, formatFileSize } from "@/lib/image-compression";
 
 interface Project {
   id: string;
@@ -193,15 +194,42 @@ const ProjectDetail = () => {
     const file = e.target.files?.[0];
     if (!file || !user || !id) return;
 
+    // Vérifier que c'est une image
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image valide");
+      return;
+    }
+
     setIsUploading(true);
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const originalSize = file.size;
+      console.log(`Image originale: ${formatFileSize(originalSize)}`);
+
+      // Compresser l'image avant upload
+      const compressedBlob = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 0.85,
+        outputFormat: "jpeg",
+      });
+
+      const compressedSize = compressedBlob.size;
+      const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+      console.log(`Image compressée: ${formatFileSize(compressedSize)} (réduction de ${compressionRatio}%)`);
+
+      // Créer un File à partir du Blob compressé
+      const compressedFile = new File(
+        [compressedBlob],
+        file.name.replace(/\.[^.]+$/, ".jpg"),
+        { type: "image/jpeg" }
+      );
+
+      const fileName = `${user.id}/${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("project-photos")
-        .upload(fileName, file);
+        .upload(fileName, compressedFile);
 
       if (uploadError) throw uploadError;
 
@@ -218,9 +246,10 @@ const ProjectDetail = () => {
 
       if (insertError) throw insertError;
 
-      toast.success("Photo ajoutée avec succès !");
+      toast.success(`Photo ajoutée (${formatFileSize(compressedSize)}, -${compressionRatio}%)`);
       loadProject();
     } catch (error: any) {
+      console.error("Erreur upload:", error);
       toast.error("Erreur lors de l'upload de la photo");
     } finally {
       setIsUploading(false);
