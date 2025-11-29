@@ -6,6 +6,13 @@ const Index = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const video = e.currentTarget;
+    if (video.duration - video.currentTime <= 1) {
+      video.pause();
+    }
+  };
+
   return (
     <div className="relative min-h-screen flex items-center justify-center">
       {/* Full-screen background video */}
@@ -14,6 +21,7 @@ const Index = () => {
         autoPlay
         muted
         playsInline
+        onTimeUpdate={handleVideoTimeUpdate}
       >
         <source src="/videos/dica-landing-hero.mp4" type="video/mp4" />
       </video>
