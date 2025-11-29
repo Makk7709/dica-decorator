@@ -23,7 +23,7 @@ const Index = () => {
       <div className="absolute inset-0 bg-black/20" />
       
       {/* Content */}
-      <div className="relative z-10 text-center px-4 mt-[50vh]">
+      <div className="relative z-10 text-center px-4 mt-[48vh]">
         <Button
           size="lg"
           onClick={() => navigate(user ? "/dashboard" : "/auth")}
