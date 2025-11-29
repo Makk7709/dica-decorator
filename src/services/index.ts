@@ -156,3 +156,26 @@ export {
   type ListLinksOptions,
 } from './share-link.service';
 
+// Analytics Service - Phase 4.0 (Dashboard Analytics Admin)
+export {
+  AnalyticsService,
+  AnalyticsError,
+  type AnalyticsConfig,
+  type DateRange,
+  type MetricType,
+  type GlobalMetrics,
+  type TrendData,
+  type TrendDataPoint,
+  type TopItem,
+  type UsageByPeriod,
+  type UsageTotals,
+  type ChartData,
+  type ChartDataset,
+  type AnalyticsReport,
+  type PeriodComparison,
+  type ComparisonMetric,
+  type PeriodPreset,
+  type ChartType,
+  type TrendDirection,
+} from './analytics.service';
+
