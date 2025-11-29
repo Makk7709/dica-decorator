@@ -549,13 +549,13 @@ const ProjectDetail = () => {
                             <Button
                               variant="secondary"
                               size="icon"
-                              className="absolute bottom-2 right-2 h-7 w-7 bg-white/90 hover:bg-white shadow-md"
+                              className="absolute bottom-2 right-2 h-7 w-7 bg-white/90 hover:bg-white shadow-md z-20"
                               onClick={() => setZoomedImage(render.result_image_url)}
                             >
                               <Maximize2 className="h-3.5 w-3.5 text-foreground" />
                             </Button>
                             {/* Overlay actions */}
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 z-10">
                               <div className="flex gap-2">
                                 <Button
                                   variant="secondary"
