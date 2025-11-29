@@ -4,11 +4,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { PremiumLayout } from "@/components/ui/premium-layout";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 // Validation schemas
 const emailSchema = z.string().email("Email invalide").trim();
@@ -103,112 +104,140 @@ const Auth = () => {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
-      {/* Background image */}
-      <div 
-        className="fixed inset-0 bg-cover opacity-30"
-        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 70%" }}
-      />
-      <div className="relative z-10 w-full flex items-center justify-center">
-      <Card className="w-full max-w-md shadow-card">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-primary">
-            <Sparkles className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <CardTitle className="text-2xl font-bold">DICA Visual Studio</CardTitle>
-          <CardDescription>
-            Visualisez vos décors en un clic grâce à l'IA
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Connexion</TabsTrigger>
-              <TabsTrigger value="signup">Inscription</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="votre@email.com"
-                    value={loginData.email}
-                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Mot de passe</Label>
-                  <div className="relative">
+    <PremiumLayout showPlates={true}>
+      {/* Theme toggle in corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <ThemeToggle className="bg-card/80 backdrop-blur-sm shadow-sm" variant="outline" />
+      </div>
+      
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-md animate-fade-in">
+          {/* Card Premium */}
+          <div className="card-premium p-8 md:p-10">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+                <Sparkles className="h-7 w-7 text-white" />
+              </div>
+              <h1 className="text-2xl font-semibold tracking-tight mb-2">DICA Visual Studio</h1>
+              <p className="text-muted-foreground text-sm">
+                Visualisez vos décors en un clic grâce à l'IA
+              </p>
+            </div>
+
+            {/* Tabs */}
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 h-11 p-1 bg-muted/50 rounded-xl mb-6">
+                <TabsTrigger 
+                  value="login" 
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  Connexion
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signup"
+                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                >
+                  Inscription
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login" className="animate-fade-in">
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email" className="text-sm font-medium">Email</Label>
                     <Input
-                      id="login-password"
-                      type={showLoginPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                      id="login-email"
+                      type="email"
+                      placeholder="votre@email.com"
+                      value={loginData.email}
+                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       required
+                      className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    >
-                      {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
                   </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Connexion..." : "Se connecter"}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="votre@email.com"
-                    value={signupData.email}
-                    onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Mot de passe</Label>
-                  <div className="relative">
+                  <div className="space-y-2">
+                    <Label htmlFor="login-password" className="text-sm font-medium">Mot de passe</Label>
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type={showLoginPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                        required
+                        className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      >
+                        {showLoginPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full btn-primary-premium h-11 rounded-xl" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Connexion...
+                      </>
+                    ) : (
+                      "Se connecter"
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="signup" className="animate-fade-in">
+                <form onSubmit={handleSignup} className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email" className="text-sm font-medium">Email</Label>
                     <Input
-                      id="signup-password"
-                      type={showSignupPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={signupData.password}
-                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                      id="signup-email"
+                      type="email"
+                      placeholder="votre@email.com"
+                      value={signupData.email}
+                      onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                       required
+                      className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3"
-                      onClick={() => setShowSignupPassword(!showSignupPassword)}
-                    >
-                      {showSignupPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Min. 8 caractères, majuscule, minuscule, chiffre et caractère spécial
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm">Confirmer le mot de passe</Label>
-                  <div className="relative">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password" className="text-sm font-medium">Mot de passe</Label>
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        type={showSignupPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={signupData.password}
+                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                        required
+                        className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                      >
+                        {showSignupPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Min. 8 caractères, majuscule, minuscule, chiffre et caractère spécial
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-confirm" className="text-sm font-medium">Confirmer le mot de passe</Label>
                     <Input
                       id="signup-confirm"
                       type={showSignupPassword ? "text" : "password"}
@@ -216,19 +245,35 @@ const Auth = () => {
                       value={signupData.confirmPassword}
                       onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
                       required
+                      className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
                     />
                   </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Création..." : "Créer un compte"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+                  <Button 
+                    type="submit" 
+                    className="w-full btn-primary-premium h-11 rounded-xl" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Création...
+                      </>
+                    ) : (
+                      "Créer un compte"
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Footer */}
+          <p className="text-center text-xs text-muted-foreground mt-6">
+            © {new Date().getFullYear()} DICA France • Powered by KOREV AI
+          </p>
+        </div>
       </div>
-    </div>
+    </PremiumLayout>
   );
 };
 

@@ -9,8 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
+import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/premium-layout";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface Project {
   id: string;
@@ -349,52 +351,85 @@ const ProjectDetail = () => {
 
   if (!project) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <PremiumLayout>
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </PremiumLayout>
     );
   }
 
+  const getUseCaseLabel = (useCase: string) => {
+    const labels: Record<string, string> = {
+      "ascenseur": "Ascenseur",
+      "van": "Van aménagé",
+      "meuble": "Meuble",
+      "autre": "Autre"
+    };
+    return labels[useCase] || useCase;
+  };
+
   return (
-    <div className="relative min-h-screen bg-background">
-      {/* Background image */}
-      <div 
-        className="fixed inset-0 bg-cover opacity-30"
-        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 70%" }}
-      />
-      <div className="relative z-10">
-      <header className="border-b bg-card shadow-sm">
-        <div className="container mx-auto flex h-20 items-center justify-between px-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="border-2">
+    <PremiumLayout>
+      {/* Header Premium */}
+      <header className="header-premium sticky top-0 z-50">
+        <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/dashboard")} 
+            className="text-muted-foreground hover:text-foreground"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Retour
+            <span className="hidden sm:inline">Retour</span>
           </Button>
-          <div className="flex items-center gap-3">
-            <img src="/images/dica-logo.svg" alt="DICA" className="h-8 w-auto" />
-            <div className="text-left">
-              <h1 className="text-lg font-bold leading-tight">{project.title}</h1>
-              <p className="text-xs text-muted-foreground">{project.use_case}</p>
+          
+          <div className="flex items-center gap-2 md:gap-3">
+            <img src="/images/dica-logo.svg" alt="DICA" className="h-7 md:h-8 w-auto" />
+            <div className="text-left hidden sm:block">
+              <h1 className="text-base md:text-lg font-semibold leading-tight tracking-tight">{project.title}</h1>
+              <p className="text-xs text-muted-foreground">{getUseCaseLabel(project.use_case)}</p>
             </div>
           </div>
-          <div className="w-24" /> {/* Spacer for centering */}
+          
+          <div className="flex items-center gap-1">
+            <ThemeToggle className="text-muted-foreground" />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/dashboard")}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Home className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Accueil</span>
+            </Button>
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12">
-        {/* Upload Section */}
-        <Card className="mb-12 border-2">
-          <CardHeader>
-            <CardTitle className="text-2xl">Photos du projet</CardTitle>
-            <CardDescription className="text-base">
-              Uploadez une ou plusieurs photos pour appliquer des décors
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      <ContentContainer className="pb-20">
+        {/* Hero Section */}
+        <div className="mb-10 md:mb-12">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+            <SectionTitle 
+              title="Photos du projet" 
+              subtitle="Uploadez vos photos et appliquez les décors DICA en un clic."
+            />
+            
             <label htmlFor="photo-upload">
-              <Button asChild disabled={isUploading} size="lg" className="h-12 px-6 shadow-lg">
-                <span className="cursor-pointer">
-                  <Upload className="mr-2 h-5 w-5" />
-                  {isUploading ? "Upload en cours..." : "Ajouter une photo"}
+              <Button 
+                asChild 
+                disabled={isUploading} 
+                size="lg" 
+                className="btn-primary-premium h-12 px-6 rounded-xl cursor-pointer"
+              >
+                <span>
+                  {isUploading ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-5 w-5" />
+                  )}
+                  {isUploading ? "Upload..." : "Ajouter une photo"}
                 </span>
               </Button>
             </label>
@@ -405,129 +440,170 @@ const ProjectDetail = () => {
               className="hidden"
               onChange={handlePhotoUpload}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Photos Grid */}
         {photos.length === 0 ? (
-          <Card className="border-2 border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-20">
-              <Upload className="mb-6 h-20 w-20 text-muted-foreground" />
-              <h3 className="mb-3 text-2xl font-semibold">Aucune photo</h3>
-              <p className="text-center text-lg text-muted-foreground">
-                Commencez par uploader une photo de votre produit
+          <div className="card-premium p-12 md:p-16 text-center animate-fade-in">
+            <div className="max-w-sm mx-auto">
+              <div className="mb-6 mx-auto w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
+                <ImageIcon className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Aucune photo</h3>
+              <p className="text-muted-foreground mb-8 text-balance">
+                Commencez par uploader une photo de votre espace pour visualiser les décors DICA.
               </p>
-            </CardContent>
-          </Card>
+              <label htmlFor="photo-upload-empty">
+                <Button 
+                  asChild 
+                  disabled={isUploading} 
+                  size="lg"
+                  className="btn-primary-premium h-12 px-8 rounded-xl cursor-pointer"
+                >
+                  <span>
+                    <Upload className="mr-2 h-5 w-5" />
+                    Ajouter ma première photo
+                  </span>
+                </Button>
+              </label>
+              <input
+                id="photo-upload-empty"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+            </div>
+          </div>
         ) : (
-          <div className="grid gap-8 md:grid-cols-2">
-            {photos.map((photo) => (
-              <Card key={photo.id} className="border-2">
-                <CardHeader>
-                  <CardTitle className="text-xl">Photo originale</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            {photos.map((photo, index) => (
+              <div 
+                key={photo.id} 
+                className="card-premium p-5 md:p-6 animate-slide-up"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                {/* Photo Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-sm text-muted-foreground">Photo originale</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeletePhoto(photo.id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 px-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Photo Image */}
+                <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">
                   <img
                     src={photo.original_image_url}
                     alt="Photo projet"
-                    className="w-full rounded-lg border-2"
+                    className="w-full aspect-[4/3] object-cover"
                   />
-                  
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => {
-                        setSelectedPhoto(photo);
-                        setShowDecorDialog(true);
-                      }}
-                      className="flex-1 h-12 shadow-lg hover:shadow-xl transition-all"
-                    >
-                      <Sparkles className="mr-2 h-5 w-5" />
-                      Appliquer un décor
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="lg"
-                      onClick={() => handleDeletePhoto(photo.id)}
-                      className="h-12 px-4"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </Button>
-                  </div>
+                </div>
+                
+                {/* Action Button */}
+                <Button
+                  onClick={() => {
+                    setSelectedPhoto(photo);
+                    setShowDecorDialog(true);
+                  }}
+                  className="w-full btn-primary-premium h-11 rounded-xl"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Appliquer un décor
+                </Button>
 
-                  {/* Renders Grid */}
-                  {renders[photo.id] && renders[photo.id].length > 0 && (
-                    <div className="space-y-4 border-t-2 pt-6">
-                      <p className="text-base font-semibold">Rendus générés ({renders[photo.id].length})</p>
-                      <div className={`grid gap-4 ${
-                        renders[photo.id].length === 1 
-                          ? "grid-cols-1" 
-                          : "grid-cols-2"
-                      }`}>
-                        {renders[photo.id].map((render) => (
-                          <Card key={render.id} className="overflow-hidden">
-                            <CardContent className="p-3 space-y-3">
-                              <img
-                                src={render.result_image_url}
-                                alt="Rendu"
-                                className="w-full rounded-lg border-2 aspect-square object-cover"
-                              />
-                              <div className="grid grid-cols-2 gap-2">
+                {/* Renders Grid */}
+                {renders[photo.id] && renders[photo.id].length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-border/50">
+                    <p className="text-sm font-medium mb-4">
+                      Rendus générés ({renders[photo.id].length})
+                    </p>
+                    <div className={`grid gap-3 ${
+                      renders[photo.id].length === 1 
+                        ? "grid-cols-1" 
+                        : "grid-cols-2"
+                    }`}>
+                      {renders[photo.id].map((render, renderIndex) => (
+                        <div 
+                          key={render.id} 
+                          className="group rounded-xl border border-border/50 overflow-hidden bg-white/50 animate-fade-in"
+                          style={{ animationDelay: `${renderIndex * 50}ms` }}
+                        >
+                          <div className="relative">
+                            <img
+                              src={render.result_image_url}
+                              alt="Rendu"
+                              className="w-full aspect-square object-cover"
+                            />
+                            {/* Overlay actions */}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <div className="flex gap-2">
                                 <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-2"
-                                  onClick={() => toggleFavorite(render.id)}
-                                >
-                                  <Heart 
-                                    className={`mr-2 h-4 w-4 ${
-                                      favoriteRenderIds.has(render.id) 
-                                        ? "fill-current text-red-500" 
-                                        : ""
-                                    }`} 
-                                  />
-                                  {favoriteRenderIds.has(render.id) ? "Favori" : "Favori"}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-2"
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-9 w-9 bg-white/90 hover:bg-white"
                                   asChild
                                 >
                                   <a href={render.result_image_url} download>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    DL
+                                    <Download className="h-4 w-4" />
                                   </a>
                                 </Button>
                                 <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-2"
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-9 w-9 bg-white/90 hover:bg-white"
                                   onClick={() => handleRegenerateRender(render.id, photo.id)}
                                   disabled={isGenerating}
                                 >
-                                  <RotateCcw className="mr-2 h-4 w-4" />
-                                  Regénérer
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDeleteRender(render.id, photo.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
+                                  <RotateCcw className="h-4 w-4" />
                                 </Button>
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
+                            </div>
+                          </div>
+                          
+                          {/* Render footer */}
+                          <div className="p-2 flex items-center justify-between">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() => toggleFavorite(render.id)}
+                            >
+                              <Heart 
+                                className={`h-3.5 w-3.5 mr-1.5 ${
+                                  favoriteRenderIds.has(render.id) 
+                                    ? "fill-current text-red-500" 
+                                    : ""
+                                }`} 
+                              />
+                              <span className="text-xs">
+                                {favoriteRenderIds.has(render.id) ? "Favori" : "Ajouter"}
+                              </span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteRender(render.id, photo.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
-      </main>
 
       {/* Decor Selection Dialog */}
       <Dialog open={showDecorDialog} onOpenChange={setShowDecorDialog}>
@@ -669,6 +745,7 @@ const ProjectDetail = () => {
               onClick={handleGenerateRender}
               disabled={!selectedDecor || isGenerating}
               size="lg"
+              className="btn-primary-premium"
             >
               {isGenerating ? (
                 <>
@@ -685,8 +762,8 @@ const ProjectDetail = () => {
           </div>
         </DialogContent>
       </Dialog>
-      </div>
-    </div>
+      </ContentContainer>
+    </PremiumLayout>
   );
 };
 

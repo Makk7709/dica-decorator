@@ -325,8 +325,8 @@ const Admin = () => {
     <div className="relative min-h-screen bg-background">
       {/* Background image */}
       <div 
-        className="fixed inset-0 bg-cover opacity-30"
-        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 70%" }}
+        className="fixed inset-0 bg-cover opacity-20"
+        style={{ backgroundImage: "url('/images/creative-bg.jpg')", backgroundPosition: "center center" }}
       />
       <div className="relative z-10">
       <header className="border-b bg-card shadow-sm">

@@ -1,3 +1,7 @@
+// DICA Decorator - Apply Decor Function
+// Génération de rendus avec application de décors via Gemini 3 Pro Image Preview
+// Developed by KOREV AI for DICA France
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
@@ -6,6 +10,70 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+// ============================================================================
+// Configuration Gemini 3 Pro Image Preview
+// ============================================================================
+
+const GEMINI_CONFIG = {
+  // Gemini 3 Pro Image Preview - Meilleure qualité pour génération d'images
+  model: "gemini-3-pro-image-preview",
+  apiEndpoint: "https://generativelanguage.googleapis.com/v1beta/models",
+  responseModalities: ["TEXT", "IMAGE"],
+};
+
+/**
+ * Build the Gemini API URL
+ */
+function buildGeminiUrl(apiKey: string): string {
+  return `${GEMINI_CONFIG.apiEndpoint}/${GEMINI_CONFIG.model}:generateContent?key=${apiKey}`;
+}
+
+/**
+ * Parse Gemini response and extract image data
+ */
+function parseGeminiResponse(response: any): { imageBase64: string | null; textResponse: string | null } {
+  const parts = response?.candidates?.[0]?.content?.parts || [];
+  
+  let imageBase64: string | null = null;
+  let textResponse: string | null = null;
+  
+  for (const part of parts) {
+    // Check for inline_data (snake_case from API)
+    if (part.inline_data?.data) {
+      imageBase64 = part.inline_data.data;
+    }
+    // Check for inlineData (camelCase)
+    if (part.inlineData?.data) {
+      imageBase64 = part.inlineData.data;
+    }
+    // Check for text
+    if (part.text) {
+      textResponse = part.text;
+    }
+  }
+  
+  return { imageBase64, textResponse };
+}
+
+/**
+ * Get error message for HTTP status code
+ */
+function getErrorMessage(statusCode: number): string {
+  const messages: Record<number, string> = {
+    400: "Requête invalide. Vérifiez les paramètres.",
+    401: "Clé API Google AI invalide ou expirée.",
+    403: "Accès refusé à l'API Google AI.",
+    429: "Quota d'API Google AI dépassé. Veuillez patienter quelques minutes.",
+    500: "Erreur serveur Google AI. Réessayez plus tard.",
+    503: "Service Google AI temporairement indisponible.",
+  };
+  return messages[statusCode] || `Erreur API Google AI (${statusCode})`;
+}
+
+// ============================================================================
+// Main Handler
+// ============================================================================
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -45,7 +113,10 @@ serve(async (req) => {
       throw new Error("Décor introuvable");
     }
 
-    // Build 3-layer structured prompt for intelligent surface mapping
+    // ========================================================================
+    // Build Multi-Layer Prompt for Intelligent Surface Mapping
+    // ========================================================================
+    
     // Layer 1: Global intention (MODE = PROJECT - strict photo editing)
     const globalIntention = `🔒 MODE: PROJECT (Strict photo editing)
 
@@ -157,9 +228,12 @@ ${materialRules}
 
 ${qualityDirective}`;
 
-    console.log("Calling Google AI Studio (Gemini 3 Pro Image Preview)...");
+    console.log(`Calling Gemini API (${GEMINI_CONFIG.model})...`);
 
-    // Fetch the original photo and the decor texture to send as reference images to Gemini
+    // ========================================================================
+    // Fetch Source Images
+    // ========================================================================
+    
     let photoBase64: string | null = null;
     let photoMimeType = "image/jpeg";
     let textureBase64: string | null = null;
@@ -193,8 +267,8 @@ ${qualityDirective}`;
       if (textureUrl) {
         // Build absolute URL - use the request referer to get the actual app domain
         const referer = req.headers.get("referer") || req.headers.get("origin") || "";
-        const appUrl = referer ? new URL(referer).origin : "https://f7dcdcd1-f792-4761-bfa4-14b3a0277d1d.lovableproject.com";
-        const absoluteTextureUrl = `${appUrl}${textureUrl}`;
+        const appUrl = referer ? new URL(referer).origin : "";
+        const absoluteTextureUrl = textureUrl.startsWith("http") ? textureUrl : `${appUrl}${textureUrl}`;
         console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
         
         const textureResponse = await fetch(absoluteTextureUrl);
@@ -221,7 +295,10 @@ ${qualityDirective}`;
       console.error("Error fetching/converting texture:", e);
     }
     
-    // Build parts: prompt + photo + texture reference
+    // ========================================================================
+    // Build Request Payload
+    // ========================================================================
+    
     const requestParts: any[] = [{ text: prompt }];
     
     if (photoBase64) {
@@ -241,27 +318,20 @@ ${qualityDirective}`;
         },
       });
     }
-    
-    // Determine aspect ratio based on format
-    let aspectRatio = "1:1"; // square
-    if (format === "portrait") {
-      aspectRatio = "9:16";
-    } else if (format === "landscape") {
-      aspectRatio = "16:9";
-    }
-    
-    // Call Google AI Studio API with Gemini 3 Pro Image Preview
-    const url =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=" +
-      GOOGLE_AI_API_KEY;
 
-    // Generate multiple renders as requested
+    // Build Gemini API URL
+    const geminiUrl = buildGeminiUrl(GOOGLE_AI_API_KEY);
+
+    // ========================================================================
+    // Generate Renders
+    // ========================================================================
+    
     const generatedUrls: string[] = [];
     
     for (let i = 0; i < renderCount; i++) {
       console.log(`Generating render ${i + 1}/${renderCount}...`);
       
-      const geminiResponse = await fetch(url, {
+      const geminiResponse = await fetch(geminiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -274,9 +344,7 @@ ${qualityDirective}`;
             },
           ],
           generationConfig: {
-            imageConfig: {
-              aspectRatio,
-            },
+            responseModalities: GEMINI_CONFIG.responseModalities,
           },
         }),
       });
@@ -285,45 +353,22 @@ ${qualityDirective}`;
       if (!geminiResponse.ok) {
         const errorText = await geminiResponse.text();
         console.error("Google AI error:", geminiResponse.status, errorText);
-        
-        if (geminiResponse.status === 429) {
-          throw new Error("Quota d'API Google AI dépassé. Veuillez patienter quelques minutes avant de réessayer ou mettre à niveau votre plan Google AI Studio.");
-        }
-        
-        throw new Error(`Google AI error ${geminiResponse.status}`);
+        throw new Error(getErrorMessage(geminiResponse.status));
       }
 
       const geminiData = await geminiResponse.json();
       console.log(`Gemini response ${i + 1} received successfully`);
 
-      // Extract generated image from response
-      const responseParts = geminiData?.candidates?.[0]?.content?.parts;
+      // Parse response
+      const { imageBase64, textResponse } = parseGeminiResponse(geminiData);
       
-      if (!responseParts || responseParts.length === 0) {
-        console.error("No parts in Gemini response:", geminiData);
-        throw new Error("Aucune image générée dans la réponse Gemini");
-      }
-
-      // Find the part containing image data
-      let base64 = null;
-      for (const part of responseParts) {
-        if (part.inline_data?.data) {
-          base64 = part.inline_data.data;
-          break;
-        }
-        if (part.inlineData?.data) {
-          base64 = part.inlineData.data;
-          break;
-        }
-      }
-
-      if (!base64) {
-        console.error("No image data found in parts:", JSON.stringify(responseParts, null, 2));
+      if (!imageBase64) {
+        console.error("No image data found in response:", JSON.stringify(geminiData, null, 2));
         throw new Error("Aucune image générée dans la réponse Gemini");
       }
 
       // Return data URL directly
-      const resultUrl = `data:image/png;base64,${base64}`;
+      const resultUrl = `data:image/png;base64,${imageBase64}`;
       generatedUrls.push(resultUrl);
       
       console.log(`Image ${i + 1} generated successfully, saving to database`);

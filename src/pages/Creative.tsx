@@ -5,18 +5,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, Download, FolderPlus, ImagePlus, X } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, Download, FolderPlus, ImagePlus, X, Home } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PremiumLayout, ContentContainer } from "@/components/ui/premium-layout";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   imageUrl?: string;
-  sourceImageUrl?: string;
+  sourceImageUrls?: string[];  // Support multiple images
+  sourceImageUrl?: string;     // Keep for backward compat
+}
+
+interface UploadedImage {
+  url: string;
+  label: string;
 }
 
 interface Decor {
@@ -66,8 +74,9 @@ const Creative = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [newProjectTitle, setNewProjectTitle] = useState("");
   const [isSavingToProject, setIsSavingToProject] = useState(false);
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [currentImageLabel, setCurrentImageLabel] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -233,6 +242,11 @@ const Creative = () => {
       return;
     }
 
+    if (uploadedImages.length >= 5) {
+      toast.error("Maximum 5 images par génération");
+      return;
+    }
+
     setIsUploading(true);
     try {
       const fileName = `source-${Date.now()}.${file.name.split('.').pop()}`;
@@ -246,8 +260,11 @@ const Creative = () => {
         .from("project-photos")
         .getPublicUrl(`${user.id}/${fileName}`);
 
-      setUploadedImage(publicUrl);
-      toast.success("Image uploadée");
+      // Add image with label
+      const label = currentImageLabel.trim() || `Image ${uploadedImages.length + 1}`;
+      setUploadedImages(prev => [...prev, { url: publicUrl, label }]);
+      setCurrentImageLabel("");
+      toast.success(`${label} uploadée`);
     } catch (error: any) {
       console.error("Error uploading image:", error);
       toast.error("Erreur lors de l'upload");
@@ -259,9 +276,17 @@ const Creative = () => {
     }
   };
 
-  const streamChat = async (userMessage: string, sourceImageUrl?: string) => {
+  const removeUploadedImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const streamChat = async (userMessage: string, sourceImages?: UploadedImage[]) => {
     const decorContext = buildDecorContext();
     const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/creative-chat`;
+    
+    // Build source images array with labels for the prompt
+    const sourceImageUrls = sourceImages?.map(img => img.url) || [];
+    const imageLabels = sourceImages?.map(img => img.label) || [];
     
     const resp = await fetch(chatUrl, {
       method: "POST",
@@ -272,7 +297,8 @@ const Creative = () => {
       body: JSON.stringify({ 
         messages: [...messages, { role: "user", content: userMessage }],
         decorContext,
-        sourceImageUrl
+        sourceImageUrls,  // Array of image URLs
+        imageLabels,      // Array of labels for each image
       }),
     });
 
@@ -359,18 +385,18 @@ const Creative = () => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
-    const sourceImage = uploadedImage;
+    const sourceImages = [...uploadedImages];
     setInput("");
-    setUploadedImage(null);
+    setUploadedImages([]);
     setMessages(prev => [...prev, { 
       role: "user", 
       content: userMessage,
-      sourceImageUrl: sourceImage || undefined
+      sourceImageUrls: sourceImages.length > 0 ? sourceImages.map(img => img.url) : undefined
     }]);
     setIsLoading(true);
 
     try {
-      await streamChat(userMessage, sourceImage || undefined);
+      await streamChat(userMessage, sourceImages.length > 0 ? sourceImages : undefined);
     } catch (error: any) {
       console.error("Error:", error);
       toast.error(error.message || "Erreur lors de la communication avec l'IA");
@@ -477,52 +503,87 @@ const Creative = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-background">
-      <div 
-        className="fixed inset-0 bg-cover opacity-30"
-        style={{ backgroundImage: "url('/images/dica-app-bg.jpg')", backgroundPosition: "center 70%" }}
-      />
-      <div className="relative z-10">
-        <header className="border-b bg-card shadow-sm">
-          <div className="container mx-auto flex h-20 items-center justify-between px-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="border-2">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Retour
-            </Button>
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold">Libérez votre imagination</h1>
+    <PremiumLayout backgroundImage="/images/ASSISTANT CREATIF.png">
+      {/* Header Premium */}
+      <header className="header-premium sticky top-0 z-50">
+        <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/dashboard")} 
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Retour</span>
+          </Button>
+          
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
-            <div className="w-24" />
+            <div className="hidden sm:block">
+              <h1 className="text-lg md:text-xl font-semibold tracking-tight">Assistant Créatif</h1>
+              <p className="text-xs text-muted-foreground">Powered by DICA AI</p>
+            </div>
           </div>
-        </header>
+          
+          <div className="flex items-center gap-1">
+            <ThemeToggle className="text-muted-foreground" />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate("/dashboard")}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Home className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Accueil</span>
+            </Button>
+          </div>
+        </div>
+      </header>
 
-        <main className="container mx-auto px-4 py-8 max-w-4xl">
-          <Tabs defaultValue="chat" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="chat" className="text-lg">
-                <Sparkles className="mr-2 h-5 w-5" />
+      <ContentContainer className="max-w-4xl pb-20">
+        <Tabs defaultValue="chat" className="w-full">
+          {/* Tabs Navigation Premium */}
+          <div className="flex justify-center mb-8">
+            <TabsList className="h-12 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
+              <TabsTrigger 
+                value="chat" 
+                className="h-10 px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
                 Nouvelle création
               </TabsTrigger>
-              <TabsTrigger value="favorites" className="text-lg">
-                <Heart className="mr-2 h-5 w-5" />
-                Mes favoris ({favorites.length})
+              <TabsTrigger 
+                value="favorites" 
+                className="h-10 px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+              >
+                <Heart className="mr-2 h-4 w-4" />
+                Favoris ({favorites.length})
               </TabsTrigger>
             </TabsList>
+          </div>
 
-            <TabsContent value="chat">
-              <Card className="border-2 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+          <TabsContent value="chat" className="animate-fade-in">
+            <div className="card-premium p-6 md:p-8">
+              {/* Header */}
+              <div className="mb-6 pb-6 border-b border-border/50">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
                     <Sparkles className="h-6 w-6 text-primary" />
-                    Assistant Créatif DICA
-                  </CardTitle>
-                  <CardDescription>
-                    Demandez-moi de créer des mood boards, des plaquettes de présentation, ou toute visualisation créative avec vos décors DICA
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <ScrollArea className="h-[500px] pr-4">
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold mb-1">Studio Créatif DICA</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Créez des mood boards, plaquettes et visualisations avec vos décors
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Chat Area */}
+              <div className="space-y-6">
+                <ScrollArea className="h-[450px] pr-4 scrollbar-minimal">
                     <div className="space-y-4">
                       {messages.map((message, index) => (
                         <div
@@ -537,7 +598,19 @@ const Creative = () => {
                                   : "bg-muted"
                               }`}
                             >
-                              {message.sourceImageUrl && message.role === "user" && (
+                              {message.sourceImageUrls && message.sourceImageUrls.length > 0 && message.role === "user" && (
+                                <div className="mb-2 flex flex-wrap gap-2">
+                                  {message.sourceImageUrls.map((url, idx) => (
+                                    <img 
+                                      key={idx}
+                                      src={url} 
+                                      alt={`Photo source ${idx + 1}`} 
+                                      className="rounded-lg h-16 w-16 object-cover"
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                              {message.sourceImageUrl && !message.sourceImageUrls && message.role === "user" && (
                                 <div className="mb-2">
                                   <img 
                                     src={message.sourceImageUrl} 
@@ -603,50 +676,79 @@ const Creative = () => {
                     </div>
                   </ScrollArea>
 
-                  {uploadedImage && (
-                    <div className="relative inline-block">
-                      <img 
-                        src={uploadedImage} 
-                        alt="Image source à envoyer" 
-                        className="rounded-lg max-h-32 w-auto border-2 border-primary"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6"
-                        onClick={() => setUploadedImage(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                  {/* Multi-image preview */}
+                  {uploadedImages.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        📷 Images à combiner ({uploadedImages.length}/5) :
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        {uploadedImages.map((img, index) => (
+                          <div key={index} className="relative group">
+                            <img 
+                              src={img.url} 
+                              alt={img.label} 
+                              className="rounded-lg h-20 w-20 object-cover border-2 border-primary"
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs px-1 py-0.5 rounded-b-lg truncate">
+                              {img.label}
+                            </div>
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute -top-2 -right-2 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => removeUploadedImage(index)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
+                  {/* Image upload with label */}
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <Input
+                        value={currentImageLabel}
+                        onChange={(e) => setCurrentImageLabel(e.target.value)}
+                        placeholder="Étiquette (ex: Van, Décor bois, Personnes...)"
+                        disabled={isLoading || isUploading || uploadedImages.length >= 5}
+                        className="w-48"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading || isUploading || uploadedImages.length >= 5}
+                        title="Ajouter une image"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <ImagePlus className="h-4 w-4 mr-2" />
+                        )}
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Message input */}
                   <div className="flex gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isLoading || isUploading}
-                      title="Uploader une photo source"
-                    >
-                      {isUploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <ImagePlus className="h-4 w-4" />
-                      )}
-                    </Button>
                     <Input
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder="Ex: Créer un mood board des décors marbre pour une salle de bain..."
+                      placeholder={uploadedImages.length > 0 
+                        ? "Décrivez comment combiner ces éléments..."
+                        : "Ex: Créer un mood board des décors marbre pour une salle de bain..."}
                       disabled={isLoading}
                       className="flex-1"
                     />
@@ -663,78 +765,93 @@ const Creative = () => {
                     </Button>
                   </div>
 
-                  <div className="text-xs text-muted-foreground">
-                    💡 Exemples de demandes : "Crée-moi une plaquette des décors marbre", "Je veux un mood board de mes panneaux métalliques préférés", "Imagine une salle de bain avec nos décors"
+                  {/* Tips */}
+                  <div className="p-4 rounded-xl bg-muted/50 text-xs text-muted-foreground space-y-1">
+                    <p className="font-medium text-foreground">💡 Astuce</p>
+                    <p>Uploadez plusieurs images (décor, van, personnes...) et demandez à l'IA de les combiner en une scène créative.</p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </TabsContent>
 
-            <TabsContent value="favorites">
-              <Card className="border-2 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+          <TabsContent value="favorites" className="animate-fade-in">
+            <div className="card-premium p-6 md:p-8">
+              {/* Header */}
+              <div className="mb-6 pb-6 border-b border-border/50">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
                     <Star className="h-6 w-6 text-primary" />
-                    Mes créations favorites
-                  </CardTitle>
-                  <CardDescription>
-                    Retrouvez toutes vos générations sauvegardées
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {favorites.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Heart className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-lg text-muted-foreground">Aucun favori pour le moment</p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Enregistrez vos créations préférées en cliquant sur le cœur
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid gap-4">
-                      {favorites.map((favorite) => (
-                        <Card key={favorite.id} className="border">
-                          <CardHeader>
-                            <div className="flex items-start justify-between">
-                              <CardTitle className="text-lg">{favorite.title}</CardTitle>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => deleteFavorite(favorite.id)}
-                              >
-                                <Heart className="h-4 w-4 fill-current text-red-500" />
-                              </Button>
-                            </div>
-                            <CardDescription className="text-xs">
-                              {new Date(favorite.created_at).toLocaleDateString("fr-FR", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit"
-                              })}
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            <div>
-                              <p className="text-sm font-semibold mb-1">Demande:</p>
-                              <p className="text-sm text-muted-foreground">{favorite.prompt}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-semibold mb-1">Réponse:</p>
-                              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{favorite.response}</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold mb-1">Mes créations favorites</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Retrouvez toutes vos générations sauvegardées
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-          <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+              {/* Content */}
+              {favorites.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-muted flex items-center justify-center">
+                    <Heart className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-lg font-medium mb-2">Aucun favori</p>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    Enregistrez vos créations préférées en cliquant sur le cœur pour les retrouver ici.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {favorites.map((favorite, index) => (
+                    <div 
+                      key={favorite.id} 
+                      className="p-5 rounded-xl border border-border/50 bg-white/50 hover:shadow-sm transition-shadow animate-slide-up"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold">{favorite.title}</h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {new Date(favorite.created_at).toLocaleDateString("fr-FR", {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteFavorite(favorite.id)}
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                        >
+                          <Heart className="h-4 w-4 fill-current" />
+                        </Button>
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-1">Demande</p>
+                          <p className="text-sm text-muted-foreground">{favorite.prompt}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-1">Réponse</p>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4">{favorite.response}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Save Dialog */}
+        <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Sauvegarder en favori</DialogTitle>
@@ -850,9 +967,8 @@ const Creative = () => {
               </div>
             </DialogContent>
           </Dialog>
-        </main>
-      </div>
-    </div>
+        </ContentContainer>
+    </PremiumLayout>
   );
 };
 

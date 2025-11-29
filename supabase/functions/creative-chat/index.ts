@@ -1,10 +1,85 @@
+// DICA Decorator - Creative Chat Function
+// Assistant créatif IA avec génération d'images via Gemini 3 Pro Image Preview
+// Developed by KOREV AI for DICA France
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// ============================================================================
+// Configuration Gemini
+// ============================================================================
+
+const GEMINI_CONFIG = {
+  // Gemini 3 Pro Image Preview - Meilleure qualité pour génération d'images
+  imageModel: "gemini-3-pro-image-preview",
+  // Modèle pour le chat texte avec streaming
+  textModel: "gemini-2.0-flash",
+  // Endpoint de base
+  apiEndpoint: "https://generativelanguage.googleapis.com/v1beta/models",
+  // Modalités de réponse pour la génération d'images
+  imageResponseModalities: ["TEXT", "IMAGE"],
+};
+
+/**
+ * Build Gemini API URL for image generation
+ */
+function buildImageGenerationUrl(apiKey: string): string {
+  return `${GEMINI_CONFIG.apiEndpoint}/${GEMINI_CONFIG.imageModel}:generateContent?key=${apiKey}`;
+}
+
+/**
+ * Build Gemini API URL for streaming text
+ */
+function buildStreamingTextUrl(apiKey: string): string {
+  return `${GEMINI_CONFIG.apiEndpoint}/${GEMINI_CONFIG.textModel}:streamGenerateContent?key=${apiKey}&alt=sse`;
+}
+
+/**
+ * Parse Gemini response for image data
+ */
+function parseImageResponse(response: any): { imageBase64: string | null; textResponse: string | null } {
+  const parts = response?.candidates?.[0]?.content?.parts || [];
+  
+  let imageBase64: string | null = null;
+  let textResponse: string | null = null;
+  
+  for (const part of parts) {
+    if (part.inline_data?.data) {
+      imageBase64 = part.inline_data.data;
+    }
+    if (part.inlineData?.data) {
+      imageBase64 = part.inlineData.data;
+    }
+    if (part.text) {
+      textResponse = part.text;
+    }
+  }
+  
+  return { imageBase64, textResponse };
+}
+
+/**
+ * Get error message for HTTP status code
+ */
+function getErrorMessage(statusCode: number): string {
+  const messages: Record<number, string> = {
+    400: "Requête invalide.",
+    401: "Clé API invalide.",
+    403: "Accès refusé.",
+    429: "Limite de requêtes atteinte, veuillez réessayer plus tard.",
+    500: "Erreur serveur Google AI.",
+    503: "Service temporairement indisponible.",
+  };
+  return messages[statusCode] || `Erreur API (${statusCode})`;
+}
+
+// ============================================================================
+// Main Handler
+// ============================================================================
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,157 +87,300 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, decorContext, sourceImageUrl } = await req.json();
+    const { messages, decorContext, sourceImageUrls, imageLabels } = await req.json();
     console.log('Creative chat request received');
     console.log('- Messages:', messages.length);
     console.log('- Decor context length:', decorContext?.length || 0, 'characters');
-    console.log('- Current source image URL:', sourceImageUrl || 'none');
+    console.log('- Source images URLs:', sourceImageUrls?.length || 0);
+    console.log('- Image labels:', imageLabels || []);
     
-    // Find all source images from conversation history
-    const sourceImages = messages
-      .filter((m: any) => m.role === 'user' && m.sourceImageUrl)
-      .map((m: any) => m.sourceImageUrl);
-    console.log('- Source images in history:', sourceImages.length);
+    // Collect all source images (current + history)
+    const allSourceImages: string[] = [...(sourceImageUrls || [])];
+    const allImageLabels: string[] = [...(imageLabels || [])];
+    
+    // Also find images from conversation history
+    for (const m of messages) {
+      if (m.role === 'user' && m.sourceImageUrls) {
+        allSourceImages.push(...m.sourceImageUrls);
+      }
+    }
+    console.log('- Total source images:', allSourceImages.length);
     
     console.log('- Decor context preview:', decorContext?.substring(0, 200));
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
+    if (!GOOGLE_AI_API_KEY) {
+      throw new Error("GOOGLE_AI_API_KEY is not configured");
     }
 
     // Detect if user wants an image generation
     const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
-    const imageKeywords = ["mood board", "moodboard", "plaquette", "visualise", "visualisation", "image", "photo", "crée", "créer", "génère", "générer", "imagine", "design", "montre", "compose", "création", "visuel", "présentation", "planche"];
-    const wantsImage = imageKeywords.some(keyword => lastUserMessage.includes(keyword));
+    const imageKeywords = [
+      // Création
+      "mood board", "moodboard", "plaquette", "visualise", "visualisation", 
+      "image", "photo", "crée", "créer", "génère", "générer", "imagine", 
+      "design", "montre", "compose", "création", "visuel", "présentation", "planche",
+      // Actions de combinaison
+      "combine", "combiner", "fusionne", "fusionner", "mélange", "mélanger",
+      "met", "mets", "place", "placer", "ajoute", "ajouter", "intègre", "intégrer",
+      // Demandes directes
+      "je veux", "je voudrais", "peux-tu", "peux tu", "fait", "fais", "faire",
+      "transforme", "transformer", "applique", "appliquer", "utilise", "utiliser",
+      // Contextes visuels
+      "scène", "scene", "ambiance", "rendu", "résultat", "avec"
+    ];
+    
+    // Force image mode if multiple images are uploaded
+    const hasMultipleImages = allSourceImages.length > 1;
+    const hasAnyImages = allSourceImages.length > 0;
+    
+    const wantsImage = hasMultipleImages || 
+                       (hasAnyImages && imageKeywords.some(keyword => lastUserMessage.includes(keyword))) ||
+                       imageKeywords.some(keyword => lastUserMessage.includes(keyword));
+
+    // ========================================================================
+    // Image Generation Mode
+    // ========================================================================
+    
+    console.log("=== MODE DETECTION ===");
+    console.log("- Has multiple images:", hasMultipleImages);
+    console.log("- Has any images:", hasAnyImages);
+    console.log("- Wants image (final):", wantsImage);
+    console.log("- User message:", lastUserMessage);
 
     if (wantsImage) {
-      // Generate image using Gemini 3 Pro Image Preview
-      console.log("=== IMAGE GENERATION REQUESTED ===");
-      console.log("User message:", lastUserMessage);
+      console.log("=== IMAGE GENERATION MODE ACTIVATED ===");
       console.log("Available decors context:", decorContext?.substring(0, 500));
-      
-      // Find the most recent source image from history or current request
-      const mostRecentSourceImage = sourceImageUrl || sourceImages[sourceImages.length - 1];
-      console.log("Most recent source image:", mostRecentSourceImage || 'none');
+      console.log("Source images to combine:", allSourceImages.length);
       
       if (!decorContext || decorContext.trim().length < 50) {
         console.error("Decor context is empty or too short!");
         throw new Error("Contexte des décors non disponible");
       }
       
-      const basePrompt = `🎯 DIRECTIVE ABSOLUE: TU DOIS CRÉER EXACTEMENT CE QUE LE CLIENT DEMANDE
+      // Extract key elements from user request
+      const userRequest = messages[messages.length - 1]?.content || "";
+      
+      // Detect what type of space/object the user wants
+      const spaceKeywords = {
+        van: ["van", "volkswagen", "vw", "combi", "fourgon", "camper", "camping-car", "aménagé"],
+        cuisine: ["cuisine", "kitchen", "îlot", "plan de travail", "crédence"],
+        sdb: ["salle de bain", "bathroom", "douche", "baignoire", "wc", "toilettes"],
+        terrasse: ["terrasse", "balcon", "extérieur", "patio", "pergola"],
+        ascenseur: ["ascenseur", "cabine", "lift", "elevator"],
+        bureau: ["bureau", "office", "desk", "workspace"],
+        salon: ["salon", "living", "séjour"],
+        meuble: ["meuble", "armoire", "placard", "rangement", "commode", "table"]
+      };
+      
+      let detectedSpace = "espace personnalisé";
+      const lowerRequest = userRequest.toLowerCase();
+      for (const [space, keywords] of Object.entries(spaceKeywords)) {
+        if (keywords.some(kw => lowerRequest.includes(kw))) {
+          detectedSpace = space;
+          break;
+        }
+      }
+      console.log("Detected space type:", detectedSpace);
 
-Demande du client: "${lastUserMessage}"
+      // Build multi-image description
+      let imageDescription = "";
+      if (allSourceImages.length > 0) {
+        if (allSourceImages.length === 1) {
+          const label = allImageLabels[0] || "Image source";
+          imageDescription = `
+📷 IMAGE SOURCE FOURNIE - "${label}":
+- REPRODUIS fidèlement cet espace/objet
+- CONSERVE la structure, les proportions et l'angle de vue
+- APPLIQUE les panneaux DICA sur les surfaces planes visibles
+- NE CHANGE PAS le type d'espace (si c'est un van, garde un van)`;
+        } else {
+          imageDescription = `
+📷 ${allSourceImages.length} IMAGES À COMBINER:
+${allImageLabels.map((label, i) => `  • Image ${i + 1}: ${label || "Élément"}`).join('\n')}
 
-⚠️ RÈGLES STRICTES - NON NÉGOCIABLES:
-1. Tu DOIS créer EXACTEMENT ce que demande le client, RIEN D'AUTRE
-2. Tu NE DOIS PAS inventer de scénario si le client n'en demande pas
-3. Tu NE DOIS PAS créer de mood board sauf si explicitement demandé
-4. Tu NE DOIS PAS créer d'ascenseur sauf si explicitement demandé dans la demande
-5. Si le client demande "une terrasse", crée une terrasse (pas un ascenseur)
-6. Si le client demande "un van", crée un van (pas un ascenseur)
-7. Si le client demande "une salle de bain", crée une salle de bain (pas un ascenseur)
-8. OUBLIE toutes tes générations précédentes - seule compte la demande actuelle
+INSTRUCTIONS DE COMBINAISON:
+- FUSIONNE ces éléments dans UNE SEULE scène cohérente
+- RESPECTE chaque élément fourni
+- INTÈGRE les panneaux DICA de manière visible et réaliste`;
+        }
+      }
+      
+      // Build the master prompt - ULTRA STRICT
+      const basePrompt = `═══════════════════════════════════════════════════════════════════
+🎯 MISSION CRITIQUE - GÉNÉRATION D'IMAGE DICA
+═══════════════════════════════════════════════════════════════════
 
-${mostRecentSourceImage ? `
-📷 IMAGE SOURCE FOURNIE PAR LE CLIENT:
-Tu DOIS utiliser cette image comme référence OBLIGATOIRE. Cette photo montre ce que le client veut visualiser.
-- Analyse l'espace visible dans cette photo
-- Comprends le type d'environnement (terrasse, van, salle de bain, cuisine, etc.)
-- Respecte les proportions et volumes de cette photo
-- Applique les décors DICA sur les surfaces compatibles de CETTE photo
-- Ne change PAS le type d'environnement montré dans la photo
-` : ''}
+DEMANDE CLIENT (À RESPECTER À 100%):
+"${userRequest}"
 
+TYPE D'ESPACE DÉTECTÉ: ${detectedSpace.toUpperCase()}
+
+═══════════════════════════════════════════════════════════════════
+⚠️ RÈGLES NON-NÉGOCIABLES - ÉCHEC = IMAGE REJETÉE
+═══════════════════════════════════════════════════════════════════
+
+1. ✅ SUJET OBLIGATOIRE: ${detectedSpace.toUpperCase()}
+   → Tu DOIS créer un(e) ${detectedSpace}, PAS autre chose
+   → Si le client demande un VAN, crée UN VAN AMÉNAGÉ
+   → Si le client demande une CUISINE, crée UNE CUISINE
+   → JAMAIS de rue, ville, paysage non demandé
+
+2. ✅ PANNEAUX DICA OBLIGATOIREMENT VISIBLES
+   → Les panneaux stratifiés DICA doivent occuper MIN 40% de l'image
+   → Ils doivent être le SUJET PRINCIPAL de la visualisation
+   → Montrer clairement la TEXTURE et la QUALITÉ des panneaux
+   → Le client doit voir EXACTEMENT à quoi ressemblera son projet
+
+3. ✅ QUALITÉ PHOTOGRAPHIQUE PREMIUM
+   → Photo de catalogue professionnel haut de gamme
+   → Éclairage studio parfait, ombres douces
+   → Netteté maximale sur les panneaux DICA
+   → Rendu hyperréaliste type publicité luxe
+
+${imageDescription}
+
+═══════════════════════════════════════════════════════════════════
+📦 CATALOGUE PANNEAUX DICA DISPONIBLES
+═══════════════════════════════════════════════════════════════════
 ${decorContext}
 
-🚫 INTERDICTIONS ABSOLUES:
-- N'invente JAMAIS un type d'environnement différent de celui demandé
-- Ne crée JAMAIS un ascenseur si ce n'est pas demandé
-- Ne crée JAMAIS un mood board si ce n'est pas demandé
-- N'utilise PAS ta mémoire des conversations précédentes
-- Ne suppose RIEN qui n'est pas dans la demande actuelle
+═══════════════════════════════════════════════════════════════════
+🎨 RÈGLES D'APPLICATION DES PANNEAUX PAR CATÉGORIE
+═══════════════════════════════════════════════════════════════════
 
-✅ OBLIGATIONS:
-- Utilise UNIQUEMENT les décors DICA du catalogue
-- Crée EXACTEMENT ce que le client demande
-- Si une photo source est fournie, suis-la STRICTEMENT
-- Respecte le type d'environnement demandé (terrasse = terrasse, van = van, etc.)
+MÉTAL (Inox brossé, Aluminium, etc.):
+- Surface brillante avec reflets directionnels
+- Effet brossé visible
+- Lumière se reflétant de manière réaliste
 
-QUALITÉ VISUELLE:
-- Rendu photographique haut de gamme
-- Style marketing premium DICA
-- Comme si DICA avait rénové un environnement modèle pour son catalogue
-- Crédibilité réaliste maximale
+UNIS (Couleurs unies mates):
+- Surface parfaitement lisse et mate
+- Couleur uniforme sans variations
+- Pas de reflets métalliques
 
-Types de créations possibles:
-- Mood boards inspirants et esthétiques
-- Compositions visuelles pour communication marketing
-- Présentations produits créatives et modernes
-- Mises en scène artistiques des décors dans des ambiances variées
-- Concepts visuels pour inspiration client
-- Planches tendances avec associations de matières
+BOIS (Chêne, Noyer, etc.):
+- Veinage naturel visible et réaliste
+- Texture bois authentique
+- Tons chauds naturels
 
-Applique les décors DICA selon leur matériau:
-- Métal → brossage + reflets directionnels
-- Unis → matte, uniforme, sans reflets métalliques
-- Bois → grain et ton bois cohérents
-- Marbres → veines minérales, pas d'effet chromé
-- Déco → motif intact, contrastes respectés
+MARBRE (Carrare, Noir, etc.):
+- Veines minérales naturelles
+- Surface légèrement brillante
+- Motifs uniques et élégants
 
-Le résultat doit inspirer et convaincre les clients tout en restant crédible professionnellement.`;
+═══════════════════════════════════════════════════════════════════
+🚫 INTERDICTIONS ABSOLUES
+═══════════════════════════════════════════════════════════════════
+- ❌ PAS de scène urbaine/rue si non demandé
+- ❌ PAS de personnages sauf si demandé
+- ❌ PAS d'environnement différent de la demande
+- ❌ PAS d'image sans panneaux DICA visibles
+- ❌ PAS de qualité médiocre ou floue
+- ❌ PAS d'invention ou d'interprétation libre
+
+═══════════════════════════════════════════════════════════════════
+✨ RÉSULTAT ATTENDU
+═══════════════════════════════════════════════════════════════════
+Une image de ${detectedSpace} aménagé(e) avec des panneaux DICA,
+de qualité catalogue professionnel, où les panneaux sont mis en
+valeur et clairement visibles. Le client doit pouvoir se projeter
+immédiatement dans son futur projet.
+
+EFFET WOW OBLIGATOIRE - Le client doit être impressionné dès la première image.
+═══════════════════════════════════════════════════════════════════`;
 
       console.log("Full image prompt length:", basePrompt.length, "characters");
 
-      // Build messages array with source image if available
-      const imageMessages = mostRecentSourceImage 
-        ? [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: basePrompt },
-                { type: "image_url", image_url: { url: mostRecentSourceImage } }
-              ]
+      // Build request parts
+      const requestParts: any[] = [{ text: basePrompt }];
+      
+      // Add ALL source images
+      if (allSourceImages.length > 0) {
+        console.log(`Fetching ${allSourceImages.length} source images for Gemini...`);
+        
+        for (let i = 0; i < allSourceImages.length; i++) {
+          const imageUrl = allSourceImages[i];
+          const label = allImageLabels[i] || `Image ${i + 1}`;
+          
+          try {
+            console.log(`Fetching image ${i + 1} (${label}):`, imageUrl);
+            const imageResponse = await fetch(imageUrl);
+            if (imageResponse.ok) {
+              const arrayBuffer = await imageResponse.arrayBuffer();
+              const bytes = new Uint8Array(arrayBuffer);
+              let binary = "";
+              for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+              }
+              const imageBase64 = btoa(binary);
+              const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
+              
+              requestParts.push({
+                inlineData: {
+                  mimeType: imageMimeType,
+                  data: imageBase64,
+                },
+              });
+              console.log(`✓ Image ${i + 1} (${label}) added to request`);
             }
-          ]
-        : [
-            { role: "user", content: basePrompt }
-          ];
+          } catch (e) {
+            console.error(`Error fetching image ${i + 1} (${label}):`, e);
+          }
+        }
+      }
 
-      console.log("Sending request with source image:", mostRecentSourceImage ? 'YES' : 'NO');
+      console.log(`Sending request with ${allSourceImages.length} source images`);
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      // Call Gemini API for image generation
+      const geminiUrl = buildImageGenerationUrl(GOOGLE_AI_API_KEY);
+      
+      const response = await fetch(geminiUrl, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
-          messages: imageMessages,
-          modalities: ["image", "text"]
+          contents: [
+            {
+              role: "user",
+              parts: requestParts,
+            },
+          ],
+          generationConfig: {
+            responseModalities: GEMINI_CONFIG.imageResponseModalities,
+          },
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Image generation failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error("Google AI error:", response.status, errorText);
+        throw new Error(getErrorMessage(response.status));
       }
 
       const data = await response.json();
-      const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-      const textContent = data.choices?.[0]?.message?.content || "Voici votre visualisation :";
+      console.log("Gemini response received");
+      
+      // Parse response
+      const { imageBase64, textResponse } = parseImageResponse(data);
+      
+      const imageUrl = imageBase64 ? `data:image/png;base64,${imageBase64}` : null;
+      const text = textResponse || "Voici votre visualisation :";
 
       return new Response(JSON.stringify({ 
         type: "image",
         imageUrl,
-        text: textContent
+        text
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Text-only response using streaming
+    // ========================================================================
+    // Text Chat Mode (Streaming)
+    // ========================================================================
+    
     const systemPrompt = `Tu es un assistant créatif pour DICA France.
 
 🎯 RÈGLE ABSOLUE: Tu DOIS suivre EXACTEMENT ce que demande le client
@@ -196,44 +414,81 @@ TON RÔLE:
 
 Réponds en français de manière claire et professionnelle.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Build conversation for Gemini
+    const geminiContents = [
+      { role: "user", parts: [{ text: systemPrompt }] },
+      { role: "model", parts: [{ text: "Compris. Je suis prêt à vous aider avec les décors DICA." }] },
+    ];
+    
+    for (const msg of messages) {
+      geminiContents.push({
+        role: msg.role === "user" ? "user" : "model",
+        parts: [{ text: msg.content }]
+      });
+    }
+
+    const geminiUrl = buildStreamingTextUrl(GOOGLE_AI_API_KEY);
+    
+    const response = await fetch(geminiUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...messages,
-        ],
-        stream: true,
+        contents: geminiContents,
       }),
     });
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Limite de requêtes atteinte, veuillez réessayer plus tard." }), {
+        return new Response(JSON.stringify({ error: getErrorMessage(429) }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Crédit insuffisant, veuillez recharger votre compte Lovable AI." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("Google AI error:", response.status, errorText);
       return new Response(JSON.stringify({ error: "Erreur du service IA" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(response.body, {
+    // Transform Gemini SSE to OpenAI-compatible format for frontend
+    const transformStream = new TransformStream({
+      transform(chunk, controller) {
+        const text = new TextDecoder().decode(chunk);
+        const lines = text.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonStr = line.slice(6);
+              if (jsonStr.trim() === '[DONE]') {
+                controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+                return;
+              }
+              
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+              
+              if (content) {
+                const openaiFormat = {
+                  choices: [{ delta: { content } }]
+                };
+                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(openaiFormat)}\n\n`));
+              }
+            } catch (e) {
+              // Skip malformed JSON
+            }
+          }
+        }
+      }
+    });
+
+    const transformedStream = response.body?.pipeThrough(transformStream);
+
+    return new Response(transformedStream, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
