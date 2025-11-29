@@ -116,6 +116,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          first_name: string | null
+          id: string
+          is_active: boolean
+          last_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_name?: string | null
+          id: string
+          is_active?: boolean
+          last_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_photos: {
         Row: {
           created_at: string
@@ -242,6 +269,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_quotas: {
+        Row: {
+          created_at: string
+          id: string
+          quota_limit: number
+          quota_used: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          quota_limit?: number
+          quota_used?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          quota_limit?: number
+          quota_used?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

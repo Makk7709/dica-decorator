@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 
 type UsageContext = Database['public']['Enums']['usage_context'];
@@ -35,12 +35,28 @@ interface Category {
   is_active: boolean;
 }
 
+interface UserData {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  is_active: boolean;
+  created_at: string;
+  quota_limit: number;
+  quota_used: number;
+  project_count: number;
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { userRole, signOut } = useAuth();
   const [decors, setDecors] = useState<Decor[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editQuotaValue, setEditQuotaValue] = useState<number>(0);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [editingDecor, setEditingDecor] = useState<Decor | null>(null);
@@ -73,6 +89,7 @@ const Admin = () => {
     }
     loadDecors();
     loadCategories();
+    loadUsers();
   }, [userRole, navigate]);
 
   const loadDecors = async () => {
@@ -103,6 +120,89 @@ const Admin = () => {
       setCategories(data || []);
     } catch (error: any) {
       toast.error("Erreur lors du chargement des catégories");
+    }
+  };
+
+  const loadUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      // Fetch users with profiles and quotas
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      if (authError) throw authError;
+
+      const usersData: UserData[] = await Promise.all(
+        authUsers.users.map(async (user) => {
+          // Get profile
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          // Get quota
+          const { data: quota } = await supabase
+            .from("user_quotas")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          // Count projects
+          const { count } = await supabase
+            .from("projects")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id);
+
+          return {
+            id: user.id,
+            email: user.email || "",
+            first_name: profile?.first_name || null,
+            last_name: profile?.last_name || null,
+            is_active: profile?.is_active ?? true,
+            created_at: user.created_at,
+            quota_limit: quota?.quota_limit || 0,
+            quota_used: quota?.quota_used || 0,
+            project_count: count || 0,
+          };
+        })
+      );
+
+      setUsers(usersData);
+    } catch (error: any) {
+      toast.error("Erreur lors du chargement des utilisateurs");
+      console.error(error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const handleUpdateQuota = async (userId: string, newLimit: number) => {
+    try {
+      const { error } = await supabase
+        .from("user_quotas")
+        .update({ quota_limit: newLimit })
+        .eq("user_id", userId);
+
+      if (error) throw error;
+      toast.success("Quota mis à jour");
+      setEditingUserId(null);
+      loadUsers();
+    } catch (error: any) {
+      toast.error("Erreur lors de la mise à jour du quota");
+    }
+  };
+
+  const handleToggleUserActive = async (userId: string, isActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_active: !isActive })
+        .eq("id", userId);
+
+      if (error) throw error;
+      toast.success(isActive ? "Compte désactivé" : "Compte réactivé");
+      loadUsers();
+    } catch (error: any) {
+      toast.error("Erreur lors de la mise à jour du compte");
     }
   };
 
@@ -343,11 +443,143 @@ const Admin = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="decors" className="w-full">
+        <Tabs defaultValue="users" className="w-full">
           <TabsList className="mb-8">
+            <TabsTrigger value="users">
+              <Users className="mr-2 h-4 w-4" />
+              Utilisateurs
+            </TabsTrigger>
             <TabsTrigger value="decors">Décors</TabsTrigger>
             <TabsTrigger value="categories">Catégories</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="users">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold">Gestion des Utilisateurs</h2>
+              <p className="text-muted-foreground">Gérez les utilisateurs inscrits et leurs quotas de génération</p>
+            </div>
+
+            {isLoadingUsers ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <CardContent className="p-6">
+                      <div className="h-20 rounded bg-muted" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {users.map((user) => (
+                  <Card key={user.id}>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        {/* User Info */}
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <h3 className="font-semibold text-lg">
+                                {user.first_name && user.last_name
+                                  ? `${user.first_name} ${user.last_name}`
+                                  : user.email}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
+                            {user.is_active ? (
+                              <Badge variant="default" className="ml-auto lg:ml-0">Actif</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="ml-auto lg:ml-0">Désactivé</Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+                            <span>Inscrit: {new Date(user.created_at).toLocaleDateString("fr-FR")}</span>
+                            <span>Projets: {user.project_count}</span>
+                            <span>
+                              Quota: {user.quota_used} / {user.quota_limit} générations
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-wrap gap-2">
+                          {/* Edit Quota */}
+                          {editingUserId === user.id ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                value={editQuotaValue}
+                                onChange={(e) => setEditQuotaValue(parseInt(e.target.value))}
+                                className="w-24"
+                                min="0"
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => handleUpdateQuota(user.id, editQuotaValue)}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditingUserId(null)}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingUserId(user.id);
+                                setEditQuotaValue(user.quota_limit);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Modifier quota
+                            </Button>
+                          )}
+
+                          {/* Toggle Active */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleToggleUserActive(user.id, user.is_active)}
+                          >
+                            {user.is_active ? (
+                              <>
+                                <UserX className="mr-2 h-4 w-4" />
+                                Désactiver
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                Réactiver
+                              </>
+                            )}
+                          </Button>
+
+                          {/* View Projects */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              // TODO: Navigate to user projects view
+                              toast.info("Fonctionnalité en cours de développement");
+                            }}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            Voir projets
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="decors">
             <div className="mb-8 flex items-center justify-between">
