@@ -31,6 +31,9 @@
 - 🏷️ **Références DICA** - Annotations automatiques des codes décors sur les images
 - 🌙 **Mode Nuit** - Interface adaptable jour/nuit
 - 📷 **Multi-Images** - Combinez jusqu'à 5 images pour créer des scènes
+- 🎬 **Landing Vidéo** - Page d'accueil immersive avec vidéo plein écran
+- 👥 **Gestion Utilisateurs** - Administration des quotas et comptes (admin)
+- 🔍 **Zoom Images** - Visualisation plein écran des rendus
 
 ### Cas d'usage supportés
 
@@ -244,7 +247,7 @@ Application propriétaire développée pour **DICA France**.
 
 <div align="center">
 
-**DICA Decorator v1.1.0**
+**DICA Decorator v1.2.0**
 
 *Transformez votre catalogue en expérience visuelle*
 

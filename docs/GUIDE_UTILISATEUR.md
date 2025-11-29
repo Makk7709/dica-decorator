@@ -21,6 +21,14 @@
 
 ## 1. Connexion à l'application
 
+### Page d'accueil
+
+À l'ouverture de l'application, vous êtes accueilli par une **vidéo immersive** présentant l'univers DICA.
+
+1. La vidéo se joue automatiquement en arrière-plan
+2. Cliquez sur le bouton **"Entrer"** au centre de l'écran
+3. Vous êtes redirigé vers la page de connexion (ou le tableau de bord si déjà connecté)
+
 ### Première connexion
 
 1. Accédez à l'URL de l'application DICA Decorator
@@ -200,10 +208,20 @@ Chaque décor possède un code unique (ex: `DIC-A23`) qui permet :
 
 | Action | Icône | Description |
 |--------|-------|-------------|
+| **Agrandir** | 🔍 | Voir le rendu en plein écran |
 | **Favori** | ❤️ | Marquer le rendu comme favori |
 | **Télécharger** | ⬇️ | Sauvegarder l'image sur votre ordinateur |
-| **Régénérer** | 🔄 | Créer une nouvelle variante avec le même décor |
+| **Recommencer** | 🔄 | Créer une nouvelle variante avec le même décor |
 | **Supprimer** | 🗑️ | Supprimer définitivement le rendu |
+
+### 🔍 Zoom plein écran (Nouveau)
+
+Visualisez vos rendus en détail :
+
+1. Survolez un rendu avec la souris
+2. Cliquez sur l'icône **🔍** en bas à droite
+3. L'image s'affiche en **plein écran** avec fond sombre
+4. Cliquez sur **✕** ou en dehors pour fermer
 
 ### Système de favoris
 

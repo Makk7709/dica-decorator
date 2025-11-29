@@ -505,6 +505,59 @@ const reader = response.body.getReader();
 
 ---
 
+### get-users-admin (Nouveau)
+
+**Endpoint :** `GET /functions/v1/get-users-admin`
+
+**Description :** Liste tous les utilisateurs avec leurs profils, quotas et statistiques. Réservé aux administrateurs.
+
+**Headers requis :**
+```http
+Authorization: Bearer <access_token>
+```
+
+**Response (success) :**
+```typescript
+{
+  users: Array<{
+    id: string;
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    is_active: boolean;
+    created_at: string;
+    quota_limit: number;
+    quota_used: number;
+    project_count: number;
+  }>
+}
+```
+
+**Response (error) :**
+```typescript
+{ error: "Unauthorized" }           // 401
+{ error: "Forbidden: Admin access required" }  // 403
+{ error: "Error message" }          // 500
+```
+
+**Exemple d'appel :**
+```typescript
+const { data: session } = await supabase.auth.getSession();
+
+const response = await supabase.functions.invoke('get-users-admin', {
+  headers: {
+    Authorization: `Bearer ${session?.access_token}`
+  }
+});
+
+if (response.data) {
+  const users = response.data.users;
+  console.log(`${users.length} utilisateurs trouvés`);
+}
+```
+
+---
+
 ## 7. Organisations
 
 ### Lister les organisations de l'utilisateur

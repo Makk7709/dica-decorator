@@ -156,16 +156,26 @@ dica-decorator/
 ### Diagramme ERD
 
 ```
-┌─────────────────┐     ┌─────────────────┐
-│   auth.users    │     │   user_roles    │
-│─────────────────│     │─────────────────│
-│ id (PK)         │◀───▶│ user_id (FK)    │
-│ email           │     │ role            │
-│ ...             │     │ created_at      │
-└─────────────────┘     └─────────────────┘
-        │
-        │ 1:N
-        ▼
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   auth.users    │     │   user_roles    │     │    profiles     │
+│─────────────────│     │─────────────────│     │─────────────────│
+│ id (PK)         │◀───▶│ user_id (FK)    │     │ id (FK→users)   │
+│ email           │     │ role            │◀───▶│ first_name      │
+│ ...             │     │ created_at      │     │ last_name       │
+└────────┬────────┘     └─────────────────┘     │ is_active       │
+         │                                       │ created_at      │
+         │ 1:1                                   └─────────────────┘
+         ▼
+┌─────────────────┐
+│   user_quotas   │  (Nouveau)
+│─────────────────│
+│ id (PK)         │
+│ user_id (FK)    │
+│ quota_limit     │
+│ quota_used      │
+│ updated_at      │
+└─────────────────┘
+
 ┌─────────────────┐     ┌─────────────────┐
 │    projects     │     │  project_photos │
 │─────────────────│     │─────────────────│
@@ -222,6 +232,31 @@ CREATE TABLE projects (
   client_reference TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### `profiles` (Nouveau)
+```sql
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  first_name TEXT,
+  last_name TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+#### `user_quotas` (Nouveau)
+```sql
+CREATE TABLE user_quotas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  quota_limit INTEGER NOT NULL DEFAULT 50,
+  quota_used INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id)
 );
 ```
 
@@ -550,6 +585,42 @@ data: [DONE]
   imageUrl: string; // Data URL base64
 }
 ```
+
+### get-users-admin (Nouveau)
+
+**Endpoint :** `GET /functions/v1/get-users-admin`
+
+**Description :** Récupère la liste complète des utilisateurs avec leurs données (admin only).
+
+**Sécurité :**
+- Requiert authentification avec token JWT
+- Vérifie le rôle `admin` dans `user_roles`
+- Utilise `SUPABASE_SERVICE_ROLE_KEY` pour accéder à `auth.users`
+
+**Réponse :**
+```typescript
+{
+  users: Array<{
+    id: string;           // UUID utilisateur
+    email: string;        // Email
+    first_name: string;   // Prénom (profiles)
+    last_name: string;    // Nom (profiles)
+    is_active: boolean;   // Statut actif (profiles)
+    created_at: string;   // Date inscription
+    quota_limit: number;  // Limite rendus (user_quotas)
+    quota_used: number;   // Rendus utilisés (user_quotas)
+    project_count: number;// Nombre de projets
+  }>
+}
+```
+
+**Codes d'erreur :**
+
+| Code | Message | Cause |
+|------|---------|-------|
+| 401 | "Unauthorized" | Token manquant ou invalide |
+| 403 | "Forbidden: Admin access required" | Utilisateur non admin |
+| 500 | "Error" | Erreur serveur |
 
 ---
 

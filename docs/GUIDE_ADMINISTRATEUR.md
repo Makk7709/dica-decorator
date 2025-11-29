@@ -211,26 +211,76 @@ Les invitations sont gérées via la table `organization_invitations` :
 
 ## 5. Gestion des Utilisateurs
 
-### Voir tous les utilisateurs
+### Interface de gestion (Nouveau)
 
-Via la console Supabase > Authentication > Users
+L'onglet **"Utilisateurs"** du panneau admin permet de gérer tous les utilisateurs directement depuis l'application.
 
-### Informations disponibles
+### Tableau des utilisateurs
 
-- Email
-- Date d'inscription
-- Dernière connexion
-- Statut (confirmé, non confirmé)
-- Métadonnées
+| Colonne | Description |
+|---------|-------------|
+| **Email** | Adresse email de l'utilisateur |
+| **Nom** | Prénom et nom (si renseignés) |
+| **Statut** | Actif ✅ ou Inactif ❌ |
+| **Projets** | Nombre de projets créés |
+| **Quota** | Utilisation / Limite (ex: 12/50) |
+| **Inscription** | Date de création du compte |
 
-### Actions administrateur
+### Actions disponibles
 
-| Action | Comment |
-|--------|---------|
-| Réinitialiser mot de passe | Email automatique via Supabase |
-| Désactiver un compte | Ban via console Supabase |
-| Supprimer un compte | Suppression en cascade (attention RLS) |
-| Changer le rôle | Modifier `user_roles` |
+| Action | Icône | Description |
+|--------|-------|-------------|
+| **Voir** | 👁️ | Afficher les détails de l'utilisateur |
+| **Modifier quota** | ✏️ | Changer la limite de rendus |
+| **Activer** | ✅ | Réactiver un compte désactivé |
+| **Désactiver** | 🚫 | Suspendre l'accès utilisateur |
+
+### Modifier un quota utilisateur
+
+1. Cliquez sur le bouton **"Modifier"** (icône crayon)
+2. Saisissez la nouvelle limite de rendus
+3. Cliquez sur **"Enregistrer"**
+4. Le quota est mis à jour immédiatement
+
+### Activer / Désactiver un utilisateur
+
+- **Désactiver** : L'utilisateur ne peut plus se connecter
+- **Activer** : Restaure l'accès au compte
+
+### Tables de base de données
+
+```sql
+-- Table profiles (nouveau)
+CREATE TABLE public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id),
+  first_name TEXT,
+  last_name TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+
+-- Table user_quotas (nouveau)
+CREATE TABLE public.user_quotas (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id),
+  quota_limit INTEGER DEFAULT 50,
+  quota_used INTEGER DEFAULT 0,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
+
+### Edge Function API
+
+**Endpoint** : `GET /functions/v1/get-users-admin`
+
+Retourne la liste complète des utilisateurs avec :
+- Profil (nom, statut)
+- Quota (limite, utilisation)
+- Nombre de projets
+
+**Sécurité** : Accessible uniquement aux administrateurs.
 
 ### Audit des actions
 
