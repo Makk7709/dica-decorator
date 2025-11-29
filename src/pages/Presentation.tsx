@@ -64,7 +64,7 @@ const Presentation: React.FC = () => {
         // Fetch project
         const { data: projectData, error: projectError } = await supabase
           .from('projects')
-          .select('id, name')
+          .select('id, title')
           .eq('id', projectId)
           .single();
 
@@ -76,7 +76,7 @@ const Presentation: React.FC = () => {
           .select(`
             id,
             original_image_url,
-            photo_renders (
+            render_results (
               id,
               result_image_url,
               decor:decors (
@@ -91,11 +91,11 @@ const Presentation: React.FC = () => {
 
         setProject({
           id: projectData.id,
-          name: projectData.name,
+          name: projectData.title,
           photos: photos?.map(p => ({
             id: p.id,
             original_image_url: p.original_image_url,
-            renders: (p.photo_renders || []).map((r: any) => ({
+            renders: (p.render_results || []).map((r: any) => ({
               id: r.id,
               result_image_url: r.result_image_url,
               decor: r.decor,

@@ -724,7 +724,7 @@ describe('ImageComparisonService', () => {
     it('should provide error codes for debugging', () => {
       try {
         service.configure({ initialPosition: -50 });
-        fail('Should have thrown');
+        throw new Error('Should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(ComparisonError);
         expect((error as ComparisonError).code).toBe('INVALID_CONFIG');

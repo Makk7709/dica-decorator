@@ -758,13 +758,13 @@ export class PDFExportService {
   // --------------------------------------------------------------------------
 
   formatDate(date: Date, format: DateFormat): string {
-    const options: Intl.DateTimeFormatOptions = {
+    const formatOptions: Record<DateFormat, Intl.DateTimeFormatOptions> = {
       short: { day: '2-digit', month: '2-digit', year: 'numeric' },
       long: { day: 'numeric', month: 'long', year: 'numeric' },
       full: { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' },
-    }[format];
+    };
     
-    return date.toLocaleDateString('fr-FR', options);
+    return date.toLocaleDateString('fr-FR', formatOptions[format]);
   }
 
   formatCurrency(amount: number): string {
