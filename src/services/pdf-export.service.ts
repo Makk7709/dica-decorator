@@ -697,10 +697,181 @@ export class PDFExportService {
   // --------------------------------------------------------------------------
 
   async generatePDFBlob(content: PDFContent): Promise<Blob> {
-    // This would use jsPDF or similar library in actual implementation
-    // For now, return a mock blob
-    const pdfContent = JSON.stringify(content);
-    return new Blob([pdfContent], { type: 'application/pdf' });
+    // Dynamically import jsPDF to avoid bundling issues
+    const { default: jsPDF } = await import('jspdf');
+    
+    const doc = new jsPDF({
+      orientation: this.config.orientation,
+      unit: 'pt',
+      format: this.config.pageSize.toLowerCase() as any,
+    });
+
+    const dims = this.getPageDimensions(this.config.pageSize, this.config.orientation);
+    const { margins } = this.config;
+    let currentY = margins.top;
+
+    // Process each page
+    for (let pageIndex = 0; pageIndex < content.pages.length; pageIndex++) {
+      if (pageIndex > 0) {
+        doc.addPage();
+        currentY = margins.top;
+      }
+
+      const page = content.pages[pageIndex];
+
+      // Add header
+      if (this.config.header.showLogo || this.config.header.title) {
+        doc.setFontSize(this.config.fontSize.title);
+        doc.setTextColor(this.config.branding.primaryColor);
+        doc.text(
+          this.config.header.title || this.config.branding.companyName,
+          margins.left,
+          currentY
+        );
+        currentY += 30;
+      }
+
+      // Process elements
+      for (const element of page.elements) {
+        try {
+          switch (element.type) {
+            case 'text':
+              if (element.content) {
+                const fontSize = element.style?.fontSize || this.config.fontSize.body;
+                doc.setFontSize(fontSize);
+                doc.setTextColor(element.style?.color || '#000000');
+                
+                const textLines = doc.splitTextToSize(
+                  element.content,
+                  dims.width - margins.left - margins.right
+                );
+                doc.text(textLines, margins.left, currentY);
+                currentY += textLines.length * (fontSize * 1.2) + 10;
+              }
+              break;
+
+            case 'image':
+              if (element.src) {
+                try {
+                  const imgHeight = element.style?.height || 200;
+                  const imgWidth = dims.width - margins.left - margins.right;
+                  
+                  // Load image via fetch to convert to base64
+                  const response = await fetch(element.src);
+                  const blob = await response.blob();
+                  const base64 = await new Promise<string>((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.readAsDataURL(blob);
+                  });
+
+                  doc.addImage(
+                    base64,
+                    'JPEG',
+                    margins.left,
+                    currentY,
+                    imgWidth,
+                    imgHeight
+                  );
+                  currentY += imgHeight + 15;
+                } catch (imgError) {
+                  console.warn('Failed to load image:', element.src, imgError);
+                  // Continue without image
+                }
+              }
+              break;
+
+            case 'divider':
+              doc.setDrawColor(200, 200, 200);
+              doc.line(
+                margins.left,
+                currentY,
+                dims.width - margins.right,
+                currentY
+              );
+              currentY += 15;
+              break;
+
+            case 'spacer':
+              currentY += element.height || 20;
+              break;
+
+            case 'table':
+              if (element.headers && element.rows) {
+                const cellPadding = 8;
+                const cellHeight = 25;
+                const colWidth = (dims.width - margins.left - margins.right) / element.headers.length;
+
+                // Headers
+                doc.setFillColor(240, 240, 240);
+                doc.rect(margins.left, currentY, dims.width - margins.left - margins.right, cellHeight, 'F');
+                doc.setFontSize(this.config.fontSize.body);
+                doc.setTextColor(0, 0, 0);
+                
+                element.headers.forEach((header, i) => {
+                  doc.text(
+                    header,
+                    margins.left + i * colWidth + cellPadding,
+                    currentY + cellHeight / 2 + 4
+                  );
+                });
+                currentY += cellHeight;
+
+                // Rows
+                element.rows.forEach((row) => {
+                  row.forEach((cell, i) => {
+                    doc.text(
+                      cell,
+                      margins.left + i * colWidth + cellPadding,
+                      currentY + cellHeight / 2 + 4
+                    );
+                  });
+                  currentY += cellHeight;
+                });
+                currentY += 10;
+              }
+              break;
+          }
+        } catch (elementError) {
+          console.warn('Error processing element:', element.type, elementError);
+          // Continue with next element
+        }
+
+        // Check if we need a new page
+        if (currentY > dims.height - margins.bottom - 50) {
+          doc.addPage();
+          currentY = margins.top;
+        }
+      }
+
+      // Add footer
+      if (this.config.footer.showPageNumbers) {
+        doc.setFontSize(this.config.fontSize.small);
+        doc.setTextColor(150, 150, 150);
+        const pageText = this.config.footer.pageNumberFormat
+          ?.replace('{current}', String(pageIndex + 1))
+          .replace('{total}', String(content.pages.length)) || `${pageIndex + 1}`;
+        doc.text(
+          pageText,
+          dims.width / 2,
+          dims.height - margins.bottom + 20,
+          { align: 'center' }
+        );
+      }
+
+      if (this.config.footer.showCompanyInfo && this.config.branding.website) {
+        doc.setFontSize(this.config.fontSize.small);
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+          this.config.branding.website,
+          dims.width - margins.right,
+          dims.height - margins.bottom + 20,
+          { align: 'right' }
+        );
+      }
+    }
+
+    return doc.output('blob');
   }
 
   async generateDataUrl(content: PDFContent): Promise<string> {
