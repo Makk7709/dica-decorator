@@ -23,8 +23,11 @@ export function PremiumLayout({
       {/* Background image optionnel */}
       {backgroundImage && (
         <div 
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat z-0"
-          style={{ backgroundImage: `url('${backgroundImage}')` }}
+          className="fixed inset-0 bg-cover bg-no-repeat z-0"
+          style={{ 
+            backgroundImage: `url('${backgroundImage}')`,
+            backgroundPosition: 'center 80px'
+          }}
           aria-hidden="true"
         />
       )}
