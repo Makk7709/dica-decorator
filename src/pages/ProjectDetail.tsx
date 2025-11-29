@@ -545,26 +545,28 @@ const ProjectDetail = () => {
                               className="w-full aspect-square object-cover"
                             />
                             {/* Overlay actions */}
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <div className="flex gap-2">
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                              <div className="flex gap-3">
                                 <Button
                                   variant="secondary"
-                                  size="icon"
-                                  className="h-9 w-9 bg-white/90 hover:bg-white"
+                                  size="sm"
+                                  className="h-10 px-4 bg-white hover:bg-white shadow-lg font-medium"
                                   asChild
                                 >
-                                  <a href={render.result_image_url} download>
-                                    <Download className="h-4 w-4" />
+                                  <a href={render.result_image_url} download className="flex items-center gap-2">
+                                    <Download className="h-4 w-4 text-foreground" />
+                                    <span className="text-foreground">Télécharger</span>
                                   </a>
                                 </Button>
                                 <Button
                                   variant="secondary"
-                                  size="icon"
-                                  className="h-9 w-9 bg-white/90 hover:bg-white"
+                                  size="sm"
+                                  className="h-10 px-4 bg-white hover:bg-white shadow-lg font-medium"
                                   onClick={() => handleRegenerateRender(render.id, photo.id)}
                                   disabled={isGenerating}
                                 >
-                                  <RotateCcw className="h-4 w-4" />
+                                  <RotateCcw className="h-4 w-4 text-foreground" />
+                                  <span className="text-foreground ml-2">Recommencer</span>
                                 </Button>
                               </div>
                             </div>
