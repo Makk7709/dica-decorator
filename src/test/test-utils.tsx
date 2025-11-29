@@ -123,6 +123,7 @@ export const waitForLoadingToFinish = () =>
 export const createMockSupabaseClient = () => ({
   auth: {
     getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+    getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
     signInWithPassword: vi.fn(),
     signUp: vi.fn(),
     signOut: vi.fn(),
@@ -138,6 +139,7 @@ export const createMockSupabaseClient = () => ({
     lte: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    not: vi.fn().mockReturnThis(),
   }),
   storage: {
     from: vi.fn().mockReturnValue({
@@ -149,6 +151,7 @@ export const createMockSupabaseClient = () => ({
   functions: {
     invoke: vi.fn(),
   },
+  rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
 });
 
 // Type assertion helpers with explicit generic constraint

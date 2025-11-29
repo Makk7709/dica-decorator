@@ -124,13 +124,8 @@ export class RateLimiterService {
 
     // Handle usage counting
     let currentUsage = 0;
-    if (!error) {
-      // Priority: use count from response, then array length, then 0
-      if (typeof count === 'number') {
-        currentUsage = count;
-      } else if (Array.isArray(data)) {
-        currentUsage = data.length;
-      }
+    if (!error && typeof count === 'number') {
+      currentUsage = count;
     }
 
     const remaining = Math.max(0, limit - currentUsage);
