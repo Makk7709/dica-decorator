@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon, Maximize2, X } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -60,6 +60,7 @@ const ProjectDetail = () => {
   const [renderCount, setRenderCount] = useState<number>(1);
   const [renderFormat, setRenderFormat] = useState<"square" | "portrait" | "landscape">("square");
   const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   useEffect(() => {
     loadProject();
@@ -551,6 +552,15 @@ const ProjectDetail = () => {
                                   variant="secondary"
                                   size="sm"
                                   className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
+                                  onClick={() => setZoomedImage(render.result_image_url)}
+                                >
+                                  <Maximize2 className="h-3.5 w-3.5 text-foreground" />
+                                  <span className="text-foreground ml-1.5">Agrandir</span>
+                                </Button>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
                                   asChild
                                 >
                                   <a href={render.result_image_url} download className="flex items-center gap-1.5">
@@ -783,6 +793,43 @@ const ProjectDetail = () => {
                 </>
               )}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour agrandir l'image */}
+      <Dialog open={!!zoomedImage} onOpenChange={(open) => !open && setZoomedImage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden">
+          <div className="relative w-full h-full flex items-center justify-center bg-black/95">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-4 right-4 z-10 h-10 w-10 bg-white/10 hover:bg-white/20 text-white"
+              onClick={() => setZoomedImage(null)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            {zoomedImage && (
+              <>
+                <img
+                  src={zoomedImage}
+                  alt="Rendu agrandi"
+                  className="max-w-full max-h-[90vh] object-contain"
+                />
+                <div className="absolute bottom-4 right-4 z-10">
+                  <Button
+                    variant="secondary"
+                    className="h-10 px-4 bg-white hover:bg-white shadow-lg"
+                    asChild
+                  >
+                    <a href={zoomedImage} download className="flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      <span>Télécharger</span>
+                    </a>
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </DialogContent>
       </Dialog>
