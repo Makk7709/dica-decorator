@@ -1,6 +1,7 @@
 // DICA Decorator - Apply Decor Function
 // Génération de rendus avec application de décors via Gemini 3 Pro Image Preview
 // Developed by KOREV AI for DICA France
+// Optimized for Supabase Edge Functions resource limits
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
@@ -9,6 +10,19 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
+};
+
+// ============================================================================
+// Resource Limits to prevent WORKER_LIMIT errors
+// ============================================================================
+
+const RESOURCE_LIMITS = {
+  // Max image size in bytes (2MB to stay safe)
+  maxImageSize: 2 * 1024 * 1024,
+  // Max renders per request (to avoid timeout)
+  maxRenderCount: 2,
+  // Timeout for fetch operations (30s)
+  fetchTimeout: 30000,
 };
 
 // ============================================================================
@@ -71,6 +85,40 @@ function getErrorMessage(statusCode: number): string {
   return messages[statusCode] || `Erreur API Google AI (${statusCode})`;
 }
 
+/**
+ * Fetch with timeout to prevent hanging
+ */
+async function fetchWithTimeout(url: string, options?: RequestInit, timeout = RESOURCE_LIMITS.fetchTimeout): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Convert ArrayBuffer to base64 in chunks to avoid memory issues
+ */
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 32768; // 32KB chunks
+  let binary = "";
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  
+  return btoa(binary);
+}
+
 // ============================================================================
 // Main Handler
 // ============================================================================
@@ -82,15 +130,23 @@ serve(async (req) => {
 
   try {
     const { photoUrl, textureUrl, photoId, decorId, useCase, renderCount = 1, format = "square" } = await req.json();
+    
+    // Limit render count to avoid resource exhaustion
+    const safeRenderCount = Math.min(renderCount, RESOURCE_LIMITS.maxRenderCount);
+    
     console.log("Applying decor:", {
       photoUrl,
       textureUrl,
       photoId,
       decorId,
       useCase,
-      renderCount,
+      renderCount: safeRenderCount,
       format,
     });
+    
+    if (renderCount > safeRenderCount) {
+      console.warn(`Render count limited from ${renderCount} to ${safeRenderCount} to prevent resource issues`);
+    }
 
     const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
     if (!GOOGLE_AI_API_KEY) {
@@ -239,30 +295,37 @@ ${qualityDirective}`;
     let textureBase64: string | null = null;
     let textureMimeType = "image/jpeg";
 
-    // Fetch original photo
+    // Fetch original photo with timeout and size check
     try {
       if (photoUrl) {
         console.log("Fetching original photo for Gemini:", photoUrl);
-        const photoResponse = await fetch(photoUrl);
+        const photoResponse = await fetchWithTimeout(photoUrl);
+        
         if (!photoResponse.ok) {
-          console.error("Failed to fetch photo:", photoResponse.status, await photoResponse.text());
+          console.error("Failed to fetch photo:", photoResponse.status);
         } else {
-          const arrayBuffer = await photoResponse.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = "";
-          for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
+          const contentLength = photoResponse.headers.get("content-length");
+          const size = contentLength ? parseInt(contentLength) : 0;
+          
+          if (size > RESOURCE_LIMITS.maxImageSize) {
+            console.warn(`Photo size (${size} bytes) exceeds limit. Using URL reference instead.`);
+            // Don't convert to base64, Gemini can sometimes accept URLs
+          } else {
+            const arrayBuffer = await photoResponse.arrayBuffer();
+            photoBase64 = arrayBufferToBase64(arrayBuffer);
+            photoMimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
+            console.log(`Photo fetched (${arrayBuffer.byteLength} bytes) and converted to base64`);
           }
-          photoBase64 = btoa(binary);
-          photoMimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
-          console.log("Photo fetched and converted to base64 for Gemini");
         }
       }
     } catch (e) {
       console.error("Error fetching/converting photo:", e);
+      if (e instanceof Error && e.name === "AbortError") {
+        console.error("Photo fetch timed out");
+      }
     }
 
-    // Fetch decor texture as reference
+    // Fetch decor texture as reference with timeout
     try {
       if (textureUrl) {
         // Build absolute URL - use the request referer to get the actual app domain
@@ -271,28 +334,32 @@ ${qualityDirective}`;
         const absoluteTextureUrl = textureUrl.startsWith("http") ? textureUrl : `${appUrl}${textureUrl}`;
         console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
         
-        const textureResponse = await fetch(absoluteTextureUrl);
+        const textureResponse = await fetchWithTimeout(absoluteTextureUrl);
         const contentType = textureResponse.headers.get("content-type") ?? "";
         
         if (!textureResponse.ok) {
-          console.error("Failed to fetch texture:", textureResponse.status, await textureResponse.text());
+          console.error("Failed to fetch texture:", textureResponse.status);
         } else if (!contentType.startsWith("image/")) {
           console.error("Texture URL returned non-image content:", contentType);
-          console.error("This usually means the texture file is not accessible at the URL");
         } else {
-          const arrayBuffer = await textureResponse.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = "";
-          for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
+          const contentLength = textureResponse.headers.get("content-length");
+          const size = contentLength ? parseInt(contentLength) : 0;
+          
+          if (size > RESOURCE_LIMITS.maxImageSize) {
+            console.warn(`Texture size (${size} bytes) exceeds limit.`);
+          } else {
+            const arrayBuffer = await textureResponse.arrayBuffer();
+            textureBase64 = arrayBufferToBase64(arrayBuffer);
+            textureMimeType = contentType;
+            console.log(`Texture fetched (${arrayBuffer.byteLength} bytes) and converted to base64`);
           }
-          textureBase64 = btoa(binary);
-          textureMimeType = contentType;
-          console.log("Texture fetched and converted to base64 for Gemini");
         }
       }
     } catch (e) {
       console.error("Error fetching/converting texture:", e);
+      if (e instanceof Error && e.name === "AbortError") {
+        console.error("Texture fetch timed out");
+      }
     }
     
     // ========================================================================
@@ -323,71 +390,85 @@ ${qualityDirective}`;
     const geminiUrl = buildGeminiUrl(GOOGLE_AI_API_KEY);
 
     // ========================================================================
-    // Generate Renders
+    // Generate Renders (with resource limits)
     // ========================================================================
     
     const generatedUrls: string[] = [];
     
-    for (let i = 0; i < renderCount; i++) {
-      console.log(`Generating render ${i + 1}/${renderCount}...`);
+    for (let i = 0; i < safeRenderCount; i++) {
+      console.log(`Generating render ${i + 1}/${safeRenderCount}...`);
       
-      const geminiResponse = await fetch(geminiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: requestParts,
-            },
-          ],
-          generationConfig: {
-            responseModalities: GEMINI_CONFIG.responseModalities,
+      try {
+        const geminiResponse = await fetchWithTimeout(geminiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            contents: [
+              {
+                role: "user",
+                parts: requestParts,
+              },
+            ],
+            generationConfig: {
+              responseModalities: GEMINI_CONFIG.responseModalities,
+            },
+          }),
+        }, 60000); // 60s timeout for Gemini API
 
-      // Handle errors with detailed logging
-      if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text();
-        console.error("Google AI error:", geminiResponse.status, errorText);
-        throw new Error(getErrorMessage(geminiResponse.status));
+        // Handle errors with detailed logging
+        if (!geminiResponse.ok) {
+          const errorText = await geminiResponse.text();
+          console.error("Google AI error:", geminiResponse.status, errorText);
+          throw new Error(getErrorMessage(geminiResponse.status));
+        }
+
+        const geminiData = await geminiResponse.json();
+        console.log(`Gemini response ${i + 1} received successfully`);
+
+        // Parse response
+        const { imageBase64, textResponse } = parseGeminiResponse(geminiData);
+        
+        if (!imageBase64) {
+          console.error("No image data found in response");
+          throw new Error("Aucune image générée dans la réponse Gemini");
+        }
+
+        // Return data URL directly
+        const resultUrl = `data:image/png;base64,${imageBase64}`;
+        generatedUrls.push(resultUrl);
+        
+        console.log(`Image ${i + 1} generated successfully, saving to database`);
+
+        // Save result to database
+        const { error: insertError } = await supabase
+          .from("render_results")
+          .insert({
+            project_photo_id: photoId,
+            decor_id: decorId,
+            result_image_url: resultUrl,
+          });
+
+        if (insertError) {
+          console.error("Error saving render result:", insertError);
+          throw new Error("Erreur lors de la sauvegarde du rendu");
+        }
+
+        console.log(`Render result ${i + 1} saved successfully`);
+        
+      } catch (renderError) {
+        console.error(`Error generating render ${i + 1}:`, renderError);
+        
+        // If we have at least one successful render, return partial success
+        if (generatedUrls.length > 0) {
+          console.log(`Returning ${generatedUrls.length} successful render(s) despite error`);
+          break;
+        }
+        
+        // Re-throw if no renders succeeded
+        throw renderError;
       }
-
-      const geminiData = await geminiResponse.json();
-      console.log(`Gemini response ${i + 1} received successfully`);
-
-      // Parse response
-      const { imageBase64, textResponse } = parseGeminiResponse(geminiData);
-      
-      if (!imageBase64) {
-        console.error("No image data found in response:", JSON.stringify(geminiData, null, 2));
-        throw new Error("Aucune image générée dans la réponse Gemini");
-      }
-
-      // Return data URL directly
-      const resultUrl = `data:image/png;base64,${imageBase64}`;
-      generatedUrls.push(resultUrl);
-      
-      console.log(`Image ${i + 1} generated successfully, saving to database`);
-
-      // Save result to database
-      const { error: insertError } = await supabase
-        .from("render_results")
-        .insert({
-          project_photo_id: photoId,
-          decor_id: decorId,
-          result_image_url: resultUrl,
-        });
-
-      if (insertError) {
-        console.error("Error saving render result:", insertError);
-        throw new Error("Erreur lors de la sauvegarde du rendu");
-      }
-
-      console.log(`Render result ${i + 1} saved successfully`);
     }
 
     return new Response(
