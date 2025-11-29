@@ -321,6 +321,30 @@ MARBRE (Carrare, Noir, etc.):
 - Motifs uniques et élégants
 
 ═══════════════════════════════════════════════════════════════════
+🚨 RÈGLES IMPÉRATIVES DE FIDÉLITÉ TEXTURE
+═══════════════════════════════════════════════════════════════════
+
+1. TEXTURE SOURCE EXCLUSIVE
+   → Le décor provient UNIQUEMENT des panneaux DICA du catalogue
+   → JAMAIS inventer, modifier ou recolorer un décor
+
+2. FIDÉLITÉ ABSOLUE DES PANNEAUX DICA
+   → Teinte exacte (pas de shift colorimétrique)
+   → Motif intact (pas de déformation)
+   → Grain précis (direction, densité, échelle)
+   → Reflets naturels selon le matériau
+
+3. ALIGNEMENT DU GRAIN OBLIGATOIRE
+   → Bois: veinage cohérent avec la direction naturelle
+   → Métal brossé: lignes de brossage correctement orientées
+   → Marbre: veines continues et réalistes
+
+4. SI IMAGE SOURCE FOURNIE
+   → Analyser l'espace AVANT de générer
+   → Respecter la structure et les proportions
+   → Appliquer les panneaux sur surfaces compatibles uniquement
+
+═══════════════════════════════════════════════════════════════════
 🚫 INTERDICTIONS ABSOLUES
 ═══════════════════════════════════════════════════════════════════
 - ❌ PAS de scène urbaine/rue si non demandé
@@ -330,6 +354,8 @@ MARBRE (Carrare, Noir, etc.):
 - ❌ PAS de qualité médiocre ou floue
 - ❌ PAS d'invention ou d'interprétation libre
 - ❌ NE CHANGE JAMAIS LE TYPE D'ESPACE (van ≠ ascenseur ≠ cuisine)
+- ❌ PAS de modification des couleurs/teintes des panneaux DICA
+- ❌ PAS de texture inventée ou extrapolée
 
 ═══════════════════════════════════════════════════════════════════
 ✅ CHECKLIST FINALE AVANT GÉNÉRATION

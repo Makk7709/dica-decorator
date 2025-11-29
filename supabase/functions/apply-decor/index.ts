@@ -173,6 +173,42 @@ serve(async (req) => {
     // Build Multi-Layer Prompt for Intelligent Surface Mapping
     // ========================================================================
     
+    // Layer 0: IMPERATIVE RULES - NEVER VIOLATE (Règles impératives)
+    const imperativeRules = `═══════════════════════════════════════════════════════════════════
+🚨 RÈGLES IMPÉRATIVES - VIOLATION = ÉCHEC IMMÉDIAT
+═══════════════════════════════════════════════════════════════════
+
+RÈGLE 1: SOURCE EXCLUSIVE
+→ Le décor provient UNIQUEMENT du fichier texture fourni (2ème image)
+→ JAMAIS inventer, modifier, recolorer ou extrapoler le décor
+
+RÈGLE 2: FIDÉLITÉ ABSOLUE DE LA TEXTURE
+→ Conserver À L'IDENTIQUE:
+  • Teinte exacte (pas de shift colorimétrique)
+  • Motif intact (pas de déformation)
+  • Grain précis (direction, densité, échelle)
+  • Luminosité native (pas d'éclaircissement/assombrissement)
+  • Reflets naturels (selon le matériau)
+  • Rugosité/brillance originale
+
+RÈGLE 3: ALIGNEMENT DU GRAIN OBLIGATOIRE
+→ Bois: veinage horizontal ou vertical selon l'original
+→ Métal brossé: lignes de brossage dans la direction correcte
+→ Marbre: veines continues, pas de rupture artificielle
+
+RÈGLE 4: REFUS SI QUALITÉ INSUFFISANTE
+→ Si la surface cible est trop sombre → REFUSER
+→ Si la perspective est trop déformée → REFUSER
+→ Si l'image est trop bruitée/floue → REFUSER
+→ En cas de refus: expliquer pourquoi et demander meilleure photo
+
+RÈGLE 5: GESTION DES CAS AMBIGUS
+→ Doute sur l'espace réel? → Rendu "zone isolée" uniquement
+→ Perspective complexe? → Proposer moodboard alternatif
+→ JAMAIS forcer un rendu faux ou approximatif
+
+═══════════════════════════════════════════════════════════════════`;
+
     // Layer 1: Global intention (MODE = PROJECT - strict photo editing)
     const globalIntention = `🔒 MODE: PROJECT (Strict photo editing)
 
@@ -188,6 +224,14 @@ CRITICAL CONSTRAINTS - Preserve from original photo:
 - NO scene changes, NO object additions, NO environmental modifications
 
 The second image provided is the EXACT texture/finish you must apply. Use this reference image to replicate the material properties precisely.
+
+TEXTURE FIDELITY CHECKLIST:
+✓ Color: EXACT match to texture file (no tint shift)
+✓ Pattern: EXACT reproduction (no distortion)
+✓ Grain: EXACT direction and scale
+✓ Brightness: NATIVE from texture (no lightening/darkening)
+✓ Reflections: AS-IS from material type
+✓ Surface finish: PRESERVED (matte stays matte, gloss stays gloss)
 
 You are retouching the client's actual photo - it must remain the SAME elevator/van/terrace with only surface finishes changed.`;
 
@@ -275,14 +319,29 @@ Do NOT alter the fundamental visual characteristics of this material.`;
 CRITICAL TARGETING: Only modify surfaces that are clearly the MAIN SUBJECT of the renovation, not background elements.
 IMPORTANT: Ignore surfaces that already include a visible different material or pattern. If in doubt, keep the original material.`;
 
-    // Assemble final prompt
-    const prompt = `${globalIntention}
+    // Assemble final prompt with imperative rules FIRST
+    const prompt = `${imperativeRules}
+
+${globalIntention}
 
 ${contextRules}
 
 ${materialRules}
 
-${qualityDirective}`;
+${qualityDirective}
+
+═══════════════════════════════════════════════════════════════════
+📋 CHECKLIST FINALE AVANT GÉNÉRATION
+═══════════════════════════════════════════════════════════════════
+✓ La texture appliquée est-elle IDENTIQUE au fichier fourni?
+✓ Les couleurs sont-elles fidèles (pas de shift)?
+✓ Le grain/motif est-il dans la bonne direction?
+✓ La photo originale est-elle préservée (cadrage, objets)?
+✓ Seules les surfaces autorisées sont-elles modifiées?
+✓ Le résultat est-il crédible pour un professionnel?
+
+Si UNE seule réponse est NON → Améliorer ou refuser le rendu.
+═══════════════════════════════════════════════════════════════════`;
 
     console.log(`Calling Gemini API (${GEMINI_CONFIG.model})...`);
 
