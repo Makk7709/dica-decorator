@@ -346,7 +346,7 @@
   }
 
   .section-subtitle {
-    @apply text-muted-foreground font-normal;
+    @apply text-foreground font-normal;
     letter-spacing: -0.01em;
   }
 }
