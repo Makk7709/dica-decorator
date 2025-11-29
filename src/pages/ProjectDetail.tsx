@@ -354,7 +354,7 @@ const ProjectDetail = () => {
 
   if (!project) {
     return (
-      <PremiumLayout>
+      <PremiumLayout backgroundImage="/images/project-photos-bg.jpg">
         <div className="flex min-h-screen items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -373,7 +373,7 @@ const ProjectDetail = () => {
   };
 
   return (
-    <PremiumLayout>
+    <PremiumLayout backgroundImage="/images/project-photos-bg.jpg">
       {/* Header Premium */}
       <header className="header-premium sticky top-0 z-50">
         <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6">
