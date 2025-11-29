@@ -1,0 +1,18 @@
+{
+  "name": "DICA Visual Studio",
+  "short_name": "DICA",
+  "description": "Application professionnelle de visualisation de décors stratifiés DICA France",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#E94E5D",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
