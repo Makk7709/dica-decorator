@@ -229,10 +229,12 @@ export const ShareLinkDialog: React.FC<ShareLinkDialogProps> = ({
     canShare: false,
   });
 
-  // Sync existing links
+  // Initialize links only once
   useEffect(() => {
-    setLinks(existingLinks);
-  }, [existingLinks]);
+    if (existingLinks.length > 0 && links.length === 0) {
+      setLinks(existingLinks);
+    }
+  }, []);
 
   const handleCreateLink = useCallback(async () => {
     setIsCreating(true);
