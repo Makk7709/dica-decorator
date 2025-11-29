@@ -9,12 +9,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon, Maximize2, X, SplitSquareHorizontal } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon, Maximize2, X, SplitSquareHorizontal, FileText, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/premium-layout";
 import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { compressImage, formatFileSize } from "@/lib/image-compression";
+import { PDFExportButton } from "@/components/ui/pdf-export-button";
+import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 
 interface Project {
   id: string;
@@ -434,6 +436,42 @@ const ProjectDetail = () => {
           
           <div className="flex items-center gap-1">
             <ThemeToggle className="text-muted-foreground" />
+            
+            {/* Share Link Dialog */}
+            {project && user && (
+              <ShareLinkDialog 
+                projectId={project.id} 
+                projectTitle={project.title}
+                userId={user.id}
+                variant="ghost"
+                showLabel={false}
+                className="text-muted-foreground hover:text-foreground h-8 px-2"
+              />
+            )}
+            
+            {/* PDF Export Button */}
+            {project && renders && Object.values(renders).flat().length > 0 && (
+              <PDFExportButton
+                projectTitle={project.title}
+                projectId={project.id}
+                renders={Object.entries(renders).flatMap(([photoId, photoRenders]) => {
+                  return photoRenders.map(render => {
+                    const decor = decors.find(d => d.id === render.decor_id);
+                    return {
+                      imageUrl: render.result_image_url,
+                      decorName: decor?.name || "",
+                      decorCode: decor?.reference_code || "",
+                    };
+                  });
+                })}
+                clientName={project.client_reference || undefined}
+                variant="ghost"
+                size="sm"
+                showLabel={false}
+                className="text-muted-foreground hover:text-foreground"
+              />
+            )}
+            
             <Button 
               variant="ghost" 
               size="sm" 
