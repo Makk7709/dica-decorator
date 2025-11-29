@@ -193,3 +193,8 @@ export {
   type TransitionClasses,
 } from './presentation.service';
 
+// Plaquette PDF Service - Phase 6.0 (Plaquette Premium + Co-branding)
+export {
+  PlaquettePdfService,
+} from './plaquette-pdf.service';
+
