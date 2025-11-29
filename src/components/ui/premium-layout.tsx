@@ -26,7 +26,7 @@ export function PremiumLayout({
           className="fixed inset-0 bg-cover bg-no-repeat z-0"
           style={{ 
             backgroundImage: `url('${backgroundImage}')`,
-            backgroundPosition: 'center 80px'
+            backgroundPosition: 'center 50px'
           }}
           aria-hidden="true"
         />
