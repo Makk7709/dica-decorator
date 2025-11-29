@@ -173,67 +173,78 @@ serve(async (req) => {
     // Build Multi-Layer Prompt for Intelligent Surface Mapping
     // ========================================================================
     
-    // Layer 0: IMPERATIVE RULES - NEVER VIOLATE (Règles impératives)
-    const imperativeRules = `═══════════════════════════════════════════════════════════════════
-🚨 RÈGLES IMPÉRATIVES - VIOLATION = ÉCHEC IMMÉDIAT
+    // Layer 0: CRITICAL TASK DEFINITION - READ THIS FIRST
+    const taskDefinition = `╔═══════════════════════════════════════════════════════════════════╗
+║ 🚨 TÂCHE: RETOUCHE PHOTO UNIQUEMENT - PAS DE GÉNÉRATION DE SCÈNE ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+⚠️ AVERTISSEMENT CRITIQUE ⚠️
+Tu es en train de faire une RETOUCHE PHOTO, pas une génération créative.
+Tu DOIS utiliser la première image fournie comme base INTÉGRALE.
+
+❌ STRICTEMENT INTERDIT:
+• Inventer une nouvelle scène
+• Générer un nouvel ascenseur/van/terrasse
+• Créer une nouvelle perspective ou angle de vue
+• Modifier l'architecture ou la géométrie de l'espace
+• Ajouter ou supprimer des objets
+• Changer l'éclairage ou l'ambiance
+• Imaginer à quoi "pourrait ressembler" la surface
+
+✅ CE QUE TU DOIS FAIRE:
+• Prendre l'IMAGE RÉELLE fournie (première image)
+• Identifier les panneaux/surfaces spécifiques visibles
+• Appliquer UNIQUEMENT la texture du décor (deuxième image)
+• Conserver TOUT LE RESTE intact
+
 ═══════════════════════════════════════════════════════════════════
+VÉRIFICATION PRÉ-TRAITEMENT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Est-ce que je vois la photo réelle du client dans l'image 1? → OUI
+2. Est-ce que je vais utiliser cette photo comme base? → OUI
+3. Est-ce que je vais conserver EXACTEMENT le cadrage? → OUI
+4. Est-ce que je vais conserver EXACTEMENT l'environnement? → OUI
+5. Est-ce que je vais juste appliquer la texture sur les surfaces? → OUI
 
-RÈGLE 1: SOURCE EXCLUSIVE
-→ Le décor provient UNIQUEMENT du fichier texture fourni (2ème image)
-→ JAMAIS inventer, modifier, recolorer ou extrapoler le décor
-
-RÈGLE 2: FIDÉLITÉ ABSOLUE DE LA TEXTURE
-→ Conserver À L'IDENTIQUE:
-  • Teinte exacte (pas de shift colorimétrique)
-  • Motif intact (pas de déformation)
-  • Grain précis (direction, densité, échelle)
-  • Luminosité native (pas d'éclaircissement/assombrissement)
-  • Reflets naturels (selon le matériau)
-  • Rugosité/brillance originale
-
-RÈGLE 3: ALIGNEMENT DU GRAIN OBLIGATOIRE
-→ Bois: veinage horizontal ou vertical selon l'original
-→ Métal brossé: lignes de brossage dans la direction correcte
-→ Marbre: veines continues, pas de rupture artificielle
-
-RÈGLE 4: REFUS SI QUALITÉ INSUFFISANTE
-→ Si la surface cible est trop sombre → REFUSER
-→ Si la perspective est trop déformée → REFUSER
-→ Si l'image est trop bruitée/floue → REFUSER
-→ En cas de refus: expliquer pourquoi et demander meilleure photo
-
-RÈGLE 5: GESTION DES CAS AMBIGUS
-→ Doute sur l'espace réel? → Rendu "zone isolée" uniquement
-→ Perspective complexe? → Proposer moodboard alternatif
-→ JAMAIS forcer un rendu faux ou approximatif
-
+Si UNE seule réponse est NON → ARRÊTE TOI ET RECOMMENCE
 ═══════════════════════════════════════════════════════════════════`;
 
-    // Layer 1: Global intention (MODE = PROJECT - strict photo editing)
-    const globalIntention = `🔒 MODE: PROJECT (Strict photo editing)
+    // Layer 1: IMPERATIVE RULES - NEVER VIOLATE (Règles impératives)
+    const imperativeRules = `═══════════════════════════════════════════════════════════════════
+🔒 MODE: PROJECT - RETOUCHE PHOTO STRICTE
+═══════════════════════════════════════════════════════════════════
 
-You MUST use the source image provided. This is a photo retouching task, NOT a scene generation task.
+RÈGLE ABSOLUE #0: UTILISATION DE LA PHOTO SOURCE
+→ La PREMIÈRE image est la photo réelle à retoucher
+→ Tu DOIS conserver cette photo comme base intégrale
+→ INTERDIT d'imaginer ou générer une autre scène
+→ INTERDIT de créer un nouvel espace à partir de zéro
 
-Apply the DICA decor "${decor.name}" (ref ${decor.reference_code}) on allowed surfaces only.
+RÈGLE #1: FIDÉLITÉ À LA PHOTO ORIGINALE
+→ Cadrage: IDENTIQUE (même angle, mêmes limites)
+→ Géométrie: IDENTIQUE (mêmes proportions, mêmes dimensions)
+→ Éclairage: IDENTIQUE (mêmes sources lumineuses, mêmes ombres)
+→ Objets: IDENTIQUES (tout doit rester en place)
+→ Architecture: IDENTIQUE (aucune modification structurelle)
 
-CRITICAL CONSTRAINTS - Preserve from original photo:
-- EXACT framing (same camera angle, same boundaries)
-- EXACT geometry (same dimensions, same proportions)
-- EXACT lighting (same light sources, same shadows, same ambiance)
-- EXACT environment (same objects, same configuration)
-- NO scene changes, NO object additions, NO environmental modifications
+RÈGLE #2: SOURCE EXCLUSIVE DU DÉCOR
+→ Le décor "${decor.name}" (réf ${decor.reference_code}) provient UNIQUEMENT de la 2ème image
+→ Appliquer cette texture UNIQUEMENT sur les surfaces autorisées
+→ JAMAIS inventer, modifier, recolorer ou extrapoler
 
-The second image provided is the EXACT texture/finish you must apply. Use this reference image to replicate the material properties precisely.
+RÈGLE #3: FIDÉLITÉ ABSOLUE DE LA TEXTURE
+→ Teinte: EXACTE (pas de shift colorimétrique)
+→ Motif: EXACT (pas de déformation)
+→ Grain: EXACT (direction, densité, échelle respectées)
+→ Luminosité: NATIVE (pas d'éclaircissement/assombrissement)
+→ Finition: PRÉSERVÉE (mat reste mat, brillant reste brillant)
 
-TEXTURE FIDELITY CHECKLIST:
-✓ Color: EXACT match to texture file (no tint shift)
-✓ Pattern: EXACT reproduction (no distortion)
-✓ Grain: EXACT direction and scale
-✓ Brightness: NATIVE from texture (no lightening/darkening)
-✓ Reflections: AS-IS from material type
-✓ Surface finish: PRESERVED (matte stays matte, gloss stays gloss)
+RÈGLE #4: ALIGNEMENT DU GRAIN
+→ Bois: veinage selon orientation des panneaux originaux
+→ Métal brossé: lignes de brossage dans la direction correcte
+→ Marbre: veines continues sans rupture artificielle
 
-You are retouching the client's actual photo - it must remain the SAME elevator/van/terrace with only surface finishes changed.`;
+═══════════════════════════════════════════════════════════════════`;
 
     // Layer 2: Business rules per context
     let contextRules = "";
@@ -307,22 +318,35 @@ Do NOT alter the fundamental visual characteristics of this material.`;
     }
 
     // Layer 3: Visual quality directive (always present)
-    const qualityDirective = `Universal rules:
-- IDENTIFY the main subject of renovation first (the prominent furniture/surface in the photo)
-- If in doubt about ANY surface → DO NOT modify it
-- WALLS and BACKGROUND are NEVER renovation targets unless explicitly in the context rules
-- Preserve perspective, shadows, joints, existing relief
-- NO global lighting transformation
-- Decor must follow surfaces (not float above them)
-- Result must be photographic and credible for a craftsperson
+    const qualityDirective = `═══════════════════════════════════════════════════════════════════
+DIRECTIVES UNIVERSELLES
+═══════════════════════════════════════════════════════════════════
 
-CRITICAL TARGETING: Only modify surfaces that are clearly the MAIN SUBJECT of the renovation, not background elements.
-IMPORTANT: Ignore surfaces that already include a visible different material or pattern. If in doubt, keep the original material.`;
+PRÉSERVATION OBLIGATOIRE:
+• Perspective de la photo originale
+• Ombres et reflets existants
+• Joints et reliefs entre panneaux
+• Éclairage et ambiance générale
 
-    // Assemble final prompt with imperative rules FIRST
-    const prompt = `${imperativeRules}
+CIBLAGE PRÉCIS:
+• Identifier les surfaces compatibles (panneaux, revêtements)
+• En cas de doute sur une surface → NE PAS la modifier
+• Ne JAMAIS modifier les surfaces techniques (boutons, lumières, etc.)
+• Le décor doit épouser la surface (pas flotter au-dessus)
 
-${globalIntention}
+RÉSULTAT ATTENDU:
+• Photo crédible pour un professionnel
+• Rendu réaliste et plausible
+• Texture appliquée de manière convaincante
+
+⚠️ RAPPEL FINAL: Tu es en train de RETOUCHER une photo existante, 
+pas de générer une nouvelle scène. La photo du client EST ta base de travail.
+═══════════════════════════════════════════════════════════════════`;
+
+    // Assemble final prompt with TASK DEFINITION FIRST
+    const prompt = `${taskDefinition}
+
+${imperativeRules}
 
 ${contextRules}
 
