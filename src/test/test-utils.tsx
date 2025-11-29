@@ -151,13 +151,15 @@ export const createMockSupabaseClient = () => ({
   },
 });
 
-// Type assertion helpers
-export const assertDefined = <T>(value: T | null | undefined, message?: string): T => {
+// Type assertion helpers with explicit generic constraint
+function assertDefined<T extends any>(value: T | null | undefined, message?: string): T {
   if (value === null || value === undefined) {
     throw new Error(message ?? 'Value is null or undefined');
   }
   return value;
-};
+}
+
+export { assertDefined };
 
 // Rate limiting test helpers
 export const simulateRateLimitedUser = () => ({
@@ -193,4 +195,3 @@ export const validExternalUrls = [
   'https://cdn.example.com/texture.png',
   'https://storage.googleapis.com/bucket/image.jpg',
 ];
-
