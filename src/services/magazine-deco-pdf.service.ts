@@ -360,9 +360,9 @@ export class MagazineDecoPdfService {
     
     // Foreground: sharp centered main image
     const imgRatio = image.width / image.height;
-    const targetWidth = (pageWidth - margins.left - margins.right) * 0.7;
+    const targetWidth = (pageWidth - margins.left - margins.right) * 0.75;
     const targetHeight = targetWidth / imgRatio;
-    const maxHeight = pageHeight * 0.6;
+    const maxHeight = pageHeight * 0.65;
     
     let finalWidth = targetWidth;
     let finalHeight = targetHeight;
@@ -372,7 +372,7 @@ export class MagazineDecoPdfService {
     }
     
     const imgX = (pageWidth - finalWidth) / 2;
-    const imgY = margins.top + 20;
+    const imgY = margins.top + 15;
     
     pdf.addImage(image.base64, 'JPEG', imgX, imgY, finalWidth, finalHeight, undefined, 'FAST');
     
@@ -384,7 +384,7 @@ export class MagazineDecoPdfService {
     pdf.line(margins.left, barY, margins.left, barY + barHeight);
     
     // Material swatches (extract from decor or use defaults)
-    const swatchY = imgY + finalHeight + 25;
+    const swatchY = imgY + finalHeight + 18;
     const swatchSize = 15;
     const swatchSpacing = 20;
     
@@ -404,7 +404,7 @@ export class MagazineDecoPdfService {
       pdf.rect(swatchX, swatchY, swatchSize, swatchSize, 'FD');
     });
     
-    const contentY = swatchY + swatchSize + 20;
+    const contentY = swatchY + swatchSize + 16;
     
     // Slugline (handwritten, with red accent, AD style)
     if (aiCaptions?.slugline) {
