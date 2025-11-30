@@ -44,76 +44,88 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY not configured");
     }
 
-    // Build editorial AI prompt
-    const systemPrompt = `Tu es un rédacteur éditorial expert pour des magazines d'architecture et de décoration haut de gamme (style AD, Architectural Digest).
+    // Context safety mapping
+    const contextLabels: Record<string, string> = {
+      ascenseur: "cabine d'ascenseur",
+      van: "van aménagé",
+      terrasse: "terrasse",
+      restaurant: "restaurant",
+      hotel: "hôtel",
+      bureau: "bureau",
+      cuisine: "cuisine",
+      autre: "espace intérieur"
+    };
 
-Tu dois générer 4 types de textes pour un projet DICA DÉCOR:
+    const contextLabel = contextLabels[projectType] || "espace";
+    const forbiddenContexts = Object.keys(contextLabels)
+      .filter(k => k !== projectType)
+      .map(k => contextLabels[k]);
 
-1. HEADLINE (5-12 mots, 2 lignes max)
-   - Style: COUVERTURE MAGAZINE, premium, impactant
-   - Ton: émotionnel fort, aspirationnel, luxueux
-   - Doit capturer l'essence du projet en quelques mots puissants
-   - Exemples: "La nouvelle ère du design intérieur", "Quand l'élégance rencontre l'innovation"
+    // Build editorial AI prompt with context safety
+    const systemPrompt = `Tu es un rédacteur éditorial expert pour le magazine AD (Architectural Digest).
+Tu dois générer 4 textes de haute qualité pour une présentation éditoriale DICA DÉCOR.
+
+CONTEXTE DU PROJET:
+- Type d'espace: ${contextLabel}
+- Décor appliqué: ${decorLabel}
+- Référence: ${decorReference}
+${decorCategory ? `- Catégorie: ${decorCategory}` : ''}
+
+CONTRAINTE CRITIQUE — SÉCURITÉ DE CONTEXTE:
+Tu dois ABSOLUMENT respecter le type d'espace "${contextLabel}".
+INTERDICTIONS STRICTES — Ne jamais mentionner:
+${forbiddenContexts.map(c => `- ${c}`).join('\n')}
+
+Si le projet est un ${contextLabel}, tous les textes doivent parler d'un ${contextLabel}.
+Aucune exception. Aucune hallucination de contexte.
+
+TEXTES À GÉNÉRER:
+
+1. **headline** (titre principal couverture):
+   - 5 à 12 mots MAXIMUM, sur 2 lignes
+   - Ton premium, éditorial, émotionnel
+   - Évoque l'excellence du design intérieur dans un ${contextLabel}
    - Format: 2 lignes maximum, chaque ligne 3-6 mots
 
-2. SUB-HEADLINE (15-25 mots)
-   - Style: mini paragraphe éditorial premium
-   - Ton: descriptif sophistiqué, contexte émotionnel et technique
-   - Complète le headline avec détails précis et impact
-   - Exemples: "Dans cet espace contemporain, les finitions DICA révèlent une sophistication inédite. Le décor métal sublime chaque surface avec une précision architecturale."
+2. **subheadline** (sous-titre éditorial):
+   - 15 à 25 mots MAXIMUM
+   - Paragraphe mini éditorial
+   - Décrit l'impact du décor dans ce ${contextLabel} spécifiquement
 
-3. SLUGLINE (3-6 mots maximum)
-   - Style: handwritten, poétique, évocateur
-   - Ton: émotionnel, sensoriel, inspirant
-   - Utilise des mots qui évoquent l'atmosphère et le ressenti
-   - Exemples: "Élégance intemporelle", "Lumière et matière", "Harmonie moderne"
+3. **slugline** (accroche courte):
+   - 3 à 6 mots MAXIMUM
+   - Style manuscrit élégant
+   - Évoque une sensation ou un style
 
-4. CAPTION (10-15 mots maximum)
-   - Style: éditorial magazine, professionnel mais accessible
-   - Ton: descriptif et valorisant, sans marketing forcé
-   - Décrit l'ambiance, le décor, et l'impact visuel
-   - Exemples: "Les panneaux DICA métallisés révèlent une sophistication subtile dans cet intérieur contemporain"
+4. **caption** (légende magazine):
+   - 10 à 15 mots MAXIMUM
+   - Ton magazine lifestyle/architecture
+   - Décrit le décor dans ce ${contextLabel} précisément
 
-CONTRAINTES STRICTES:
-- JAMAIS de ton marketing ou commercial ("achetez", "découvrez", "offre")
+RÈGLES STRICTES:
+- Respecter EXACTEMENT le type d'espace: ${contextLabel}
+- Langue: français impeccable
+- Ton: premium, élégant, émotionnel
+- Zero marketing, pure éditorial
+- Focus sur le matériau (${decorLabel}) et son intégration
 - JAMAIS de ponctuation exclamative
-- JAMAIS de répétition du type de projet dans le slugline (si c'est un van, ne pas écrire "Van moderne")
-- Les textes doivent s'adapter PARFAITEMENT au projectType fourni
-- Valoriser le décor DICA de manière organique et naturelle
 - Headline et sub-headline doivent avoir l'impact d'une vraie couverture AD Magazine
 
-Réponds en JSON avec {headline, subheadline, slugline, caption}.`;
+Retourne UNIQUEMENT un JSON valide avec ces 4 clés.`;
 
     const userPrompt = `Génère un headline, sub-headline, slugline et caption pour ce projet DICA DÉCOR:
 
 Projet: ${projectName}
-Type d'espace: ${projectType}
+Type d'espace: ${contextLabel}
 Décor appliqué: ${decorLabel}
 Référence: ${decorReference}
-${decorCategory ? `Catégorie: ${decorCategory}` : ''}
 
-Le projectType indique le contexte (van, restaurant, bureau, ascenseur, etc.).
-Tous les textes doivent refléter l'atmosphère de ce type d'espace avec le décor DICA.
+RAPPEL CRITIQUE:
+Le type d'espace est: ${contextLabel}
+Tous les textes doivent refléter UNIQUEMENT ce type d'espace avec le décor DICA.
+Ne jamais inventer ou mentionner d'autres types d'espaces.
 
-Exemples de qualité attendue:
-
-Van aménagé + décor Metal:
-- headline: "La route devient un art de vivre"
-- subheadline: "Dans ce van aménagé, les panneaux DICA métal brossé créent un espace nomade où luxe et liberté se rejoignent. Chaque détail respire la sophistication itinérante."
-- slugline: "Liberté nomade"
-- caption: "L'acier brossé DICA transforme ce van en cocon d'aventure raffiné"
-
-Restaurant + décor Marbre:
-- headline: "Quand la gastronomie rencontre le design"
-- subheadline: "Les finitions marbre DICA redéfinissent l'expérience culinaire. Dans cet espace, chaque surface raconte une histoire d'élégance intemporelle et de raffinement absolu."
-- slugline: "Élégance naturelle"
-- caption: "Le marbre DICA sublime l'expérience culinaire dans une ambiance intemporelle"
-
-Bureau + décor Unis blanc:
-- headline: "Réinventer l'espace de travail"
-- subheadline: "La finition satinée DICA transforme ce bureau en sanctuaire de créativité. Lumière, clarté et design épuré convergent pour inspirer l'excellence quotidienne."
-- slugline: "Clarté inspirante"
-- caption: "La finition satinée DICA crée un espace de travail lumineux et apaisant"`;
+Retourne un JSON avec {headline, subheadline, slugline, caption}.`;
 
     // Call Lovable AI with tool calling for structured output
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
