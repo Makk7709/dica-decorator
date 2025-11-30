@@ -139,6 +139,9 @@ const Creative = () => {
       const userMessage = messages[selectedMessageIndex - 1];
       const assistantMessage = messages[selectedMessageIndex];
       
+      // Sauvegarder l'URL de l'image si présente
+      const imageUrl = assistantMessage.imageUrl || null;
+      
       const { error } = await supabase
         .from("creative_favorites")
         .insert({
@@ -146,7 +149,7 @@ const Creative = () => {
           title: saveTitle.trim(),
           prompt: userMessage?.content || "",
           response: assistantMessage.content,
-          image_data: null
+          image_data: imageUrl
         });
 
       if (error) throw error;
@@ -873,44 +876,88 @@ const Creative = () => {
                   </p>
                 </div>
               ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {favorites.map((favorite, index) => (
                     <div 
                       key={favorite.id} 
-                      className="p-5 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-shadow animate-slide-up"
+                      className="rounded-xl border border-border/50 bg-card hover:shadow-md transition-all overflow-hidden animate-slide-up"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-foreground">{favorite.title}</h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {new Date(favorite.created_at).toLocaleDateString("fr-FR", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            })}
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteFavorite(favorite.id)}
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      {/* Image si présente */}
+                      {favorite.image_data && (
+                        <div 
+                          className="relative group cursor-pointer"
+                          onClick={() => setZoomedImage(favorite.image_data!)}
                         >
-                          <Heart className="h-4 w-4 fill-current" />
-                        </Button>
-                      </div>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-1">Demande</p>
-                          <p className="text-sm text-foreground">{favorite.prompt}</p>
+                          <img 
+                            src={favorite.image_data} 
+                            alt={favorite.title}
+                            className="w-full aspect-square object-cover"
+                          />
+                          {/* Badge favori */}
+                          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                            <Heart className="h-3 w-3 fill-current" />
+                            Favori
+                          </div>
+                          {/* Overlay au survol */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <div className="flex gap-2">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 px-3 bg-white hover:bg-white shadow-md"
+                              >
+                                <Maximize2 className="h-3.5 w-3.5 mr-1.5 text-foreground" />
+                                <span className="text-foreground text-xs">Agrandir</span>
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 px-3 bg-white hover:bg-white shadow-md"
+                                asChild
+                              >
+                                <a href={favorite.image_data} download className="flex items-center gap-1.5">
+                                  <Download className="h-3.5 w-3.5 text-foreground" />
+                                  <span className="text-foreground text-xs">Télécharger</span>
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground mb-1">Réponse</p>
-                          <p className="text-sm text-foreground whitespace-pre-wrap line-clamp-4">{favorite.response}</p>
+                      )}
+                      
+                      {/* Infos */}
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-foreground truncate">{favorite.title}</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {new Date(favorite.created_at).toLocaleDateString("fr-FR", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric"
+                              })}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteFavorite(favorite.id)}
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50 shrink-0 h-8 w-8 p-0"
+                          >
+                            <Heart className="h-4 w-4 fill-current" />
+                          </Button>
                         </div>
+                        
+                        {/* Prompt */}
+                        <p className="text-xs text-muted-foreground line-clamp-2">{favorite.prompt}</p>
+                        
+                        {/* Message si pas d'image */}
+                        {!favorite.image_data && (
+                          <div className="mt-3 p-3 rounded-lg bg-muted/50">
+                            <p className="text-xs text-muted-foreground line-clamp-3">{favorite.response}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
