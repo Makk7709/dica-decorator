@@ -198,26 +198,35 @@ export class MagazineDecoPdfService {
     // Add image (no background fill, direct full bleed)
     pdf.addImage(image.base64, 'JPEG', x, y, finalWidth, finalHeight, undefined, 'FAST');
     
-    // DICA BRANDING - Top-left (HUGE serif magazine title, AD-style)
-    pdf.setFont('Times', 'bold');
-    pdf.setFontSize(90);
-    pdf.setTextColor(0, 40, 85); // Bleu marine AD
+    // ═══════════════════════════════════════════════════════════════════
+    // DICA BRANDING - Style AD Magazine (élégant, serif fin, noir)
+    // ═══════════════════════════════════════════════════════════════════
     
-    // Shadow for DICA (stronger for larger text)
-    pdf.setTextColor(0, 0, 0);
-    for (let dx = 0.8; dx <= 2.0; dx += 0.6) {
-      for (let dy = 0.8; dy <= 2.0; dy += 0.6) {
-        pdf.text("DICA", 15 + dx, 45 + dy);
+    // Titre "DICA" - Typographie serif élégante, taille équilibrée
+    pdf.setFont('Times', 'normal'); // Serif fin, pas bold
+    pdf.setFontSize(52); // Taille proportionnée comme AD
+    
+    // Ombre subtile pour lisibilité sur image
+    pdf.setTextColor(255, 255, 255);
+    for (let dx = 0.3; dx <= 0.9; dx += 0.3) {
+      for (let dy = 0.3; dy <= 0.9; dy += 0.3) {
+        pdf.text("DICA", 15 + dx, 32 + dy);
       }
     }
-    pdf.setTextColor(0, 40, 85); // Bleu marine
-    pdf.text("DICA", 15, 45);
     
-    // Subtitle under DICA (small caps, tight)
-    pdf.setFont('Inter', 'normal');
-    pdf.setFontSize(7);
+    // Texte principal en noir pur (comme AD)
     pdf.setTextColor(0, 0, 0);
-    pdf.text("DICA DÉCOR: ARCHITECTURE, DESIGN", 15, 52);
+    pdf.text("DICA", 15, 32);
+    
+    // Sous-titre élégant (lettres espacées, style magazine)
+    pdf.setFont('Times', 'italic');
+    pdf.setFontSize(8);
+    pdf.setTextColor(0, 0, 0);
+    // Ombre légère
+    pdf.setTextColor(255, 255, 255);
+    pdf.text("ARCHITECTURAL  DIGEST", 15.3, 38.3);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text("ARCHITECTURAL  DIGEST", 15, 38);
     
     // OVERLAY TEXT ON IMAGE (style AD)
     const headline = aiCaptions?.headline || "La nouvelle décoration";
