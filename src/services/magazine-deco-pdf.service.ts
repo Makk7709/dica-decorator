@@ -143,7 +143,7 @@ export class MagazineDecoPdfService {
   }
 
   /**
-   * PAGE 1 - Cover magazine style AD
+   * PAGE 1 - AD Magazine Cover with DICA branding
    */
   private async renderCoverPage(
     pdf: jsPDF, 
@@ -176,6 +176,21 @@ export class MagazineDecoPdfService {
     }
     
     pdf.addImage(image.base64, 'JPEG', x, y, finalWidth, finalHeight, undefined, 'FAST');
+    
+    // DICA BRANDING - Top-left
+    pdf.setFont('Playfair Display', 'bold');
+    pdf.setFontSize(36);
+    pdf.setTextColor(255, 255, 255);
+    
+    // Shadow for DICA
+    pdf.setTextColor(0, 0, 0);
+    for (let dx = 0.3; dx <= 0.9; dx += 0.3) {
+      for (let dy = 0.3; dy <= 0.9; dy += 0.3) {
+        pdf.text("DICA", 25 + dx, 35 + dy);
+      }
+    }
+    pdf.setTextColor(255, 255, 255);
+    pdf.text("DICA", 25, 35);
     
     // OVERLAY TEXT ON IMAGE
     const headline = aiCaptions?.headline || "L'excellence du design";
@@ -263,7 +278,7 @@ export class MagazineDecoPdfService {
   }
 
   /**
-   * PAGE 2 - Narrative + decor focus
+   * PAGE 2 - Material Focus with opacity background
    */
   private async renderNarrativePage(
     pdf: jsPDF,
@@ -275,11 +290,33 @@ export class MagazineDecoPdfService {
   ) {
     const { margins, typography, colors } = MAGAZINE_DECO_CONFIG;
     
-    // Upper half: hero image
+    // Background: enlarged hero image with 15% opacity
+    const bgImgRatio = image.width / image.height;
+    const bgPageRatio = pageWidth / pageHeight;
+    
+    let bgWidth, bgHeight, bgX, bgY;
+    if (bgImgRatio > bgPageRatio) {
+      bgHeight = pageHeight;
+      bgWidth = bgHeight * bgImgRatio;
+      bgX = (pageWidth - bgWidth) / 2;
+      bgY = 0;
+    } else {
+      bgWidth = pageWidth;
+      bgHeight = bgWidth / bgImgRatio;
+      bgX = 0;
+      bgY = (pageHeight - bgHeight) / 2;
+    }
+    
+    // Add background with opacity (using lighter version)
+    pdf.setGState(pdf.GState({ opacity: 0.15 }));
+    pdf.addImage(image.base64, 'JPEG', bgX, bgY, bgWidth, bgHeight, undefined, 'FAST');
+    pdf.setGState(pdf.GState({ opacity: 1.0 }));
+    
+    // Foreground: sharp centered main image
     const imgRatio = image.width / image.height;
-    const targetWidth = pageWidth - margins.left - margins.right;
+    const targetWidth = (pageWidth - margins.left - margins.right) * 0.7;
     const targetHeight = targetWidth / imgRatio;
-    const maxHeight = pageHeight * 0.55;
+    const maxHeight = pageHeight * 0.6;
     
     let finalWidth = targetWidth;
     let finalHeight = targetHeight;
@@ -289,17 +326,39 @@ export class MagazineDecoPdfService {
     }
     
     const imgX = (pageWidth - finalWidth) / 2;
-    const imgY = margins.top;
+    const imgY = margins.top + 20;
     
     pdf.addImage(image.base64, 'JPEG', imgX, imgY, finalWidth, finalHeight, undefined, 'FAST');
     
-    // Content area below image
-    const contentY = imgY + finalHeight + 15;
+    // Left margin: vertical DICA red bar (70% page height)
+    const barHeight = pageHeight * 0.7;
+    const barY = (pageHeight - barHeight) / 2;
+    pdf.setDrawColor(colors.dicaRed);
+    pdf.setLineWidth(2);
+    pdf.line(margins.left, barY, margins.left, barY + barHeight);
     
-    // Vertical accent bar (left margin)
-    pdf.setDrawColor(colors.accentLine);
-    pdf.setLineWidth(1);
-    pdf.line(margins.left, contentY, margins.left, contentY + 40);
+    // Material swatches (extract from decor or use defaults)
+    const swatchY = imgY + finalHeight + 25;
+    const swatchSize = 15;
+    const swatchSpacing = 20;
+    
+    // Default material colors (can be enhanced with actual color extraction)
+    const materialColors = [
+      [44, 62, 80],   // Dark slate
+      [189, 195, 199], // Light gray
+      [149, 165, 166], // Medium gray
+      [127, 140, 141]  // Blue gray
+    ];
+    
+    materialColors.forEach((color, i) => {
+      const swatchX = margins.left + 10 + (i * swatchSpacing);
+      pdf.setFillColor(color[0], color[1], color[2]);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setLineWidth(0.2);
+      pdf.rect(swatchX, swatchY, swatchSize, swatchSize, 'FD');
+    });
+    
+    const contentY = swatchY + swatchSize + 20;
     
     // Slugline (handwritten, diagonal positioning)
     if (aiCaptions?.slugline) {
@@ -307,9 +366,8 @@ export class MagazineDecoPdfService {
       pdf.setFontSize(typography.slugline.fontSize);
       pdf.setTextColor(typography.slugline.color);
       
-      // Slightly offset from left margin
-      const slugX = margins.left + 8;
-      const slugY = contentY + 8;
+      const slugX = margins.left + 10;
+      const slugY = contentY;
       
       // Rotate text slightly for handwritten feel (-3 degrees)
       pdf.text(aiCaptions.slugline, slugX, slugY, { angle: -3 });
@@ -321,9 +379,9 @@ export class MagazineDecoPdfService {
       pdf.setFontSize(typography.caption.fontSize);
       pdf.setTextColor(typography.caption.color);
       
-      const captionX = margins.left + 8;
-      const captionY = contentY + 20;
-      const maxWidth = pageWidth - margins.left - margins.right - 10;
+      const captionX = margins.left + 10;
+      const captionY = contentY + 15;
+      const maxWidth = (pageWidth * 0.6);
       
       const lines = pdf.splitTextToSize(aiCaptions.caption, maxWidth);
       pdf.text(lines, captionX, captionY, { 
@@ -331,22 +389,22 @@ export class MagazineDecoPdfService {
       });
     }
     
-    // Decor info block bottom-left
-    const decorY = pageHeight - margins.bottom - 25;
+    // Decor info block (bottom-left)
+    const decorY = pageHeight - margins.bottom - 30;
     
     pdf.setFont('Playfair Display', 'bold');
-    pdf.setFontSize(12);
+    pdf.setFontSize(14);
     pdf.setTextColor(colors.textPrimary);
-    pdf.text(options.decor.name, margins.left + 8, decorY);
+    pdf.text(options.decor.name, margins.left + 10, decorY);
     
     pdf.setFont('Inter', 'normal');
     pdf.setFontSize(9);
     pdf.setTextColor(colors.textLight);
-    pdf.text(`Réf. ${options.decor.referenceCode}`, margins.left + 8, decorY + 4);
+    pdf.text(`Réf. ${options.decor.referenceCode}`, margins.left + 10, decorY + 5);
     
-    if (options.decor.collection || options.decor.finish) {
-      const detail = options.decor.finish || options.decor.collection || '';
-      pdf.text(detail, margins.left + 8, decorY + 8);
+    if (options.decor.category) {
+      pdf.setFontSize(8);
+      pdf.text(options.decor.category, margins.left + 10, decorY + 9);
     }
     
     // Footer
@@ -354,7 +412,7 @@ export class MagazineDecoPdfService {
   }
 
   /**
-   * PAGE 3+ - Material variations
+   * PAGE 3+ - Additional images with minimal captions
    */
   private async renderImagePage(
     pdf: jsPDF,
@@ -363,13 +421,13 @@ export class MagazineDecoPdfService {
     pageHeight: number,
     pageNumber: number
   ) {
-    const { margins } = MAGAZINE_DECO_CONFIG;
+    const { margins, colors } = MAGAZINE_DECO_CONFIG;
     
     // Centered image with generous white space
     const imgRatio = image.width / image.height;
-    const targetWidth = (pageWidth - margins.left - margins.right) * 0.85;
+    const targetWidth = (pageWidth - margins.left - margins.right) * 0.8;
     const targetHeight = targetWidth / imgRatio;
-    const maxHeight = pageHeight * 0.75;
+    const maxHeight = pageHeight * 0.7;
     
     let finalWidth = targetWidth;
     let finalHeight = targetHeight;
@@ -382,6 +440,12 @@ export class MagazineDecoPdfService {
     const y = (pageHeight - finalHeight) / 2;
     
     pdf.addImage(image.base64, 'JPEG', x, y, finalWidth, finalHeight, undefined, 'FAST');
+    
+    // Small page number bottom-left
+    pdf.setFont('Inter', 'normal');
+    pdf.setFontSize(8);
+    pdf.setTextColor(colors.textLight);
+    pdf.text(`${pageNumber}`, margins.left + 10, pageHeight - margins.bottom);
     
     // Footer
     this.renderFooter(pdf, pageWidth, pageHeight, pageNumber);
