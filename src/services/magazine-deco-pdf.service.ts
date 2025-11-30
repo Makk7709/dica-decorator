@@ -274,38 +274,7 @@ export class MagazineDecoPdfService {
     const subLines = pdf.splitTextToSize(subheadline, maxWidth - 40);
     pdf.text(subLines, headlineX + 8, subY + 4, { lineHeightFactor: 1.3 });
     
-    // RED CIRCULAR BADGE (top-right, AD style)
-    const badgeX = pageWidth - 35;
-    const badgeY = 40;
-    const badgeRadius = 22;
-    
-    // Red circle
-    pdf.setFillColor(colors.dicaRed);
-    pdf.circle(badgeX, badgeY, badgeRadius, 'F');
-    
-    // Badge text (multi-line)
-    pdf.setFont('Times', 'italic');
-    pdf.setFontSize(9);
-    pdf.setTextColor(0, 0, 0);
-    
-    const badge1 = "Numéro";
-    const badge2 = "exceptionnel";
-    const badge1Width = pdf.getTextWidth(badge1);
-    const badge2Width = pdf.getTextWidth(badge2);
-    pdf.text(badge1, badgeX - (badge1Width / 2), badgeY - 6);
-    pdf.text(badge2, badgeX - (badge2Width / 2), badgeY - 1);
-    
-    // Bottom text in bold caps
-    pdf.setFont('Inter', 'bold');
-    pdf.setFontSize(6.5);
-    const badge3 = "260 PAGES";
-    const badge4 = "D'INSPIRATION";
-    const badge3Width = pdf.getTextWidth(badge3);
-    const badge4Width = pdf.getTextWidth(badge4);
-    pdf.text(badge3, badgeX - (badge3Width / 2), badgeY + 5);
-    pdf.text(badge4, badgeX - (badge4Width / 2), badgeY + 9);
-    
-    // Date (top-right, AD style)
+    // Date (top-right, discret)
     pdf.setFont('Inter', 'normal');
     pdf.setFontSize(7);
     pdf.setTextColor(0, 0, 0);
