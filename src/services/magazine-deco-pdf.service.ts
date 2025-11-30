@@ -199,32 +199,32 @@ export class MagazineDecoPdfService {
     pdf.addImage(image.base64, 'JPEG', x, y, finalWidth, finalHeight, undefined, 'FAST');
     
     // ═══════════════════════════════════════════════════════════════════
-    // DICA BRANDING - Logo magazine élégant
+    // DICA BRANDING - Logo magazine élégant ivoire
     // ═══════════════════════════════════════════════════════════════════
     
-    // Titre "DICA" - Plus grand et impactant
+    // Titre "DICA" - Grand, ivoire avec ombre grise
     pdf.setFont('Times', 'normal');
-    pdf.setFontSize(72); // Agrandi pour plus d'impact
+    pdf.setFontSize(90); // Très grand pour impact maximum
     
-    // Ombre subtile pour lisibilité sur image
-    pdf.setTextColor(255, 255, 255);
-    for (let dx = 0.4; dx <= 1.2; dx += 0.4) {
-      for (let dy = 0.4; dy <= 1.2; dy += 0.4) {
-        pdf.text("DICA", 12 + dx, 38 + dy);
+    // Ombre grise (plusieurs couches pour profondeur)
+    pdf.setTextColor(80, 80, 80); // Gris foncé
+    for (let dx = 1.5; dx <= 3; dx += 0.5) {
+      for (let dy = 1.5; dy <= 3; dy += 0.5) {
+        pdf.text("DICA", 10 + dx, 42 + dy);
       }
     }
     
-    // Texte principal en noir pur
-    pdf.setTextColor(0, 0, 0);
-    pdf.text("DICA", 12, 38);
+    // Texte principal en IVOIRE (crème élégant)
+    pdf.setTextColor(255, 250, 240); // Ivoire / Floral White
+    pdf.text("DICA", 10, 42);
     
-    // Sous-titre élégant
+    // Sous-titre élégant en ivoire
     pdf.setFont('Times', 'italic');
-    pdf.setFontSize(9);
-    pdf.setTextColor(255, 255, 255);
-    pdf.text("DÉCOR  MAGAZINE", 12.3, 46.3);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text("DÉCOR  MAGAZINE", 12, 46);
+    pdf.setFontSize(10);
+    pdf.setTextColor(80, 80, 80); // Ombre
+    pdf.text("DÉCOR  MAGAZINE", 10.4, 52.4);
+    pdf.setTextColor(255, 250, 240); // Ivoire
+    pdf.text("DÉCOR  MAGAZINE", 10, 52);
     
     // OVERLAY TEXT ON IMAGE (style AD)
     const headline = aiCaptions?.headline || "La nouvelle décoration";
