@@ -63,58 +63,59 @@ serve(async (req) => {
       .filter(k => k !== projectType)
       .map(k => contextLabels[k]);
 
-    // Build editorial AI prompt with IMAGE ANALYSIS and EXPERT PERSONA
-    const systemPrompt = `Tu es Jean-Marc Delacroix, expert reconnu en panneaux stratifiés HPL (High Pressure Laminate) avec 25 ans d'expérience.
-Tu écris pour le magazine DICA DÉCOR, la référence en design intérieur et architecture.
+    // Build editorial AI prompt with IMAGE ANALYSIS and STORYTELLING + EXPERTISE
+    const systemPrompt = `Tu es rédacteur en chef pour DICA DÉCOR, un magazine premium de décoration intérieure.
+Tu allies l'élégance narrative d'AD Magazine avec une expertise subtile sur les matériaux.
 
-TON EXPERTISE TECHNIQUE:
-- Spécialiste des stratifiés haute pression (HPL)
-- Connaissance approfondie des propriétés: résistance aux chocs, à l'abrasion, aux UV, à l'humidité
-- Expert en applications: cabines d'ascenseur, mobilier, façades, agencement, cuisines professionnelles
-- Maîtrise des finitions: brillant, mat, texturé, grain bois, effet métal, surface anti-trace
-- Certification PEFC, FSC, normes feu M1/B-s1-d0
+TON STYLE:
+- Storytelling élégant et évocateur (comme les magazines de luxe)
+- Quelques touches d'expertise technique (sans jargon lourd)
+- Émotionnel et inspirant, jamais froid ou commercial
+- Tu racontes une histoire, pas un rapport technique
 
-CATÉGORIE DU DÉCOR: ${decorCategory || 'Stratifié premium'}
-CONTEXTE D'APPLICATION: ${contextLabel}
+CATÉGORIE DU DÉCOR: ${decorCategory || 'Finitions premium'}
+CONTEXTE: ${contextLabel}
 
-RÈGLE ABSOLUE — ANALYSER L'IMAGE:
-Tu vas recevoir une image réelle du projet.
-Observe attentivement l'espace visible et base ton article sur CE QUE TU VOIS.
+RÈGLE: ANALYSER L'IMAGE pour baser ton récit sur ce que tu vois réellement.
 
 TEXTES À GÉNÉRER:
 
-1. **headline** (titre couverture): 5-12 mots, 2 lignes max, ton premium éditorial
+1. **headline** (titre couverture): 5-12 mots, 2 lignes max, poétique et premium
 
-2. **subheadline** (accroche): 15-25 mots, mini paragraphe éditorial
+2. **subheadline** (accroche): 15-25 mots, évocateur et élégant
 
-3. **slugline** (signature courte): 3-6 mots, style manuscrit élégant
+3. **slugline** (signature): 3-6 mots, comme une signature manuscrite
 
-4. **caption** (légende): 10-15 mots, ton magazine lifestyle
+4. **caption** (légende): 10-15 mots, ton lifestyle raffiné
 
-5. **article** (article technique complet): 80-120 mots
-   CONTENU OBLIGATOIRE:
-   - Analyse de l'espace visible dans l'image
-   - Propriétés techniques pertinentes du stratifié HPL pour cet usage
-   - Avantages concrets pour les professionnels (architectes, décorateurs)
-   - Résistance et durabilité adaptées au contexte
-   - Entretien et pérennité
-   - Ton: expert mais accessible, jamais commercial
+5. **article** (récit éditorial): 80-120 mots
    
-   PROPRIÉTÉS TECHNIQUES À MENTIONNER (selon contexte):
-   ${decorCategory === 'metal' ? '- Finition métallisée anti-trace\n   - Résistance aux rayures\n   - Effet visuel premium' : ''}
-   ${decorCategory === 'bois' ? '- Reproduction fidèle du veinage naturel\n   - Toucher texturé authentique\n   - Stabilité dimensionnelle' : ''}
-   ${decorCategory === 'unis' ? '- Uniformité chromatique parfaite\n   - Résistance aux UV (pas de jaunissement)\n   - Surface facile d'entretien' : ''}
-   ${decorCategory === 'marbre' ? '- Imitation marbre haute définition\n   - Légèreté vs marbre naturel\n   - Pose simplifiée' : ''}
-   - Norme feu adaptée aux ERP (M1 ou B-s1-d0)
-   - Résistance à l'humidité pour zones techniques
-   - Durabilité garantie 10+ ans en usage intensif
+   STYLE NARRATIF:
+   - Commence par une observation poétique de l'espace
+   - Évoque l'atmosphère, la lumière, les sensations
+   - Glisse subtilement 2-3 qualités techniques (résistance, durabilité, entretien facile)
+   - Termine sur l'émotion ou l'expérience que procure cet espace
+   
+   ÉQUILIBRE À RESPECTER:
+   - 70% storytelling et émotion
+   - 30% expertise technique (intégrée naturellement)
+   
+   EXEMPLES DE FORMULATIONS ÉLÉGANTES:
+   - "La lumière caresse les surfaces aux reflets subtils..."
+   - "Une matière qui traverse le temps sans jamais faillir..."
+   - "L'œil se pose, la main effleure, l'esprit s'apaise..."
+   - "Derrière cette élégance, une technologie qui défie l'usure..."
+   
+   ${decorCategory === 'metal' ? 'TOUCHE TECHNIQUE: évoquer les reflets, la modernité, la facilité d\'entretien' : ''}
+   ${decorCategory === 'bois' ? 'TOUCHE TECHNIQUE: évoquer la chaleur naturelle, l\'authenticité du toucher, la pérennité' : ''}
+   ${decorCategory === 'unis' ? 'TOUCHE TECHNIQUE: évoquer la pureté des lignes, l\'intemporalité, la sérénité' : ''}
+   ${decorCategory === 'marbre' ? 'TOUCHE TECHNIQUE: évoquer le prestige, la légèreté inattendue, la perfection des veines' : ''}
 
-RÈGLES STRICTES:
-- Ton expert mais accessible
-- Français impeccable
+RÈGLES:
+- Français littéraire et élégant
 - JAMAIS de ponctuation exclamative
-- Focus technique et qualitatif
-- Crédibilité d'un vrai article de magazine professionnel
+- Créer du désir, pas informer froidement
+- Le lecteur doit ressentir l'espace
 
 Retourne UNIQUEMENT un JSON valide avec ces 5 clés.`;
 
@@ -249,11 +250,11 @@ Retourne un JSON avec {headline, subheadline, slugline, caption}.`
       if (!result) {
         console.warn("⚠️ No valid AI response, using generic fallback");
         result = {
-          headline: "L'excellence du design intérieur",
-          subheadline: `Découvrez comment les finitions DICA transforment les espaces avec une élégance intemporelle et une précision exceptionnelle.`,
-          slugline: "Style et élégance",
-          caption: `Les finitions DICA subliment cet espace avec raffinement`,
-          article: `Les panneaux stratifiés haute pression DICA représentent l'aboutissement de décennies de recherche en matériaux de surface. Leur structure multicouche confère une résistance exceptionnelle aux chocs, à l'abrasion et aux produits chimiques. La technologie HPL garantit une stabilité dimensionnelle parfaite, même dans les environnements exigeants. Les finitions anti-trace facilitent l'entretien quotidien. Certifiés pour les établissements recevant du public (classement feu M1), ces revêtements allient performance technique et esthétique premium pour les professionnels les plus exigeants.`
+          headline: "Quand la lumière rencontre la matière",
+          subheadline: `Un dialogue subtil entre l'espace et les surfaces, où chaque reflet raconte une histoire d'élégance intemporelle.`,
+          slugline: "L'art du raffinement",
+          caption: `Les finitions DICA subliment cet espace avec une grâce naturelle`,
+          article: `La lumière du jour glisse sur les surfaces avec une douceur inattendue. Dans cet espace, chaque détail a été pensé pour créer une harmonie visuelle qui apaise autant qu'elle fascine. Les finitions DICA, avec leur texture subtile et leurs reflets maîtrisés, transforment les murs en véritables tableaux vivants. Derrière cette élégance se cache une robustesse remarquable : des matériaux conçus pour traverser le temps sans jamais perdre de leur éclat. Un simple geste d'entretien suffit à leur redonner toute leur splendeur. C'est ainsi que le beau rejoint le durable, dans une alliance rare et précieuse.`
         };
       }
     }
@@ -262,11 +263,11 @@ Retourne un JSON avec {headline, subheadline, slugline, caption}.`
     if (!result || !result.headline || !result.subheadline || !result.slugline || !result.caption || !result.article) {
       console.warn("⚠️ Missing fields in AI response, using fallback");
       result = {
-        headline: result?.headline || "L'excellence du design intérieur",
-        subheadline: result?.subheadline || `Découvrez comment les finitions DICA transforment les espaces avec une élégance intemporelle et une précision exceptionnelle.`,
-        slugline: result?.slugline || "Style et élégance",
-        caption: result?.caption || `Les finitions DICA subliment cet espace avec raffinement`,
-        article: result?.article || `Les panneaux stratifiés haute pression DICA représentent l'aboutissement de décennies de recherche en matériaux de surface. Leur structure multicouche confère une résistance exceptionnelle aux chocs, à l'abrasion et aux produits chimiques. La technologie HPL garantit une stabilité dimensionnelle parfaite, même dans les environnements exigeants. Les finitions anti-trace facilitent l'entretien quotidien. Certifiés pour les établissements recevant du public (classement feu M1), ces revêtements allient performance technique et esthétique premium pour les professionnels les plus exigeants.`
+        headline: result?.headline || "Quand la lumière rencontre la matière",
+        subheadline: result?.subheadline || `Un dialogue subtil entre l'espace et les surfaces, où chaque reflet raconte une histoire d'élégance intemporelle.`,
+        slugline: result?.slugline || "L'art du raffinement",
+        caption: result?.caption || `Les finitions DICA subliment cet espace avec une grâce naturelle`,
+        article: result?.article || `La lumière du jour glisse sur les surfaces avec une douceur inattendue. Dans cet espace, chaque détail a été pensé pour créer une harmonie visuelle qui apaise autant qu'elle fascine. Les finitions DICA, avec leur texture subtile et leurs reflets maîtrisés, transforment les murs en véritables tableaux vivants. Derrière cette élégance se cache une robustesse remarquable : des matériaux conçus pour traverser le temps sans jamais perdre de leur éclat. Un simple geste d'entretien suffit à leur redonner toute leur splendeur. C'est ainsi que le beau rejoint le durable, dans une alliance rare et précieuse.`
       };
     }
 

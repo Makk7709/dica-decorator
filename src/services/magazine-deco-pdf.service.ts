@@ -633,9 +633,9 @@ export class MagazineDecoPdfService {
     pdf.setFontSize(9);
     pdf.setTextColor(40, 40, 40);
     
-    // Article technique complet OU fallback sur subheadline
+    // Article éditorial OU fallback storytelling
     const articleText = aiCaptions?.article || aiCaptions?.subheadline || 
-      `Les panneaux stratifiés haute pression DICA représentent l'aboutissement de décennies de recherche en matériaux de surface. Leur structure multicouche confère une résistance exceptionnelle aux chocs, à l'abrasion et aux produits chimiques. La technologie HPL garantit une stabilité dimensionnelle parfaite, même dans les environnements exigeants comme les cabines d'ascenseur ou les espaces à fort trafic. Les finitions anti-trace facilitent l'entretien quotidien. Certifiés pour les établissements recevant du public avec un classement feu M1, ces revêtements allient performance technique et esthétique premium pour les professionnels les plus exigeants.`;
+      `La lumière du jour glisse sur les surfaces avec une douceur inattendue. Dans cet espace, chaque détail a été pensé pour créer une harmonie visuelle qui apaise autant qu'elle fascine. Les finitions DICA, avec leur texture subtile et leurs reflets maîtrisés, transforment les murs en véritables tableaux vivants. Derrière cette élégance se cache une robustesse remarquable : des matériaux conçus pour traverser le temps sans jamais perdre de leur éclat. Un simple geste d'entretien suffit à leur redonner toute leur splendeur.`;
     
     const articleLines = pdf.splitTextToSize(articleText, pageWidth - 40);
     
@@ -662,7 +662,7 @@ export class MagazineDecoPdfService {
     pdf.setFont('Inter', 'bold');
     pdf.setFontSize(7);
     pdf.setTextColor(0, 0, 0);
-    const authorText = "Par Jean-Marc Delacroix, Expert Stratifiés HPL";
+    const authorText = "Par la rédaction DICA DÉCOR";
     const authorWidth = pdf.getTextWidth(authorText);
     pdf.text(authorText, (pageWidth - authorWidth) / 2, authorY);
     
