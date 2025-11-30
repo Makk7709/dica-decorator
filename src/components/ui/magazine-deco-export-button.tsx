@@ -49,8 +49,17 @@ export function MagazineDecoExportButton({
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [coverImageId, setCoverImageId] = useState<string>('');
   
   const { toast } = useToast();
+
+  // Initialize cover image to first image when dialog opens
+  const handleOpenChange = (open: boolean) => {
+    if (open && images.length > 0 && !coverImageId) {
+      setCoverImageId(images[0].id);
+    }
+    setIsOpen(open);
+  };
 
   const handleExport = async () => {
     if (images.length === 0) {
@@ -68,11 +77,16 @@ export function MagazineDecoExportButton({
     try {
       setProgress(30);
       
+      // Reorder images: cover first, then others
+      const coverImage = images.find(img => img.id === coverImageId);
+      const otherImages = images.filter(img => img.id !== coverImageId);
+      const orderedImages = coverImage ? [coverImage, ...otherImages] : images;
+      
       // Generate Magazine DECO PDF with AI captions
       const result = await magazineDecoPdfService.generateMagazinePDF({
         project,
         decor,
-        images,
+        images: orderedImages,
         generateAICaptions: true
       });
 
@@ -119,7 +133,7 @@ export function MagazineDecoExportButton({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant={variant} size={size} className={className}>
           <BookOpen className="mr-2 h-4 w-4" />
@@ -127,7 +141,7 @@ export function MagazineDecoExportButton({
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="flex items-center gap-2">
@@ -147,6 +161,50 @@ export function MagazineDecoExportButton({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Image de couverture */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-semibold">Image de couverture</h4>
+              <Badge variant="outline" className="text-xs">
+                {images.length} image{images.length > 1 ? 's' : ''} disponible{images.length > 1 ? 's' : ''}
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-3">
+              {images.map((image) => (
+                <button
+                  key={image.id}
+                  type="button"
+                  onClick={() => setCoverImageId(image.id)}
+                  className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                    coverImageId === image.id
+                      ? 'border-primary ring-2 ring-primary/20'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <img
+                    src={image.url}
+                    alt={`Option ${image.decorName}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {image.isFavorite && (
+                    <Badge 
+                      variant="secondary" 
+                      className="absolute top-2 right-2 text-xs bg-yellow-500/90 text-white border-0"
+                    >
+                      ★ Favori
+                    </Badge>
+                  )}
+                  {coverImageId === image.id && (
+                    <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
+                      <Badge className="bg-primary">Couverture</Badge>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          
           {/* Résumé du projet */}
           <div className="rounded-xl border p-4 bg-gradient-to-br from-muted/50 to-muted/20">
             <div className="space-y-3">

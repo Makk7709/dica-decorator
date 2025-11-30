@@ -581,6 +581,7 @@ const ProjectDetail = () => {
                         const photo = photos.find(p => p.id === photoId);
                         return photoRenders.map(render => {
                           const decor = decors.find(d => d.id === render.decor_id);
+                          const isFavorite = favoriteRenderIds.has(render.id);
                           return {
                             id: render.id,
                             url: render.result_image_url,
@@ -590,10 +591,17 @@ const ProjectDetail = () => {
                             decorCode: decor?.reference_code || '',
                             createdAt: new Date(render.created_at),
                             isHighResolution: true,
+                            isFavorite, // Add favorite indicator
                           };
                         });
                       })
                       .filter(img => selectedRenderIds.size === 0 || selectedRenderIds.has(img.id))
+                      .sort((a, b) => {
+                        // Sort favorites first
+                        if (a.isFavorite && !b.isFavorite) return -1;
+                        if (!a.isFavorite && b.isFavorite) return 1;
+                        return 0;
+                      })
                     }
                     variant="ghost"
                     size="sm"

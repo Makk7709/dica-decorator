@@ -198,6 +198,7 @@ export interface PlaquetteImage {
   height?: number;
   createdAt: Date;
   isHighResolution: boolean;
+  isFavorite?: boolean;
 }
 
 // ============================================================================
