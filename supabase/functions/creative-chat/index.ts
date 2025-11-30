@@ -123,18 +123,29 @@ serve(async (req) => {
       // Actions de combinaison
       "combine", "combiner", "fusionne", "fusionner", "mélange", "mélanger",
       "met", "mets", "place", "placer", "ajoute", "ajouter", "intègre", "intégrer",
+      // Actions d'aménagement
+      "aménage", "aménager", "aménagement", "décore", "décorer", "décoration",
+      "habille", "habiller", "revêt", "revêtir", "recouvre", "recouvrir",
       // Demandes directes
       "je veux", "je voudrais", "peux-tu", "peux tu", "fait", "fais", "faire",
       "transforme", "transformer", "applique", "appliquer", "utilise", "utiliser",
       // Contextes visuels
-      "scène", "scene", "ambiance", "rendu", "résultat", "avec"
+      "scène", "scene", "ambiance", "rendu", "résultat", "avec",
+      // Décors spécifiques
+      "panneau", "panneaux", "stratifié", "dica", "décor", "texture", "finition",
+      "couleur", "couleurs", "teinte", "uni", "bois", "métal", "marbre"
     ];
     
-    // Force image mode if multiple images are uploaded
+    // Force image mode if user has uploaded images
     const hasMultipleImages = allSourceImages.length > 1;
     const hasAnyImages = allSourceImages.length > 0;
     
+    // Check if message mentions decors or colors (indication user wants to apply them)
+    const mentionsDecors = /uni|bois|métal|metal|marbre|inox|chêne|olive|rouge|noir|blanc|gris|bleu|vert|shiky|3\d{3}/i.test(lastUserMessage);
+    
+    // FORCE image mode if: user uploaded image AND (mentions decors OR uses action keywords)
     const wantsImage = hasMultipleImages || 
+                       (hasAnyImages && mentionsDecors) ||
                        (hasAnyImages && imageKeywords.some(keyword => lastUserMessage.includes(keyword))) ||
                        imageKeywords.some(keyword => lastUserMessage.includes(keyword));
 
@@ -145,8 +156,10 @@ serve(async (req) => {
     console.log("=== MODE DETECTION ===");
     console.log("- Has multiple images:", hasMultipleImages);
     console.log("- Has any images:", hasAnyImages);
+    console.log("- Mentions decors:", mentionsDecors);
     console.log("- Wants image (final):", wantsImage);
     console.log("- User message:", lastUserMessage);
+    console.log("- Keywords matched:", imageKeywords.filter(kw => lastUserMessage.includes(kw)));
 
     if (wantsImage) {
       console.log("=== IMAGE GENERATION MODE ACTIVATED ===");
@@ -517,19 +530,30 @@ ${decorContext}
 TON RÔLE:
 - Conseiller sur les décors DICA disponibles
 - Suggérer des associations de matières pertinentes
-- Aider à visualiser des concepts créatifs DEMANDÉS par le client
 - Répondre précisément aux questions sur les décors
+- Aider le client à choisir les bons décors pour son projet
 
-🚫 INTERDICTIONS:
+🚫 INTERDICTIONS ABSOLUES:
 - Ne suggère PAS des ascenseurs si non demandés
 - Ne suggère PAS des mood boards si non demandés
 - N'invente PAS un contexte différent de celui demandé
 - Ne réutilise PAS d'éléments de conversations précédentes
+- ❌ NE DONNE JAMAIS les URLs ou liens vers les textures
+- ❌ NE LISTE JAMAIS les chemins des fichiers images
+- ❌ NE PARTAGE JAMAIS les liens Supabase des décors
 
 ✅ OBLIGATIONS:
 - Utilise UNIQUEMENT les décors du catalogue DICA
 - Reste dans le contexte demandé par le client
-- Propose des visualisations UNIQUEMENT si demandées
+- Si le client veut visualiser un aménagement → DIS-LUI D'UPLOADER UNE PHOTO et de décrire ce qu'il veut
+- Si le client a uploadé une photo et veut appliquer des décors → GÉNÈRE UNE IMAGE (ne donne pas les liens)
+
+💡 QUAND LE CLIENT VEUT VISUALISER:
+Si le client demande de visualiser, aménager, décorer, ou appliquer des couleurs sur une photo:
+→ Génère une IMAGE avec les décors demandés
+→ Ne donne PAS les liens vers les textures
+→ Ne liste PAS les URLs des fichiers
+→ CRÉE directement le rendu visuel
 
 Réponds en français de manière claire et professionnelle.`;
 
