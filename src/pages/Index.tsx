@@ -34,7 +34,7 @@ const Index = () => {
         <Button
           size="lg"
           onClick={() => navigate(user ? "/dashboard" : "/auth")}
-          className="h-12 px-24 text-xl font-semibold transition-all bg-white text-black hover:bg-white/90 animate-fade-in hover:scale-105 shadow-[0_0_30px_rgba(255,255,255,0.6)] hover:shadow-[0_0_50px_rgba(255,255,255,0.8)] animate-pulse w-full max-w-md"
+          className="h-14 px-24 text-xl font-semibold transition-all duration-300 bg-white text-black hover:bg-white hover:scale-105 w-full max-w-md rounded-full btn-halo-pulse"
         >
           Entrer
         </Button>

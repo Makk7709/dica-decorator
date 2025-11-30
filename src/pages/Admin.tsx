@@ -11,8 +11,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck, Building2, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
+import { ResellerBrandingSettings } from "@/components/admin/reseller-branding-settings";
+import { ResellerBranding } from "@/types/plaquette.types";
 
 type UsageContext = Database['public']['Enums']['usage_context'];
 
@@ -81,6 +83,10 @@ const Admin = () => {
     isActive: true,
   });
   const [categoryImageFile, setCategoryImageFile] = useState<File | null>(null);
+  
+  // Co-branding state
+  const [isCoBrandingEnabled, setIsCoBrandingEnabled] = useState(false);
+  const [resellerBranding, setResellerBranding] = useState<ResellerBranding | null>(null);
 
   useEffect(() => {
     if (userRole !== "admin") {
@@ -418,6 +424,14 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="decors">Décors</TabsTrigger>
             <TabsTrigger value="categories">Catégories</TabsTrigger>
+            <TabsTrigger value="cobranding">
+              <Building2 className="mr-2 h-4 w-4" />
+              Co-branding
+            </TabsTrigger>
+            <TabsTrigger value="analytics" onClick={() => navigate('/admin/analytics')}>
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Analytics
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
@@ -852,6 +866,31 @@ const Admin = () => {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          {/* Co-branding Tab */}
+          <TabsContent value="cobranding">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold">Configuration Co-branding</h2>
+              <p className="text-muted-foreground">
+                Configurez le co-branding revendeur pour les plaquettes PDF
+              </p>
+            </div>
+
+            <ResellerBrandingSettings
+              currentBranding={resellerBranding}
+              isCoBrandingEnabled={isCoBrandingEnabled}
+              onToggleCoBranding={(enabled) => {
+                setIsCoBrandingEnabled(enabled);
+                toast.success(enabled ? "Co-branding activé" : "Co-branding désactivé");
+              }}
+              onSaveBranding={async (branding) => {
+                // Simulate saving to database
+                setResellerBranding(branding);
+                // In production, save to Supabase:
+                // await supabase.from('app_settings').upsert({ key: 'reseller_branding', value: branding })
+              }}
+            />
           </TabsContent>
         </Tabs>
       </main>

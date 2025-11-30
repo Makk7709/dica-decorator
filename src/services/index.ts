@@ -117,28 +117,6 @@ export {
   type PresetName,
 } from './image-comparison.service';
 
-// PDF Export Service - Phase 3.1 (Export PDF Professionnel)
-export {
-  PDFExportService,
-  PDFExportError,
-  type PDFConfig,
-  type PDFTemplate,
-  type PageOrientation,
-  type PageSize,
-  type PDFContent,
-  type PlaquetteData,
-  type DevisData,
-  type ComparisonData,
-  type HeaderConfig,
-  type FooterConfig,
-  type BrandingConfig,
-  type RenderInfo,
-  type DevisItem,
-  type DevisTotals,
-  type ContentElement,
-  type PageContent,
-} from './pdf-export.service';
-
 // Share Link Service - Phase 3.2 (Partage par Lien)
 export {
   ShareLinkService,

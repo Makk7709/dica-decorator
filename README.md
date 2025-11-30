@@ -6,7 +6,7 @@
 
 **Application de Visualisation de Décors par Intelligence Artificielle**
 
-[![Tests](https://img.shields.io/badge/tests-209%20passed-brightgreen)](#tests)
+[![Tests](https://img.shields.io/badge/tests-634%20passed-brightgreen)](#tests)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](#technologies)
 [![React](https://img.shields.io/badge/React-18.x-61dafb)](#technologies)
 [![Supabase](https://img.shields.io/badge/Supabase-Backend-3ecf8e)](#technologies)
@@ -20,7 +20,7 @@
 
 ## 📋 À propos
 
-**DICA Decorator** est une application web professionnelle développée pour **DICA France** permettant de visualiser instantanément les décors du catalogue sur des photos réelles grâce à l'intelligence artificielle Google Gemini.
+**DICA Decorator** est une application web professionnelle développée par **KOREV AI** pour **DICA France** permettant de visualiser instantanément les décors du catalogue sur des photos réelles grâce à l'intelligence artificielle Google Gemini.
 
 ### Fonctionnalités principales
 
@@ -31,9 +31,11 @@
 - 🏷️ **Références DICA** - Annotations automatiques des codes décors sur les images
 - 🌙 **Mode Nuit** - Interface adaptable jour/nuit
 - 📷 **Multi-Images** - Combinez jusqu'à 5 images pour créer des scènes
-- 🎬 **Landing Vidéo** - Page d'accueil immersive avec vidéo plein écran
+- 🎬 **Landing Vidéo** - Page d'accueil immersive avec effet halo lumineux
 - 👥 **Gestion Utilisateurs** - Administration des quotas et comptes (admin)
 - 🔍 **Zoom Images** - Visualisation plein écran des rendus
+- 📄 **Plaquette PDF Premium** - Export PDF avec co-branding et commentaires IA
+- ⚖️ **Comparaison Avant/Après** - Visualisation côte-à-côte avec ratios préservés
 
 ### Cas d'usage supportés
 
@@ -161,25 +163,37 @@ L'application est développée avec une approche **TDD stricte**.
 npm run test:run
 
 # Résultat attendu
-✓ src/services/__tests__/image-storage.service.test.ts (29 tests)
-✓ src/services/__tests__/rate-limiter.service.test.ts (30 tests)
+✓ src/services/__tests__/gemini-image.service.test.ts (46 tests)
+✓ src/services/__tests__/analytics.service.test.ts (49 tests)
+✓ src/services/__tests__/share-link.service.test.ts (58 tests)
 ✓ src/services/__tests__/url-validator.service.test.ts (71 tests)
-✓ src/services/__tests__/auth-guard.service.test.ts (31 tests)
+✓ src/services/__tests__/image-comparison.service.test.ts (67 tests)
+✓ src/services/__tests__/presentation.service.test.ts (67 tests)
+✓ src/services/__tests__/plaquette-pdf.service.test.ts (138 tests)
 ✓ src/services/__tests__/organization.service.test.ts (27 tests)
+✓ src/services/__tests__/image-storage.service.test.ts (29 tests)
+✓ src/services/__tests__/auth-guard.service.test.ts (31 tests)
+✓ src/services/__tests__/rate-limiter.service.test.ts (30 tests)
 ✓ src/services/__tests__/quota.service.test.ts (21 tests)
 
-Test Files  6 passed (6)
-     Tests  209 passed (209)
+Test Files  12 passed (12)
+     Tests  634 passed (634)
 ```
 
 ### Services testés
 
 | Service | Tests | Couverture |
 |---------|-------|------------|
-| ImageStorageService | 29 | Migration base64 → Storage |
-| RateLimiterService | 30 | Limites quotidiennes/mensuelles |
+| PlaquettePdfService | 138 | Export PDF Premium + Co-branding |
+| PresentationService | 67 | Mode présentation plein écran |
+| ImageComparisonService | 67 | Comparaison Avant/Après |
+| ShareLinkService | 58 | Partage de projets sécurisé |
+| AnalyticsService | 49 | Dashboard analytics admin |
+| GeminiImageService | 46 | Intégration Gemini 3 Pro |
 | UrlValidatorService | 71 | Protection anti-SSRF |
 | AuthGuardService | 31 | Validation rôles & permissions |
+| RateLimiterService | 30 | Limites quotidiennes/mensuelles |
+| ImageStorageService | 29 | Migration base64 → Storage |
 | OrganizationService | 27 | Multi-tenant |
 | QuotaService | 21 | Gestion quotas revendeurs |
 
@@ -247,10 +261,10 @@ Application propriétaire développée pour **DICA France**.
 
 <div align="center">
 
-**DICA Decorator v1.2.0**
+**DICA Decorator v2.0.0**
 
 *Transformez votre catalogue en expérience visuelle*
 
-© 2024 DICA France - Développé par **KOREV AI**
+© 2025 DICA France - Développé par **KOREV AI**
 
 </div>

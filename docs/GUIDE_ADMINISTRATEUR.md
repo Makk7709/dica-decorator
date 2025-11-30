@@ -478,5 +478,5 @@ Si l'API Google AI renvoie des erreurs :
 
 ---
 
-© 2024 DICA France - Développé par KOREV AI
+© 2025 DICA France - Développé par KOREV AI
 

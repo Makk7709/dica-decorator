@@ -3,8 +3,9 @@
 ## Application de Visualisation de Décors par Intelligence Artificielle
 
 **Client :** DICA France  
-**Version :** 1.0.0  
-**Date :** Novembre 2024
+**Développeur :** KOREV AI  
+**Version :** 2.0.0  
+**Date :** Décembre 2025
 
 ---
 
@@ -138,5 +139,5 @@ Pour toute question ou assistance :
 
 ---
 
-© 2024 DICA France - Développé par **KOREV AI**
+© 2025 DICA France - Développé par **KOREV AI**
 

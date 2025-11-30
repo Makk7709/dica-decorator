@@ -15,8 +15,9 @@ import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/p
 import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { compressImage, formatFileSize } from "@/lib/image-compression";
-import { PDFExportButton } from "@/components/ui/pdf-export-button";
 import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
+import { PlaquetteExportButton } from "@/components/ui/plaquette-export-button";
+import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
 
 interface Project {
   id: string;
@@ -449,28 +450,46 @@ const ProjectDetail = () => {
               />
             )}
             
-            {/* PDF Export Button */}
+            {/* Plaquette Premium Export */}
             {project && renders && Object.values(renders).flat().length > 0 && (
-              <PDFExportButton
-                projectTitle={project.title}
-                projectId={project.id}
-                renders={Object.entries(renders).flatMap(([photoId, photoRenders]) => {
+              <PlaquetteExportButton
+                project={{
+                  id: project.id,
+                  name: project.title,
+                  type: (project.use_case as any) || 'autre',
+                  clientName: project.client_reference || undefined,
+                  createdAt: new Date(),
+                }}
+                decors={decors.map(d => ({
+                  id: d.id,
+                  name: d.name,
+                  referenceCode: d.reference_code,
+                  category: d.category,
+                }))}
+                images={Object.entries(renders).flatMap(([photoId, photoRenders]) => {
+                  const photo = photos.find(p => p.id === photoId);
                   return photoRenders.map(render => {
                     const decor = decors.find(d => d.id === render.decor_id);
                     return {
-                      imageUrl: render.result_image_url,
-                      decorName: decor?.name || "",
-                      decorCode: decor?.reference_code || "",
+                      id: render.id,
+                      url: render.result_image_url,
+                      originalUrl: photo?.original_image_url,
+                      decorId: render.decor_id || '',
+                      decorName: decor?.name || '',
+                      decorCode: decor?.reference_code || '',
+                      createdAt: new Date(render.created_at),
+                      isHighResolution: true,
                     };
                   });
                 })}
-                clientName={project.client_reference || undefined}
+                originalImage={photos[0]?.original_image_url}
+                appSettings={{ ...DEFAULT_APP_SETTINGS, resellerBrandingEnabled: false }}
                 variant="ghost"
                 size="sm"
-                showLabel={false}
                 className="text-muted-foreground hover:text-foreground"
               />
             )}
+            
             
             <Button 
               variant="ghost" 

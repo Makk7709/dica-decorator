@@ -8,8 +8,8 @@
 
 ![DICA France](../public/images/dica-logo.svg)
 
-**Développé pour DICA France**  
-Novembre 2024
+**Développé pour DICA France par KOREV AI**  
+Décembre 2025
 
 </div>
 
@@ -20,11 +20,12 @@ Novembre 2024
 | Élément | Détail |
 |---------|--------|
 | **Nom** | DICA Decorator |
-| **Version** | 1.0.0 |
+| **Version** | 2.0.0 |
 | **Client** | DICA France |
+| **Développeur** | KOREV AI |
 | **Usage** | Interne + Revendeurs |
 | **Type** | Application Web SaaS |
-| **Technologie IA** | Google Gemini 2.5 Pro |
+| **Technologie IA** | Google Gemini 3 Pro Image Preview |
 
 ---
 
@@ -91,7 +92,7 @@ Photo client → Sélection décor → IA Gemini → Rendu photoréaliste
 | Protection SSRF | Validation URLs | ✅ |
 | Rate Limiting | Quotidien + Mensuel | ✅ |
 | Validation | Serveur + Client | ✅ |
-| Tests | 209 tests TDD | ✅ |
+| Tests | 634+ tests TDD | ✅ |
 
 ### Données stockées
 
@@ -135,28 +136,29 @@ Photo client → Sélection décor → IA Gemini → Rendu photoréaliste
 - Row Level Security natif
 
 ### Intelligence Artificielle
-- **Google Gemini 2.5 Pro Image Preview** (génération images)
+- **Google Gemini 3 Pro Image Preview** (génération images)
 - **Google Gemini 2.5 Flash** (chat texte)
 - Prompts optimisés multi-couches
 
 ---
 
-## 📈 Évolutions Prévues
+## ✅ Fonctionnalités Livrées (v2.0.0)
 
-### Court terme (3 mois)
-- [ ] Export PDF plaquettes
-- [ ] Comparateur côte-à-côte
-- [ ] Mode hors-ligne partiel
+### Décembre 2025
+- [x] Export PDF Plaquette Premium avec co-branding
+- [x] Comparateur Avant/Après avec préservation ratio
+- [x] Commentaires commerciaux IA automatiques
+- [x] Mode sombre complet
+- [x] Landing page avec animation halo
+- [x] Références décors sur images
+- [x] Gestion des quotas utilisateurs
+- [x] Dashboard admin avec analytics
 
-### Moyen terme (6 mois)
+### Évolutions prévues (2026)
 - [ ] Application mobile native
+- [ ] Réalité augmentée
 - [ ] Intégration CRM/ERP
 - [ ] API partenaires
-
-### Long terme (12 mois)
-- [ ] Réalité augmentée
-- [ ] Modèle 3D interactif
-- [ ] Marketplace décors tiers
 
 ---
 
@@ -180,7 +182,7 @@ Photo client → Sélection décor → IA Gemini → Rendu photoréaliste
 
 ### Équipe projet
 - **Chef de projet** : DICA France
-- **Développement** : Équipe technique
+- **Développement** : KOREV AI
 
 ---
 
@@ -188,7 +190,7 @@ Photo client → Sélection décor → IA Gemini → Rendu photoréaliste
 
 ### Code source
 - Repository complet avec historique Git
-- Tests unitaires (209 tests, 100% pass)
+- Tests unitaires (634+ tests, 100% pass)
 - Documentation inline (JSDoc/TSDoc)
 
 ### Documentation
@@ -216,11 +218,11 @@ Photo client → Sélection décor → IA Gemini → Rendu photoréaliste
 
 ---
 
-**DICA Decorator v1.0.0**
+**DICA Decorator v2.0.0**
 
 *Transformez votre catalogue en expérience visuelle*
 
-© 2024 DICA France - Développé par KOREV AI
+© 2025 DICA France - Développé par KOREV AI
 
 ---
 

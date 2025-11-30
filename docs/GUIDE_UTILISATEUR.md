@@ -449,5 +449,5 @@ Oui, les rendus générés sont destinés à un usage professionnel dans le cadr
 
 ---
 
-© 2024 DICA France - Développé par KOREV AI
+© 2025 DICA France - Développé par KOREV AI
 

@@ -201,7 +201,7 @@ Le service valide automatiquement :
 
 ## 📝 Changelog
 
-### v1.0.0
+### v2.0.0
 - Génération PDF A4 premium
 - Support co-branding revendeurs
 - Toggle admin global

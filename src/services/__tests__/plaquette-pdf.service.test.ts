@@ -1088,5 +1088,498 @@ describe('PlaquettePdfService', () => {
       expect(width).toBeCloseTo(expectedWidth, 0);
     });
   });
+
+  // ============================================================================
+  // Tests V2: Premium Layout - Images avec ratio préservé
+  // ============================================================================
+
+  describe('Premium Layout - Image Aspect Ratio', () => {
+    it('should preserve original aspect ratio for landscape images', () => {
+      const dims = service.calculateImageDimensionsPreserved(1920, 1080, 'A4');
+      const originalRatio = 1920 / 1080;
+      const calculatedRatio = dims.width / dims.height;
+      
+      expect(calculatedRatio).toBeCloseTo(originalRatio, 2);
+    });
+
+    it('should preserve original aspect ratio for portrait images', () => {
+      const dims = service.calculateImageDimensionsPreserved(1080, 1920, 'A4');
+      const originalRatio = 1080 / 1920;
+      const calculatedRatio = dims.width / dims.height;
+      
+      expect(calculatedRatio).toBeCloseTo(originalRatio, 2);
+    });
+
+    it('should preserve original aspect ratio for square images', () => {
+      const dims = service.calculateImageDimensionsPreserved(1000, 1000, 'A4');
+      
+      expect(dims.width).toBeCloseTo(dims.height, 0);
+    });
+
+    it('should fit landscape image within page bounds', () => {
+      const dims = service.calculateImageDimensionsPreserved(3000, 2000, 'A4');
+      const pageWidth = service.getPageDimensionsPt('A4', 'portrait').width;
+      const margins = service.mmToPoints(15 * 2);
+      
+      expect(dims.width).toBeLessThanOrEqual(pageWidth - margins);
+    });
+
+    it('should fit portrait image within page height limit', () => {
+      const dims = service.calculateImageDimensionsPreserved(1080, 1920, 'A4');
+      const pageHeight = service.getPageDimensionsPt('A4', 'portrait').height;
+      const maxImageHeight = pageHeight * 0.55; // 55% of page for image
+      
+      expect(dims.height).toBeLessThanOrEqual(maxImageHeight);
+    });
+
+    it('should return centered position for image', () => {
+      const dims = service.calculateImageDimensionsPreserved(1920, 1080, 'A4');
+      
+      expect(dims.x).toBeDefined();
+      expect(dims.x).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Optimal Image Dimensions Calculation', () => {
+    it('should preserve aspect ratio when width-constrained', () => {
+      const dims = service.calculateOptimalImageDimensions(1920, 1080, 400, 600);
+      const originalRatio = 1920 / 1080;
+      const calculatedRatio = dims.width / dims.height;
+      
+      expect(calculatedRatio).toBeCloseTo(originalRatio, 2);
+    });
+
+    it('should preserve aspect ratio when height-constrained', () => {
+      const dims = service.calculateOptimalImageDimensions(1080, 1920, 600, 300);
+      const originalRatio = 1080 / 1920;
+      const calculatedRatio = dims.width / dims.height;
+      
+      expect(calculatedRatio).toBeCloseTo(originalRatio, 2);
+    });
+
+    it('should not exceed max width', () => {
+      const dims = service.calculateOptimalImageDimensions(3000, 2000, 400, 600);
+      
+      expect(dims.width).toBeLessThanOrEqual(400);
+    });
+
+    it('should not exceed max height', () => {
+      const dims = service.calculateOptimalImageDimensions(1080, 1920, 600, 300);
+      
+      expect(dims.height).toBeLessThanOrEqual(300);
+    });
+
+    it('should handle square images correctly', () => {
+      const dims = service.calculateOptimalImageDimensions(1000, 1000, 400, 400);
+      
+      expect(dims.width).toBeCloseTo(dims.height, 0);
+      expect(dims.width).toBeLessThanOrEqual(400);
+    });
+
+    it('should handle extreme landscape (panoramic) images', () => {
+      const dims = service.calculateOptimalImageDimensions(4000, 1000, 500, 400);
+      const originalRatio = 4000 / 1000;
+      const calculatedRatio = dims.width / dims.height;
+      
+      expect(calculatedRatio).toBeCloseTo(originalRatio, 2);
+      expect(dims.width).toBeLessThanOrEqual(500);
+    });
+
+    it('should handle extreme portrait (tall) images', () => {
+      const dims = service.calculateOptimalImageDimensions(1000, 4000, 500, 400);
+      const originalRatio = 1000 / 4000;
+      const calculatedRatio = dims.width / dims.height;
+      
+      expect(calculatedRatio).toBeCloseTo(originalRatio, 2);
+      expect(dims.height).toBeLessThanOrEqual(400);
+    });
+  });
+
+  // ============================================================================
+  // Tests V2: Premium Layout - Visual Design Elements
+  // ============================================================================
+
+  describe('Premium Layout - Visual Design', () => {
+    it('should generate shadow config for images', () => {
+      const shadow = service.getImageShadowConfig();
+      
+      expect(shadow.offsetX).toBeDefined();
+      expect(shadow.offsetY).toBeDefined();
+      expect(shadow.blur).toBeDefined();
+      expect(shadow.color).toBeDefined();
+    });
+
+    it('should generate border config for images', () => {
+      const border = service.getImageBorderConfig();
+      
+      expect(border.width).toBeGreaterThan(0);
+      expect(border.color).toMatch(/^#[0-9A-Fa-f]{6}$/);
+      expect(border.radius).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should generate color badge config for decor reference', () => {
+      const decor = createMockDecor({ colorFamily: 'Naturel' });
+      const badge = service.generateColorBadge(decor);
+      
+      expect(badge.text).toContain('CHN-2150');
+      expect(badge.backgroundColor).toBeDefined();
+      expect(badge.textColor).toBeDefined();
+    });
+
+    it('should generate appropriate badge color for wood category', () => {
+      const decor = createMockDecor({ category: 'Bois', colorFamily: 'Naturel' });
+      const badge = service.generateColorBadge(decor);
+      
+      // Wood colors should be warm/brown tones
+      expect(badge.backgroundColor).toBeDefined();
+    });
+
+    it('should generate appropriate badge color for metal category', () => {
+      const decor = createMockDecor({ 
+        category: 'metal', 
+        name: 'Inox Brossé',
+        referenceCode: 'INX-3020',
+        colorFamily: 'Gris'
+      });
+      const badge = service.generateColorBadge(decor);
+      
+      // Metal colors should be cool/grey tones
+      expect(badge.backgroundColor).toBeDefined();
+    });
+
+    it('should generate header banner config', () => {
+      const banner = service.getHeaderBannerConfig();
+      
+      expect(banner.height).toBeGreaterThan(0);
+      expect(banner.primaryColor).toBe('#E94E5D');
+      expect(banner.gradientEnd).toBeDefined();
+    });
+  });
+
+  // ============================================================================
+  // Tests V2: Comparaison Avant/Après
+  // ============================================================================
+
+  describe('Before/After Comparison', () => {
+    it('should generate comparison page when enabled', () => {
+      const options = createMockGenerationOptions({
+        includeComparison: true,
+        originalImage: 'https://example.com/original.jpg',
+      });
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.comparisonPage).toBeDefined();
+      expect(content.comparisonPage?.enabled).toBe(true);
+    });
+
+    it('should not generate comparison page when disabled', () => {
+      const options = createMockGenerationOptions({
+        includeComparison: false,
+      });
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.comparisonPage?.enabled).toBe(false);
+    });
+
+    it('should include original image in comparison', () => {
+      const options = createMockGenerationOptions({
+        includeComparison: true,
+        originalImage: 'https://example.com/original.jpg',
+      });
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.comparisonPage?.originalImage).toBe('https://example.com/original.jpg');
+    });
+
+    it('should include rendered image in comparison', () => {
+      const options = createMockGenerationOptions({
+        includeComparison: true,
+        originalImage: 'https://example.com/original.jpg',
+      });
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.comparisonPage?.renderedImage).toBeDefined();
+    });
+
+    it('should generate side-by-side layout dimensions', () => {
+      const layout = service.calculateComparisonLayout('A4', 'side-by-side');
+      
+      expect(layout.leftImage.width).toBeGreaterThan(0);
+      expect(layout.rightImage.width).toBeGreaterThan(0);
+      expect(layout.leftImage.width).toBeCloseTo(layout.rightImage.width, 0);
+    });
+
+    it('should include AVANT/APRÈS labels', () => {
+      const layout = service.calculateComparisonLayout('A4', 'side-by-side');
+      
+      expect(layout.labels.before).toBe('AVANT');
+      expect(layout.labels.after).toBe('APRÈS');
+    });
+
+    it('should include decor reference on APRÈS side', () => {
+      const options = createMockGenerationOptions({
+        includeComparison: true,
+        originalImage: 'https://example.com/original.jpg',
+      });
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.comparisonPage?.decorReference).toBeDefined();
+      expect(content.comparisonPage?.decorReference).toContain('CHN-2150');
+    });
+
+    it('should position comparison section appropriately', () => {
+      const layout = service.calculateComparisonLayout('A4', 'side-by-side');
+      
+      expect(layout.y).toBeGreaterThan(100); // Below header
+      expect(layout.gap).toBeGreaterThan(0); // Gap between images
+    });
+  });
+
+  // ============================================================================
+  // Tests V2: Commentaire Commercial IA
+  // ============================================================================
+
+  describe('AI Commercial Commentary', () => {
+    it('should generate commercial comment for decor', () => {
+      const decor = createMockDecor();
+      const project = createMockProject();
+      
+      const comment = service.generateCommercialComment(decor, project);
+      
+      expect(comment).toBeDefined();
+      expect(comment.length).toBeGreaterThan(50);
+    });
+
+    it('should mention decor name in comment', () => {
+      const decor = createMockDecor({ name: 'Chêne Naturel' });
+      const project = createMockProject();
+      
+      const comment = service.generateCommercialComment(decor, project);
+      
+      expect(comment.toLowerCase()).toContain('chêne');
+    });
+
+    it('should adapt comment to project type ascenseur', () => {
+      const decor = createMockDecor();
+      const project = createMockProject({ type: 'ascenseur' });
+      
+      const comment = service.generateCommercialComment(decor, project);
+      
+      // Should mention elevator-related terms
+      expect(comment.toLowerCase()).toMatch(/ascenseur|cabine|espace|vertical/i);
+    });
+
+    it('should adapt comment to project type van', () => {
+      const decor = createMockDecor();
+      const project = createMockProject({ type: 'van' });
+      
+      const comment = service.generateCommercialComment(decor, project);
+      
+      // Should mention van-related terms
+      expect(comment.toLowerCase()).toMatch(/van|véhicule|aménagement|mobile/i);
+    });
+
+    it('should adapt comment to project type cuisine', () => {
+      const decor = createMockDecor();
+      const project = createMockProject({ type: 'cuisine' });
+      
+      const comment = service.generateCommercialComment(decor, project);
+      
+      // Should mention kitchen-related terms
+      expect(comment.toLowerCase()).toMatch(/cuisine|culinaire|gastronomie|espace/i);
+    });
+
+    it('should highlight wood decor warmth', () => {
+      const decor = createMockDecor({ category: 'Bois', name: 'Chêne Naturel' });
+      const project = createMockProject();
+      
+      const comment = service.generateCommercialComment(decor, project);
+      
+      expect(comment.toLowerCase()).toMatch(/chaleur|naturel|authentique|bois/i);
+    });
+
+    it('should highlight metal decor modernity', () => {
+      const decor = createMockDecor({ 
+        category: 'metal', 
+        name: 'Inox Brossé',
+        referenceCode: 'INX-3020'
+      });
+      const project = createMockProject();
+      
+      const comment = service.generateCommercialComment(decor, project);
+      
+      expect(comment.toLowerCase()).toMatch(/moderne|contemporain|élégant|inox|métal/i);
+    });
+
+    it('should include comment in generated content', () => {
+      const options = createMockGenerationOptions();
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.imageBlocks[0].commercialComment).toBeDefined();
+      expect(content.imageBlocks[0].commercialComment?.length).toBeGreaterThan(0);
+    });
+
+    it('should generate different comments for different decors', () => {
+      const woodDecor = createMockDecor({ category: 'Bois', name: 'Chêne' });
+      const metalDecor = createMockDecor({ category: 'metal', name: 'Inox', referenceCode: 'INX-001' });
+      const project = createMockProject();
+      
+      const woodComment = service.generateCommercialComment(woodDecor, project);
+      const metalComment = service.generateCommercialComment(metalDecor, project);
+      
+      expect(woodComment).not.toBe(metalComment);
+    });
+  });
+
+  // ============================================================================
+  // Tests V2: Page Structure Premium
+  // ============================================================================
+
+  describe('Premium Page Structure', () => {
+    it('should generate cover page for multi-image projects', () => {
+      const options = createMockGenerationOptions({
+        images: [
+          createMockImage({ id: 'img-1' }),
+          createMockImage({ id: 'img-2' }),
+        ],
+      });
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.coverPage).toBeDefined();
+      expect(content.coverPage?.title).toBe(options.project.name);
+    });
+
+    it('should include project summary on cover page', () => {
+      const options = createMockGenerationOptions({
+        images: [
+          createMockImage({ id: 'img-1' }),
+          createMockImage({ id: 'img-2' }),
+        ],
+      });
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.coverPage?.projectType).toBeDefined();
+      expect(content.coverPage?.decorCount).toBe(1);
+      expect(content.coverPage?.imageCount).toBe(2);
+    });
+
+    it('should calculate correct total pages with comparison', () => {
+      const options = createMockGenerationOptions({
+        images: [createMockImage()],
+        includeComparison: true,
+        originalImage: 'https://example.com/original.jpg',
+      });
+      
+      const content = service.generateContentV2(options);
+      
+      // Cover (optional) + 1 image page + 1 comparison page
+      expect(content.totalPages).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should include premium footer on all pages', () => {
+      const options = createMockGenerationOptions();
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.footer.premiumStyle).toBe(true);
+      expect(content.footer.showDicaLogo).toBe(true);
+    });
+
+    it('should include decor texture swatch in image block', () => {
+      const options = createMockGenerationOptions();
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.imageBlocks[0].showTextureSwatch).toBe(true);
+    });
+  });
+
+  // ============================================================================
+  // Tests V2: Content Generation V2
+  // ============================================================================
+
+  describe('Content Generation V2', () => {
+    it('should generate V2 content structure', () => {
+      const options = createMockGenerationOptions();
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.version).toBe(2);
+      expect(content.header).toBeDefined();
+      expect(content.footer).toBeDefined();
+      expect(content.imageBlocks).toBeDefined();
+    });
+
+    it('should include enhanced image blocks', () => {
+      const options = createMockGenerationOptions();
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.imageBlocks[0].decorName).toBeDefined();
+      expect(content.imageBlocks[0].decorCode).toBeDefined();
+      expect(content.imageBlocks[0].colorBadge).toBeDefined();
+      expect(content.imageBlocks[0].commercialComment).toBeDefined();
+    });
+
+    it('should include premium header with banner', () => {
+      const options = createMockGenerationOptions();
+      
+      const content = service.generateContentV2(options);
+      
+      expect(content.header.hasBanner).toBe(true);
+      expect(content.header.bannerConfig).toBeDefined();
+    });
+
+    it('should set premium mode in metadata', async () => {
+      const options = createMockGenerationOptions();
+      
+      // Mock fetch pour retourner un blob
+      global.fetch = vi.fn().mockResolvedValue({
+        blob: () => Promise.resolve(new Blob(['fake-image'], { type: 'image/jpeg' })),
+      });
+      
+      // Mock FileReader
+      const mockFileReader = {
+        readAsDataURL: vi.fn(),
+        onloadend: null as ((this: FileReader, ev: ProgressEvent<FileReader>) => any) | null,
+        result: 'data:image/jpeg;base64,/9j/fake',
+      };
+      vi.spyOn(global, 'FileReader').mockImplementation(() => {
+        setTimeout(() => {
+          if (mockFileReader.onloadend) {
+            mockFileReader.onloadend.call(mockFileReader as any, {} as ProgressEvent<FileReader>);
+          }
+        }, 0);
+        return mockFileReader as any;
+      });
+
+      // Mock Image pour les dimensions
+      const mockImage = {
+        onload: null as (() => void) | null,
+        onerror: null as (() => void) | null,
+        src: '',
+        naturalWidth: 1920,
+        naturalHeight: 1080,
+      };
+      vi.spyOn(global, 'Image').mockImplementation(() => {
+        setTimeout(() => {
+          if (mockImage.onload) mockImage.onload();
+        }, 0);
+        return mockImage as any;
+      });
+      
+      const result = await service.generatePlaquettePremium(options);
+      
+      expect(result.metadata?.premiumLayout).toBe(true);
+    }, 15000);
+  });
 });
 

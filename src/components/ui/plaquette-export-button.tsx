@@ -1,12 +1,21 @@
 /**
- * @fileoverview Composant d'export de plaquette PDF DICA DÉCOR
- * avec support co-branding revendeurs
+ * @fileoverview Composant d'export de plaquette PDF DICA DÉCOR Premium
+ * avec support co-branding revendeurs et design premium v2
  * 
  * @author KOREV AI pour DICA France
+ * @version 2.0.0
  */
 
 import { useState } from 'react';
-import { FileText, Download, Loader2, Settings2, Building2 } from 'lucide-react';
+import { 
+  FileText, 
+  Download, 
+  Loader2, 
+  Building2, 
+  Sparkles,
+  Image,
+  MessageSquareQuote
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,6 +29,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { PlaquettePdfService } from '@/services/plaquette-pdf.service';
 import {
@@ -88,6 +98,7 @@ export function PlaquetteExportButton({
   const [useCoBranding, setUseCoBranding] = useState(
     appSettingsOverrides?.resellerBrandingEnabled ?? false
   );
+  const [includeAIComment, setIncludeAIComment] = useState(true);
   
   const { toast } = useToast();
   const service = new PlaquettePdfService();
@@ -134,7 +145,8 @@ export function PlaquetteExportButton({
         dicaContact: DEFAULT_DICA_CONTACT,
       };
 
-      const result = await service.generatePlaquette(options, handleProgressUpdate);
+      // Utiliser la version Premium pour un rendu de haute qualité
+      const result = await service.generatePlaquettePremium(options, handleProgressUpdate);
 
       if (result.success && result.blob && result.filename) {
         // Télécharger le PDF
@@ -148,7 +160,7 @@ export function PlaquetteExportButton({
         URL.revokeObjectURL(url);
 
         toast({
-          title: 'Plaquette exportée',
+          title: '✨ Plaquette Premium exportée',
           description: `${result.filename} (${result.pageCount} page${result.pageCount! > 1 ? 's' : ''})`,
         });
 
@@ -176,40 +188,75 @@ export function PlaquetteExportButton({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant={variant} size={size} className={className}>
-          <FileText className="mr-2 h-4 w-4" />
+          <Sparkles className="mr-2 h-4 w-4" />
           Plaquette PDF
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Exporter la plaquette
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
+                <FileText className="h-5 w-5 text-primary" />
+              </div>
+              Exporter la plaquette
+              <Badge variant="secondary" className="ml-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-700 border-amber-500/30">
+                <Sparkles className="h-3 w-3 mr-1" />
+                Premium
+              </Badge>
+            </div>
           </DialogTitle>
           <DialogDescription>
-            Générez une plaquette PDF professionnelle pour ce projet.
+            Générez une plaquette PDF professionnelle avec mise en page intelligente et commentaire commercial IA.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Résumé du projet */}
-          <div className="rounded-lg border p-4 bg-muted/30">
-            <h4 className="font-medium mb-2">{project.name}</h4>
-            <p className="text-sm text-muted-foreground">
-              {images.length} image{images.length > 1 ? 's' : ''} • {decors.length} décor{decors.length > 1 ? 's' : ''}
-            </p>
+          <div className="rounded-xl border p-4 bg-gradient-to-br from-muted/50 to-muted/20">
+            <div className="flex items-start justify-between">
+              <div>
+                <h4 className="font-semibold text-base">{project.name}</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {images.length} image{images.length > 1 ? 's' : ''} • {decors.length} décor{decors.length > 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="p-2 rounded-lg bg-background border">
+                <Image className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
+            
+            {/* Caractéristiques Premium */}
+            <div className="mt-4 pt-4 border-t border-border/50">
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="px-2 py-1 rounded-full bg-primary/10 text-primary">
+                  ✓ Images HD non compressées
+                </span>
+                <span className="px-2 py-1 rounded-full bg-primary/10 text-primary">
+                  ✓ Badges couleurs
+                </span>
+                <span className="px-2 py-1 rounded-full bg-primary/10 text-primary">
+                  ✓ Design premium
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Options */}
           <div className="space-y-4">
+            <h5 className="text-sm font-medium text-muted-foreground">Options de génération</h5>
+            
             {/* Comparaison avant/après */}
             {originalImage && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors">
                 <div className="space-y-0.5">
-                  <Label htmlFor="comparison">Comparaison avant/après</Label>
+                  <Label htmlFor="comparison" className="flex items-center gap-2 cursor-pointer">
+                    <Image className="h-4 w-4 text-blue-500" />
+                    Comparaison Avant / Après
+                  </Label>
                   <p className="text-xs text-muted-foreground">
-                    Ajouter une page de comparaison
+                    Page dédiée avec effet "wahou"
                   </p>
                 </div>
                 <Switch
@@ -220,12 +267,30 @@ export function PlaquetteExportButton({
               </div>
             )}
 
+            {/* Commentaire commercial IA */}
+            <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+              <div className="space-y-0.5">
+                <Label htmlFor="aicomment" className="flex items-center gap-2 cursor-pointer">
+                  <MessageSquareQuote className="h-4 w-4 text-purple-500" />
+                  Commentaire commercial IA
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Texte commercial adapté au décor et projet
+                </p>
+              </div>
+              <Switch
+                id="aicomment"
+                checked={includeAIComment}
+                onCheckedChange={setIncludeAIComment}
+              />
+            </div>
+
             {/* Co-branding revendeur */}
             {canUseCoBranding && (
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30 transition-colors">
                 <div className="space-y-0.5">
-                  <Label htmlFor="cobranding" className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
+                  <Label htmlFor="cobranding" className="flex items-center gap-2 cursor-pointer">
+                    <Building2 className="h-4 w-4 text-green-500" />
                     Co-branding revendeur
                   </Label>
                   <p className="text-xs text-muted-foreground">
@@ -243,20 +308,25 @@ export function PlaquetteExportButton({
 
           {/* Progression */}
           {isExporting && (
-            <div className="space-y-2">
+            <div className="space-y-3 p-4 rounded-lg bg-muted/30">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{progressMessage}</span>
+                <span className="font-medium">{progress}%</span>
+              </div>
               <Progress value={progress} className="h-2" />
-              <p className="text-xs text-center text-muted-foreground">
-                {progressMessage}
-              </p>
             </div>
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isExporting}>
             Annuler
           </Button>
-          <Button onClick={handleExport} disabled={isExporting || images.length === 0}>
+          <Button 
+            onClick={handleExport} 
+            disabled={isExporting || images.length === 0}
+            className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          >
             {isExporting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -265,7 +335,7 @@ export function PlaquetteExportButton({
             ) : (
               <>
                 <Download className="mr-2 h-4 w-4" />
-                Télécharger PDF
+                Télécharger PDF Premium
               </>
             )}
           </Button>

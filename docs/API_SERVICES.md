@@ -687,5 +687,5 @@ npm run test:coverage
 
 ---
 
-© 2024 KOREV AI pour DICA France
+© 2025 KOREV AI pour DICA France
 

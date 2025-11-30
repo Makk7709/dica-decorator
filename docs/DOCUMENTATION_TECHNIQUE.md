@@ -779,5 +779,5 @@ CREATE INDEX idx_render_usage_month ON render_usage(month);
 
 ---
 
-© 2024 DICA France - Développé par KOREV AI
+© 2025 DICA France - Développé par KOREV AI
 
