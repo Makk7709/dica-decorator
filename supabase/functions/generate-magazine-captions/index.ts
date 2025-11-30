@@ -12,6 +12,7 @@ interface CaptionRequest {
   decorLabel: string;
   decorReference: string;
   decorCategory?: string;
+  imageUrl?: string; // Image to analyze for context-aware captions
 }
 
 interface CaptionResponse {
@@ -29,10 +30,10 @@ serve(async (req) => {
   try {
     console.log("🎨 Magazine Captions - Starting generation");
 
-    const { projectName, projectType, decorLabel, decorReference, decorCategory } = await req.json() as CaptionRequest;
+    const { projectName, projectType, decorLabel, decorReference, decorCategory, imageUrl } = await req.json() as CaptionRequest;
 
     // Validate inputs
-    if (!projectName || !projectType || !decorLabel || !decorReference) {
+    if (!projectName || !projectType) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -61,55 +62,60 @@ serve(async (req) => {
       .filter(k => k !== projectType)
       .map(k => contextLabels[k]);
 
-    // Build editorial AI prompt with context safety
+    // Build editorial AI prompt with IMAGE ANALYSIS
     const systemPrompt = `Tu es un rédacteur éditorial expert pour le magazine AD (Architectural Digest).
-Tu dois générer 4 textes de haute qualité pour une présentation éditoriale DICA DÉCOR.
+Tu vas ANALYSER UNE IMAGE RÉELLE pour générer 4 textes de haute qualité pour une présentation éditoriale DICA DÉCOR.
 
-CONTEXTE DU PROJET:
-- Type d'espace: ${contextLabel}
+RÈGLE ABSOLUE — ANALYSER L'IMAGE:
+Tu vas recevoir une image réelle du projet.
+Tu DOIS observer attentivement ce qui est visible dans l'image avant d'écrire quoi que ce soit.
+INTERDIT d'inventer ou supposer un contexte qui n'est pas dans l'image.
+
+CONTEXTE SUGGÉRÉ (à vérifier dans l'image):
+- Type d'espace suggéré: ${contextLabel}
 - Catégorie de finitions: ${decorCategory || 'Finitions premium'}
 
-CONTRAINTE CRITIQUE — SÉCURITÉ DE CONTEXTE:
-Tu dois ABSOLUMENT respecter le type d'espace "${contextLabel}".
-INTERDICTIONS STRICTES — Ne jamais mentionner:
-${forbiddenContexts.map(c => `- ${c}`).join('\n')}
-
-Si le projet est un ${contextLabel}, tous les textes doivent parler d'un ${contextLabel}.
-Aucune exception. Aucune hallucination de contexte.
+IMPORTANT — ANALYSE VISUELLE PRIORITAIRE:
+1. Regarde l'image et identifie CE QUI EST VRAIMENT VISIBLE
+2. Si l'image montre une terrasse de café → parle de terrasse
+3. Si l'image montre un bureau → parle de bureau
+4. Si l'image montre une cabine d'ascenseur → parle d'ascenseur
+5. NE JAMAIS mentionner un espace qui n'est pas dans l'image
 
 IMPORTANT — TEXTES GÉNÉRIQUES:
-NE PAS mentionner de référence ou nom de décor spécifique (pas de "8099", "3012", etc.).
-Les textes doivent être universels pour toute la gamme de finitions DICA dans ce type d'espace.
+NE PAS mentionner de référence ou nom de décor spécifique (pas de "8099", "3012", "marbre", "laiton", etc.).
+Les textes doivent être universels pour toute la gamme de finitions DICA.
 
 TEXTES À GÉNÉRER:
 
 1. **headline** (titre principal couverture):
    - 5 à 12 mots MAXIMUM, sur 2 lignes
    - Ton premium, éditorial, émotionnel
-   - Évoque l'excellence du design intérieur dans un ${contextLabel}
-   - Parle de l'élégance des finitions DICA sans mentionner de décor précis
+   - Évoque l'excellence du design intérieur BASÉ SUR L'IMAGE
+   - Parle de l'élégance des finitions DICA sans mentionner de matériau précis
    - Format: 2 lignes maximum, chaque ligne 3-6 mots
 
 2. **subheadline** (sous-titre éditorial):
    - 15 à 25 mots MAXIMUM
    - Paragraphe mini éditorial
-   - Décrit comment les finitions DICA transforment un ${contextLabel}
+   - Décrit comment les finitions DICA transforment l'espace VISIBLE DANS L'IMAGE
    - Reste générique, applicable à plusieurs finitions
 
 3. **slugline** (accroche courte):
    - 3 à 6 mots MAXIMUM
    - Style manuscrit élégant
-   - Évoque une sensation ou un style
-   - Générique (ex: "Élégance intemporelle", "Luxe raffiné")
+   - Évoque une sensation ou un style générique
+   - Exemple: "Élégance intemporelle", "Luxe raffiné"
 
 4. **caption** (légende magazine):
    - 10 à 15 mots MAXIMUM
    - Ton magazine lifestyle/architecture
-   - Décrit les finitions DICA dans ce ${contextLabel} de manière générale
-   - Pas de référence spécifique
+   - Décrit les finitions DICA dans l'espace VU DANS L'IMAGE
+   - Pas de référence spécifique de matériau
 
 RÈGLES STRICTES:
-- Respecter EXACTEMENT le type d'espace: ${contextLabel}
+- ANALYSER L'IMAGE avant tout
+- Décrire CE QUI EST VISIBLE, pas ce qui est suggéré
 - Langue: français impeccable
 - Ton: premium, élégant, émotionnel
 - Zero marketing, pure éditorial
@@ -119,21 +125,33 @@ RÈGLES STRICTES:
 
 Retourne UNIQUEMENT un JSON valide avec ces 4 clés.`;
 
-    const userPrompt = `Génère un headline, sub-headline, slugline et caption pour ce projet DICA DÉCOR:
+    // Build user message with IMAGE
+    const userMessageContent: any[] = [
+      {
+        type: "text",
+        text: `Analyse cette image réelle et génère des textes éditoriaux pour le magazine DICA DÉCOR.
 
 Projet: ${projectName}
-Type d'espace: ${contextLabel}
+Type suggéré: ${contextLabel}
 Catégorie: ${decorCategory || 'Finitions premium'}
 
-RAPPEL CRITIQUE:
-Le type d'espace est: ${contextLabel}
-Tous les textes doivent parler de finitions DICA dans ce type d'espace UNIQUEMENT.
-Les textes doivent être génériques et élégants, sans mentionner de référence spécifique.
-Ne jamais inventer ou mentionner d'autres types d'espaces.
+CRITIQUE — ANALYSE L'IMAGE:
+Regarde attentivement l'image. Identifie l'espace réel visible (terrasse, bureau, ascenseur, etc.).
+Base tes textes UNIQUEMENT sur ce que tu vois, pas sur le "type suggéré".
 
-Retourne un JSON avec {headline, subheadline, slugline, caption}.`;
+Retourne un JSON avec {headline, subheadline, slugline, caption}.`
+      }
+    ];
 
-    // Call Lovable AI with tool calling for structured output
+    // Add image if provided
+    if (imageUrl) {
+      userMessageContent.push({
+        type: "image_url",
+        image_url: { url: imageUrl }
+      });
+    }
+
+    // Call Lovable AI with tool calling for structured output (with image analysis)
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -141,10 +159,10 @@ Retourne un JSON avec {headline, subheadline, slugline, caption}.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: imageUrl ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash", // Pro for vision
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
+          { role: "user", content: userMessageContent }
         ],
         tools: [
           {
