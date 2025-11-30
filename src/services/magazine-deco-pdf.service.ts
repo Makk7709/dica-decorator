@@ -530,7 +530,7 @@ export class MagazineDecoPdfService {
     // COMPOSITION MULTI-IMAGES (AVANT / APRÈS côte à côte)
     // ═══════════════════════════════════════════════════════════════════
     const compositionY = 25;
-    const compositionHeight = pageHeight * 0.72; // Agrandi pour mieux occuper la page
+    const compositionHeight = pageHeight * 0.68; // Équilibre entre taille d'images et espace pour texte
     const gap = 6; // Espace entre les images
     
     if (originalImage) {
@@ -607,7 +607,7 @@ export class MagazineDecoPdfService {
     // ═══════════════════════════════════════════════════════════════════
     // SECTION TEXTE ÉDITORIALE
     // ═══════════════════════════════════════════════════════════════════
-    const textSectionY = compositionY + compositionHeight + 10; // Réduit l'espace
+    const textSectionY = compositionY + compositionHeight + 8; // Espace minimal
     
     // Label "DÉCORATION" centré avec lignes
     pdf.setFont('Inter', 'normal');
@@ -626,7 +626,7 @@ export class MagazineDecoPdfService {
     // ─────────────────────────────────────────────────────────────────────
     // TITRE (grande typographie serif italique)
     // ─────────────────────────────────────────────────────────────────────
-    const titleY = textSectionY + 10; // Réduit l'espacement
+    const titleY = textSectionY + 8; // Espace minimal
     pdf.setFont('Times', 'italic');
     pdf.setFontSize(20); // Légèrement réduit pour mieux proportionner
     pdf.setTextColor(0, 0, 0);
@@ -644,7 +644,7 @@ export class MagazineDecoPdfService {
     // ─────────────────────────────────────────────────────────────────────
     // ARTICLE TECHNIQUE (par l'expert stratifiés)
     // ─────────────────────────────────────────────────────────────────────
-    const articleY = currentTitleY + 6; // Réduit l'espace
+    const articleY = currentTitleY + 4; // Espace minimal
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(9);
     pdf.setTextColor(40, 40, 40);
