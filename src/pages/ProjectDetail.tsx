@@ -561,7 +561,7 @@ const ProjectDetail = () => {
                 />
                 
                 {/* Magazine DECO Export */}
-                {Object.values(renders).flat().length > 0 && decors.length > 0 && (
+                {(Object.values(renders).flat().length > 0 || creativeImports.length > 0) && decors.length > 0 && (
                   <MagazineDecoExportButton
                     project={{
                       id: project.id,
@@ -576,25 +576,40 @@ const ProjectDetail = () => {
                       referenceCode: d.reference_code,
                       category: d.category,
                     }))[0]}
-                    images={Object.entries(renders)
-                      .flatMap(([photoId, photoRenders]) => {
-                        const photo = photos.find(p => p.id === photoId);
-                        return photoRenders.map(render => {
-                          const decor = decors.find(d => d.id === render.decor_id);
-                          const isFavorite = favoriteRenderIds.has(render.id);
-                          return {
-                            id: render.id,
-                            url: render.result_image_url,
-                            originalUrl: photo?.original_image_url,
-                            decorId: render.decor_id || '',
-                            decorName: decor?.name || '',
-                            decorCode: decor?.reference_code || '',
-                            createdAt: new Date(render.created_at),
-                            isHighResolution: true,
-                            isFavorite, // Add favorite indicator
-                          };
-                        });
-                      })
+                    images={[
+                      // Renders de décors
+                      ...Object.entries(renders)
+                        .flatMap(([photoId, photoRenders]) => {
+                          const photo = photos.find(p => p.id === photoId);
+                          return photoRenders.map(render => {
+                            const decor = decors.find(d => d.id === render.decor_id);
+                            const isFavorite = favoriteRenderIds.has(render.id);
+                            return {
+                              id: render.id,
+                              url: render.result_image_url,
+                              originalUrl: photo?.original_image_url,
+                              decorId: render.decor_id || '',
+                              decorName: decor?.name || '',
+                              decorCode: decor?.reference_code || '',
+                              createdAt: new Date(render.created_at),
+                              isHighResolution: true,
+                              isFavorite,
+                            };
+                          });
+                        }),
+                      // Créations assistant IA
+                      ...creativeImports.map(creative => ({
+                        id: creative.id,
+                        url: creative.result_image_url,
+                        originalUrl: undefined,
+                        decorId: '',
+                        decorName: 'Création Assistant IA',
+                        decorCode: 'ASSISTANT_IA',
+                        createdAt: new Date(creative.created_at),
+                        isHighResolution: true,
+                        isFavorite: false,
+                      }))
+                    ]
                       .filter(img => selectedRenderIds.size === 0 || selectedRenderIds.has(img.id))
                       .sort((a, b) => {
                         // Sort favorites first
