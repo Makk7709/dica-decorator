@@ -20,6 +20,7 @@ interface CaptionResponse {
   subheadline: string;
   slugline: string;
   caption: string;
+  article: string; // Article technique complet
 }
 
 serve(async (req) => {
@@ -62,68 +63,60 @@ serve(async (req) => {
       .filter(k => k !== projectType)
       .map(k => contextLabels[k]);
 
-    // Build editorial AI prompt with IMAGE ANALYSIS
-    const systemPrompt = `Tu es un rédacteur éditorial expert pour le magazine AD (Architectural Digest).
-Tu vas ANALYSER UNE IMAGE RÉELLE pour générer 4 textes de haute qualité pour une présentation éditoriale DICA DÉCOR.
+    // Build editorial AI prompt with IMAGE ANALYSIS and EXPERT PERSONA
+    const systemPrompt = `Tu es Jean-Marc Delacroix, expert reconnu en panneaux stratifiés HPL (High Pressure Laminate) avec 25 ans d'expérience.
+Tu écris pour le magazine DICA DÉCOR, la référence en design intérieur et architecture.
+
+TON EXPERTISE TECHNIQUE:
+- Spécialiste des stratifiés haute pression (HPL)
+- Connaissance approfondie des propriétés: résistance aux chocs, à l'abrasion, aux UV, à l'humidité
+- Expert en applications: cabines d'ascenseur, mobilier, façades, agencement, cuisines professionnelles
+- Maîtrise des finitions: brillant, mat, texturé, grain bois, effet métal, surface anti-trace
+- Certification PEFC, FSC, normes feu M1/B-s1-d0
+
+CATÉGORIE DU DÉCOR: ${decorCategory || 'Stratifié premium'}
+CONTEXTE D'APPLICATION: ${contextLabel}
 
 RÈGLE ABSOLUE — ANALYSER L'IMAGE:
 Tu vas recevoir une image réelle du projet.
-Tu DOIS observer attentivement ce qui est visible dans l'image avant d'écrire quoi que ce soit.
-INTERDIT d'inventer ou supposer un contexte qui n'est pas dans l'image.
-
-CONTEXTE SUGGÉRÉ (à vérifier dans l'image):
-- Type d'espace suggéré: ${contextLabel}
-- Catégorie de finitions: ${decorCategory || 'Finitions premium'}
-
-IMPORTANT — ANALYSE VISUELLE PRIORITAIRE:
-1. Regarde l'image et identifie CE QUI EST VRAIMENT VISIBLE
-2. Si l'image montre une terrasse de café → parle de terrasse
-3. Si l'image montre un bureau → parle de bureau
-4. Si l'image montre une cabine d'ascenseur → parle d'ascenseur
-5. NE JAMAIS mentionner un espace qui n'est pas dans l'image
-
-IMPORTANT — TEXTES GÉNÉRIQUES:
-NE PAS mentionner de référence ou nom de décor spécifique (pas de "8099", "3012", "marbre", "laiton", etc.).
-Les textes doivent être universels pour toute la gamme de finitions DICA.
+Observe attentivement l'espace visible et base ton article sur CE QUE TU VOIS.
 
 TEXTES À GÉNÉRER:
 
-1. **headline** (titre principal couverture):
-   - 5 à 12 mots MAXIMUM, sur 2 lignes
-   - Ton premium, éditorial, émotionnel
-   - Évoque l'excellence du design intérieur BASÉ SUR L'IMAGE
-   - Parle de l'élégance des finitions DICA sans mentionner de matériau précis
-   - Format: 2 lignes maximum, chaque ligne 3-6 mots
+1. **headline** (titre couverture): 5-12 mots, 2 lignes max, ton premium éditorial
 
-2. **subheadline** (sous-titre éditorial):
-   - 15 à 25 mots MAXIMUM
-   - Paragraphe mini éditorial
-   - Décrit comment les finitions DICA transforment l'espace VISIBLE DANS L'IMAGE
-   - Reste générique, applicable à plusieurs finitions
+2. **subheadline** (accroche): 15-25 mots, mini paragraphe éditorial
 
-3. **slugline** (accroche courte):
-   - 3 à 6 mots MAXIMUM
-   - Style manuscrit élégant
-   - Évoque une sensation ou un style générique
-   - Exemple: "Élégance intemporelle", "Luxe raffiné"
+3. **slugline** (signature courte): 3-6 mots, style manuscrit élégant
 
-4. **caption** (légende magazine):
-   - 10 à 15 mots MAXIMUM
-   - Ton magazine lifestyle/architecture
-   - Décrit les finitions DICA dans l'espace VU DANS L'IMAGE
-   - Pas de référence spécifique de matériau
+4. **caption** (légende): 10-15 mots, ton magazine lifestyle
+
+5. **article** (article technique complet): 80-120 mots
+   CONTENU OBLIGATOIRE:
+   - Analyse de l'espace visible dans l'image
+   - Propriétés techniques pertinentes du stratifié HPL pour cet usage
+   - Avantages concrets pour les professionnels (architectes, décorateurs)
+   - Résistance et durabilité adaptées au contexte
+   - Entretien et pérennité
+   - Ton: expert mais accessible, jamais commercial
+   
+   PROPRIÉTÉS TECHNIQUES À MENTIONNER (selon contexte):
+   ${decorCategory === 'metal' ? '- Finition métallisée anti-trace\n   - Résistance aux rayures\n   - Effet visuel premium' : ''}
+   ${decorCategory === 'bois' ? '- Reproduction fidèle du veinage naturel\n   - Toucher texturé authentique\n   - Stabilité dimensionnelle' : ''}
+   ${decorCategory === 'unis' ? '- Uniformité chromatique parfaite\n   - Résistance aux UV (pas de jaunissement)\n   - Surface facile d'entretien' : ''}
+   ${decorCategory === 'marbre' ? '- Imitation marbre haute définition\n   - Légèreté vs marbre naturel\n   - Pose simplifiée' : ''}
+   - Norme feu adaptée aux ERP (M1 ou B-s1-d0)
+   - Résistance à l'humidité pour zones techniques
+   - Durabilité garantie 10+ ans en usage intensif
 
 RÈGLES STRICTES:
-- ANALYSER L'IMAGE avant tout
-- Décrire CE QUI EST VISIBLE, pas ce qui est suggéré
-- Langue: français impeccable
-- Ton: premium, élégant, émotionnel
-- Zero marketing, pure éditorial
-- Focus sur la qualité des finitions DICA, pas sur un produit précis
+- Ton expert mais accessible
+- Français impeccable
 - JAMAIS de ponctuation exclamative
-- Headline et sub-headline doivent avoir l'impact d'une vraie couverture AD Magazine
+- Focus technique et qualitatif
+- Crédibilité d'un vrai article de magazine professionnel
 
-Retourne UNIQUEMENT un JSON valide avec ces 4 clés.`;
+Retourne UNIQUEMENT un JSON valide avec ces 5 clés.`;
 
     // Build user message with IMAGE
     const userMessageContent: any[] = [
@@ -169,7 +162,7 @@ Retourne un JSON avec {headline, subheadline, slugline, caption}.`
             type: "function",
             function: {
               name: "generate_magazine_caption",
-              description: "Génère headline, sub-headline, slugline et caption pour couverture magazine DICA",
+              description: "Génère headline, sub-headline, slugline, caption ET article technique pour magazine DICA",
               parameters: {
                 type: "object",
                 properties: {
@@ -188,9 +181,13 @@ Retourne un JSON avec {headline, subheadline, slugline, caption}.`
                   caption: {
                     type: "string",
                     description: "Légende éditoriale (10-15 mots) style magazine"
+                  },
+                  article: {
+                    type: "string",
+                    description: "Article technique complet (80-120 mots) avec propriétés HPL, avantages pros, résistance, entretien"
                   }
                 },
-                required: ["headline", "subheadline", "slugline", "caption"],
+                required: ["headline", "subheadline", "slugline", "caption", "article"],
                 additionalProperties: false
               }
             }
@@ -255,19 +252,21 @@ Retourne un JSON avec {headline, subheadline, slugline, caption}.`
           headline: "L'excellence du design intérieur",
           subheadline: `Découvrez comment les finitions DICA transforment les espaces avec une élégance intemporelle et une précision exceptionnelle.`,
           slugline: "Style et élégance",
-          caption: `Les finitions DICA subliment cet espace avec raffinement`
+          caption: `Les finitions DICA subliment cet espace avec raffinement`,
+          article: `Les panneaux stratifiés haute pression DICA représentent l'aboutissement de décennies de recherche en matériaux de surface. Leur structure multicouche confère une résistance exceptionnelle aux chocs, à l'abrasion et aux produits chimiques. La technologie HPL garantit une stabilité dimensionnelle parfaite, même dans les environnements exigeants. Les finitions anti-trace facilitent l'entretien quotidien. Certifiés pour les établissements recevant du public (classement feu M1), ces revêtements allient performance technique et esthétique premium pour les professionnels les plus exigeants.`
         };
       }
     }
 
     // Validate output (ensure all fields exist)
-    if (!result || !result.headline || !result.subheadline || !result.slugline || !result.caption) {
+    if (!result || !result.headline || !result.subheadline || !result.slugline || !result.caption || !result.article) {
       console.warn("⚠️ Missing fields in AI response, using fallback");
       result = {
         headline: result?.headline || "L'excellence du design intérieur",
         subheadline: result?.subheadline || `Découvrez comment les finitions DICA transforment les espaces avec une élégance intemporelle et une précision exceptionnelle.`,
         slugline: result?.slugline || "Style et élégance",
-        caption: result?.caption || `Les finitions DICA subliment cet espace avec raffinement`
+        caption: result?.caption || `Les finitions DICA subliment cet espace avec raffinement`,
+        article: result?.article || `Les panneaux stratifiés haute pression DICA représentent l'aboutissement de décennies de recherche en matériaux de surface. Leur structure multicouche confère une résistance exceptionnelle aux chocs, à l'abrasion et aux produits chimiques. La technologie HPL garantit une stabilité dimensionnelle parfaite, même dans les environnements exigeants. Les finitions anti-trace facilitent l'entretien quotidien. Certifiés pour les établissements recevant du public (classement feu M1), ces revêtements allient performance technique et esthétique premium pour les professionnels les plus exigeants.`
       };
     }
 

@@ -20,6 +20,9 @@ export interface MagazineAICaption {
   
   /** Légende éditoriale (10-15 mots) style magazine */
   caption: string;
+  
+  /** Article technique complet (80-120 mots) par l'expert stratifiés */
+  article?: string;
 }
 
 /**

@@ -626,30 +626,43 @@ export class MagazineDecoPdfService {
     });
     
     // ─────────────────────────────────────────────────────────────────────
-    // CHAPÔ (introduction)
+    // ARTICLE TECHNIQUE (par l'expert stratifiés)
     // ─────────────────────────────────────────────────────────────────────
-    const chapoY = currentTitleY + 6;
+    const articleY = currentTitleY + 8;
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(9);
-    pdf.setTextColor(60, 60, 60);
+    pdf.setTextColor(40, 40, 40);
     
-    const chapoText = aiCaptions?.subheadline || 
-      `Les finitions ${options.decor.name} de DICA transforment les espaces avec élégance.`;
-    const chapoLines = pdf.splitTextToSize(chapoText, pageWidth - 60);
+    // Article technique complet OU fallback sur subheadline
+    const articleText = aiCaptions?.article || aiCaptions?.subheadline || 
+      `Les panneaux stratifiés haute pression DICA représentent l'aboutissement de décennies de recherche en matériaux de surface. Leur structure multicouche confère une résistance exceptionnelle aux chocs, à l'abrasion et aux produits chimiques. La technologie HPL garantit une stabilité dimensionnelle parfaite, même dans les environnements exigeants comme les cabines d'ascenseur ou les espaces à fort trafic. Les finitions anti-trace facilitent l'entretien quotidien. Certifiés pour les établissements recevant du public avec un classement feu M1, ces revêtements allient performance technique et esthétique premium pour les professionnels les plus exigeants.`;
     
-    chapoLines.forEach((line: string, idx: number) => {
-      const lineWidth = pdf.getTextWidth(line);
-      pdf.text(line, (pageWidth - lineWidth) / 2, chapoY + (idx * 4.5));
-    });
+    const articleLines = pdf.splitTextToSize(articleText, pageWidth - 40);
+    
+    // Texte justifié en deux colonnes si article long
+    if (articleLines.length > 6) {
+      // Article long: mise en page sur largeur complète
+      pdf.text(articleLines, margins.left + 10, articleY, {
+        lineHeightFactor: 1.6,
+        maxWidth: pageWidth - 40
+      });
+    } else {
+      // Article court: centré
+      articleLines.forEach((line: string, idx: number) => {
+        pdf.text(line, margins.left + 10, articleY + (idx * 4.5));
+      });
+    }
+    
+    const articleHeight = Math.min(articleLines.length * 4.5, 50);
     
     // ─────────────────────────────────────────────────────────────────────
     // AUTEUR & DATE
     // ─────────────────────────────────────────────────────────────────────
-    const authorY = chapoY + (chapoLines.length * 4.5) + 8;
+    const authorY = articleY + articleHeight + 8;
     pdf.setFont('Inter', 'bold');
     pdf.setFontSize(7);
     pdf.setTextColor(0, 0, 0);
-    const authorText = "Par DICA Design Studio";
+    const authorText = "Par Jean-Marc Delacroix, Expert Stratifiés HPL";
     const authorWidth = pdf.getTextWidth(authorText);
     pdf.text(authorText, (pageWidth - authorWidth) / 2, authorY);
     
