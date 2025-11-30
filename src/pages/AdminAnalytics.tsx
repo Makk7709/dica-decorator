@@ -343,7 +343,7 @@ const AdminAnalytics: React.FC = () => {
                         </span>
                         <div>
                           <p className="font-medium">{user.name}</p>
-                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                          <p className="text-sm text-muted-foreground">ID: {user.id.slice(0, 8)}...</p>
                         </div>
                       </div>
                       <span className="font-semibold">{user.value} projets</span>
