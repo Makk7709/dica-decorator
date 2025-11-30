@@ -381,14 +381,12 @@ const ProjectDetail = () => {
   const handleDeleteRender = async (renderId: string, photoId: string) => {
     try {
       // First, remove from favorites if it exists
-      const { error: favError } = await supabase
+      await supabase
         .from("render_favorites")
         .delete()
         .eq("render_result_id", renderId)
         .eq("user_id", user?.id);
 
-      // Don't throw on favorite deletion error (it might not be favorited)
-      
       // Delete the render
       const { error } = await supabase
         .from("render_results")
@@ -402,18 +400,8 @@ const ProjectDetail = () => {
 
       toast.success("Rendu supprimé avec succès");
       
-      // Update local state
-      setRenders(prev => ({
-        ...prev,
-        [photoId]: prev[photoId].filter(r => r.id !== renderId)
-      }));
-      
-      // Update favorites state
-      setFavoriteRenderIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(renderId);
-        return newSet;
-      });
+      // Reload project to refresh all data
+      await loadProject();
     } catch (error: any) {
       console.error("Erreur complète:", error);
       toast.error(`Impossible de supprimer: ${error.message}`);
