@@ -132,12 +132,12 @@ export class MagazineDecoPdfService {
 
     } catch (error: any) {
       console.error("❌ AI caption generation failed:", error);
-      // Fallback to generic captions
+      // Fallback to generic captions (no specific décor mention)
       return {
         headline: "L'excellence du design intérieur",
-        subheadline: `Découvrez comment le décor ${options.decor.name} transforme les espaces avec une élégance intemporelle et une précision exceptionnelle.`,
+        subheadline: `Découvrez comment les finitions DICA transforment les espaces avec une élégance intemporelle et une précision exceptionnelle.`,
         slugline: "Style et élégance",
-        caption: `Le décor ${options.decor.name} sublime cet espace avec finesse`
+        caption: `Les finitions DICA subliment cet espace avec raffinement`
       };
     }
   }
@@ -155,42 +155,48 @@ export class MagazineDecoPdfService {
   ) {
     const { colors } = MAGAZINE_DECO_CONFIG;
     
-    // Full bleed image (no margins)
+    // Full bleed image - show ENTIRE image with letterboxing if needed
     const imgRatio = image.width / image.height;
     const pageRatio = pageWidth / pageHeight;
     
     let finalWidth, finalHeight, x, y;
     
+    // Always fit the entire image (contain mode)
     if (imgRatio > pageRatio) {
-      // Image wider than page - fit to height
-      finalHeight = pageHeight;
-      finalWidth = finalHeight * imgRatio;
-      x = (pageWidth - finalWidth) / 2;
-      y = 0;
-    } else {
-      // Image taller than page - fit to width
+      // Image wider - fit to page width
       finalWidth = pageWidth;
       finalHeight = finalWidth / imgRatio;
       x = 0;
       y = (pageHeight - finalHeight) / 2;
+    } else {
+      // Image taller - fit to page height
+      finalHeight = pageHeight;
+      finalWidth = finalHeight * imgRatio;
+      x = (pageWidth - finalWidth) / 2;
+      y = 0;
     }
     
+    // Fill background with dark color for letterboxing
+    pdf.setFillColor(20, 20, 20);
+    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+    
+    // Add image on top
     pdf.addImage(image.base64, 'JPEG', x, y, finalWidth, finalHeight, undefined, 'FAST');
     
-    // DICA BRANDING - Top-left
+    // DICA BRANDING - Top-left (HUGE magazine title)
     pdf.setFont('Playfair Display', 'bold');
-    pdf.setFontSize(36);
+    pdf.setFontSize(72);
     pdf.setTextColor(255, 255, 255);
     
-    // Shadow for DICA
+    // Shadow for DICA (stronger for larger text)
     pdf.setTextColor(0, 0, 0);
-    for (let dx = 0.3; dx <= 0.9; dx += 0.3) {
-      for (let dy = 0.3; dy <= 0.9; dy += 0.3) {
-        pdf.text("DICA", 25 + dx, 35 + dy);
+    for (let dx = 0.5; dx <= 1.5; dx += 0.5) {
+      for (let dy = 0.5; dy <= 1.5; dy += 0.5) {
+        pdf.text("DICA", 20 + dx, 40 + dy);
       }
     }
     pdf.setTextColor(255, 255, 255);
-    pdf.text("DICA", 25, 35);
+    pdf.text("DICA", 20, 40);
     
     // OVERLAY TEXT ON IMAGE
     const headline = aiCaptions?.headline || "L'excellence du design";

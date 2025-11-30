@@ -67,9 +67,7 @@ Tu dois générer 4 textes de haute qualité pour une présentation éditoriale 
 
 CONTEXTE DU PROJET:
 - Type d'espace: ${contextLabel}
-- Décor appliqué: ${decorLabel}
-- Référence: ${decorReference}
-${decorCategory ? `- Catégorie: ${decorCategory}` : ''}
+- Catégorie de finitions: ${decorCategory || 'Finitions premium'}
 
 CONTRAINTE CRITIQUE — SÉCURITÉ DE CONTEXTE:
 Tu dois ABSOLUMENT respecter le type d'espace "${contextLabel}".
@@ -79,35 +77,43 @@ ${forbiddenContexts.map(c => `- ${c}`).join('\n')}
 Si le projet est un ${contextLabel}, tous les textes doivent parler d'un ${contextLabel}.
 Aucune exception. Aucune hallucination de contexte.
 
+IMPORTANT — TEXTES GÉNÉRIQUES:
+NE PAS mentionner de référence ou nom de décor spécifique (pas de "8099", "3012", etc.).
+Les textes doivent être universels pour toute la gamme de finitions DICA dans ce type d'espace.
+
 TEXTES À GÉNÉRER:
 
 1. **headline** (titre principal couverture):
    - 5 à 12 mots MAXIMUM, sur 2 lignes
    - Ton premium, éditorial, émotionnel
    - Évoque l'excellence du design intérieur dans un ${contextLabel}
+   - Parle de l'élégance des finitions DICA sans mentionner de décor précis
    - Format: 2 lignes maximum, chaque ligne 3-6 mots
 
 2. **subheadline** (sous-titre éditorial):
    - 15 à 25 mots MAXIMUM
    - Paragraphe mini éditorial
-   - Décrit l'impact du décor dans ce ${contextLabel} spécifiquement
+   - Décrit comment les finitions DICA transforment un ${contextLabel}
+   - Reste générique, applicable à plusieurs finitions
 
 3. **slugline** (accroche courte):
    - 3 à 6 mots MAXIMUM
    - Style manuscrit élégant
    - Évoque une sensation ou un style
+   - Générique (ex: "Élégance intemporelle", "Luxe raffiné")
 
 4. **caption** (légende magazine):
    - 10 à 15 mots MAXIMUM
    - Ton magazine lifestyle/architecture
-   - Décrit le décor dans ce ${contextLabel} précisément
+   - Décrit les finitions DICA dans ce ${contextLabel} de manière générale
+   - Pas de référence spécifique
 
 RÈGLES STRICTES:
 - Respecter EXACTEMENT le type d'espace: ${contextLabel}
 - Langue: français impeccable
 - Ton: premium, élégant, émotionnel
 - Zero marketing, pure éditorial
-- Focus sur le matériau (${decorLabel}) et son intégration
+- Focus sur la qualité des finitions DICA, pas sur un produit précis
 - JAMAIS de ponctuation exclamative
 - Headline et sub-headline doivent avoir l'impact d'une vraie couverture AD Magazine
 
@@ -117,12 +123,12 @@ Retourne UNIQUEMENT un JSON valide avec ces 4 clés.`;
 
 Projet: ${projectName}
 Type d'espace: ${contextLabel}
-Décor appliqué: ${decorLabel}
-Référence: ${decorReference}
+Catégorie: ${decorCategory || 'Finitions premium'}
 
 RAPPEL CRITIQUE:
 Le type d'espace est: ${contextLabel}
-Tous les textes doivent refléter UNIQUEMENT ce type d'espace avec le décor DICA.
+Tous les textes doivent parler de finitions DICA dans ce type d'espace UNIQUEMENT.
+Les textes doivent être génériques et élégants, sans mentionner de référence spécifique.
 Ne jamais inventer ou mentionner d'autres types d'espaces.
 
 Retourne un JSON avec {headline, subheadline, slugline, caption}.`;
