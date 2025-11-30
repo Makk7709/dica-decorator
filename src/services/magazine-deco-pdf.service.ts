@@ -100,10 +100,10 @@ export class MagazineDecoPdfService {
   }
 
   /**
-   * Génère les captions AI via edge function
+   * Génère les captions AI via edge function avec analyse d'image
    */
   private async generateAICaptions(options: MagazineDecoOptions): Promise<MagazineAICaption> {
-    console.log("🤖 Generating AI captions via orchestrator");
+    console.log("🤖 Generating AI captions with image analysis");
     
     try {
       const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
@@ -112,7 +112,8 @@ export class MagazineDecoPdfService {
           projectType: options.project.type,
           decorLabel: options.decor.name,
           decorReference: options.decor.referenceCode,
-          decorCategory: options.decor.category
+          decorCategory: options.decor.category,
+          imageUrl: options.images[0]?.url // Pass first image for analysis
         }
       });
 
@@ -183,40 +184,46 @@ export class MagazineDecoPdfService {
     // Add image on top
     pdf.addImage(image.base64, 'JPEG', x, y, finalWidth, finalHeight, undefined, 'FAST');
     
-    // DICA BRANDING - Top-left (HUGE magazine title)
-    pdf.setFont('Playfair Display', 'bold');
-    pdf.setFontSize(72);
-    pdf.setTextColor(255, 255, 255);
+    // DICA BRANDING - Top-left (HUGE serif magazine title, AD-style)
+    pdf.setFont('Times', 'bold');
+    pdf.setFontSize(90);
+    pdf.setTextColor(0, 40, 85); // Bleu marine AD
     
     // Shadow for DICA (stronger for larger text)
     pdf.setTextColor(0, 0, 0);
-    for (let dx = 0.5; dx <= 1.5; dx += 0.5) {
-      for (let dy = 0.5; dy <= 1.5; dy += 0.5) {
-        pdf.text("DICA", 20 + dx, 40 + dy);
+    for (let dx = 0.8; dx <= 2.0; dx += 0.6) {
+      for (let dy = 0.8; dy <= 2.0; dy += 0.6) {
+        pdf.text("DICA", 15 + dx, 45 + dy);
       }
     }
-    pdf.setTextColor(255, 255, 255);
-    pdf.text("DICA", 20, 40);
+    pdf.setTextColor(0, 40, 85); // Bleu marine
+    pdf.text("DICA", 15, 45);
     
-    // OVERLAY TEXT ON IMAGE
-    const headline = aiCaptions?.headline || "L'excellence du design";
+    // Subtitle under DICA (small caps, tight)
+    pdf.setFont('Inter', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text("DICA DÉCOR: ARCHITECTURE, DESIGN", 15, 52);
+    
+    // OVERLAY TEXT ON IMAGE (style AD)
+    const headline = aiCaptions?.headline || "La nouvelle décoration";
     const subheadline = aiCaptions?.subheadline || "Découvrez une nouvelle dimension de l'élégance intérieure avec les finitions DICA.";
     
-    // Headline (center-left, huge, white with shadow)
-    pdf.setFont('Playfair Display', 'bold');
-    pdf.setFontSize(42);
+    // Headline (center-left, mix of italic and caps like AD)
+    pdf.setFont('Times', 'italic');
+    pdf.setFontSize(48);
     
-    // Text shadow effect (multiple offset black layers)
+    // Text shadow effect
     pdf.setTextColor(0, 0, 0);
     const headlineX = 25;
-    const headlineY = pageHeight * 0.35;
+    const headlineY = pageHeight * 0.42;
     const maxWidth = pageWidth - 50;
     
     const headlineLines = pdf.splitTextToSize(headline, maxWidth);
     
     // Shadow layers
-    for (let dx = 0.3; dx <= 0.9; dx += 0.3) {
-      for (let dy = 0.3; dy <= 0.9; dy += 0.3) {
+    for (let dx = 0.4; dx <= 1.2; dx += 0.4) {
+      for (let dy = 0.4; dy <= 1.2; dy += 0.4) {
         pdf.text(headlineLines, headlineX + dx, headlineY + dy);
       }
     }
@@ -225,62 +232,93 @@ export class MagazineDecoPdfService {
     pdf.setTextColor(255, 255, 255);
     pdf.text(headlineLines, headlineX, headlineY);
     
-    // Sub-headline (under headline, smaller, white with shadow)
-    pdf.setFont('Playfair Display', 'normal');
-    pdf.setFontSize(14);
+    // Sub-headline box with red accent (AD style)
+    const subY = headlineY + (headlineLines.length * 16) + 15;
     
-    const subheadlineY = headlineY + (headlineLines.length * 14) + 8;
-    const subheadlineLines = pdf.splitTextToSize(subheadline, maxWidth - 20);
+    // Red "LUMIÈRE!" style accent
+    pdf.setFillColor(colors.dicaRed);
+    pdf.rect(headlineX - 2, subY - 8, 4, 20, 'F'); // Vertical red bar
     
-    // Shadow
+    pdf.setFont('Inter', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(colors.dicaRed);
+    pdf.text("NOUVEAU", headlineX + 8, subY - 2);
+    
+    // Sub description (black italic)
+    pdf.setFont('Times', 'italic');
+    pdf.setFontSize(10);
     pdf.setTextColor(0, 0, 0);
-    for (let dx = 0.2; dx <= 0.6; dx += 0.2) {
-      for (let dy = 0.2; dy <= 0.6; dy += 0.2) {
-        pdf.text(subheadlineLines, headlineX + dx, subheadlineY + dy, { lineHeightFactor: 1.4 });
-      }
-    }
+    const subLines = pdf.splitTextToSize(subheadline, maxWidth - 40);
+    pdf.text(subLines, headlineX + 8, subY + 4, { lineHeightFactor: 1.3 });
     
-    // White text
-    pdf.setTextColor(255, 255, 255);
-    pdf.text(subheadlineLines, headlineX, subheadlineY, { lineHeightFactor: 1.4 });
-    
-    // RED CIRCULAR BADGE (top-right)
-    const badgeX = pageWidth - 30;
-    const badgeY = 30;
-    const badgeRadius = 18;
+    // RED CIRCULAR BADGE (top-right, AD style)
+    const badgeX = pageWidth - 35;
+    const badgeY = 40;
+    const badgeRadius = 22;
     
     // Red circle
     pdf.setFillColor(colors.dicaRed);
     pdf.circle(badgeX, badgeY, badgeRadius, 'F');
     
-    // Badge text
-    pdf.setFont('Inter', 'bold');
-    pdf.setFontSize(7);
-    pdf.setTextColor(255, 255, 255);
+    // Badge text (multi-line)
+    pdf.setFont('Times', 'italic');
+    pdf.setFontSize(9);
+    pdf.setTextColor(0, 0, 0);
     
-    const badgeText = "NOUVEAUTÉ";
-    const badgeTextWidth = pdf.getTextWidth(badgeText);
-    pdf.text(badgeText, badgeX - (badgeTextWidth / 2), badgeY + 2);
+    const badge1 = "Numéro";
+    const badge2 = "exceptionnel";
+    const badge1Width = pdf.getTextWidth(badge1);
+    const badge2Width = pdf.getTextWidth(badge2);
+    pdf.text(badge1, badgeX - (badge1Width / 2), badgeY - 6);
+    pdf.text(badge2, badgeX - (badge2Width / 2), badgeY - 1);
+    
+    // Bottom text in bold caps
+    pdf.setFont('Inter', 'bold');
+    pdf.setFontSize(6.5);
+    const badge3 = "260 PAGES";
+    const badge4 = "D'INSPIRATION";
+    const badge3Width = pdf.getTextWidth(badge3);
+    const badge4Width = pdf.getTextWidth(badge4);
+    pdf.text(badge3, badgeX - (badge3Width / 2), badgeY + 5);
+    pdf.text(badge4, badgeX - (badge4Width / 2), badgeY + 9);
+    
+    // Date (top-right, AD style)
+    pdf.setFont('Inter', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(0, 0, 0);
+    const now = new Date();
+    const months = ['JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
+    const dateText = `${months[now.getMonth()]} ${now.getFullYear()}`;
+    const dateWidth = pdf.getTextWidth(dateText);
+    pdf.text(dateText, pageWidth - dateWidth - 12, 15);
+    
+    const priceText = "8,50€";
+    const priceWidth = pdf.getTextWidth(priceText);
+    pdf.text(priceText, pageWidth - priceWidth - 12, 20);
     
     // FAKE BARCODE (bottom-right, vertical)
     const barcodeX = pageWidth - 15;
-    const barcodeY = pageHeight - 60;
-    const barcodeHeight = 40;
-    const barWidth = 1;
+    const barcodeY = pageHeight - 70;
+    const barcodeHeight = 50;
+    const barWidth = 1.2;
     
     pdf.setFillColor(0, 0, 0);
-    // Generate random barcode pattern
-    for (let i = 0; i < 30; i++) {
-      const barHeight = Math.random() * barcodeHeight * 0.8 + barcodeHeight * 0.2;
+    // Generate realistic barcode pattern
+    for (let i = 0; i < 35; i++) {
+      const barHeight = Math.random() * barcodeHeight * 0.85 + barcodeHeight * 0.15;
       const yOffset = barcodeY + (barcodeHeight - barHeight) / 2;
-      pdf.rect(barcodeX + (i * (barWidth + 0.3)), yOffset, barWidth, barHeight, 'F');
+      pdf.rect(barcodeX + (i * (barWidth + 0.4)), yOffset, barWidth, barHeight, 'F');
     }
     
     // Barcode number below
     pdf.setFont('Inter', 'normal');
     pdf.setFontSize(6);
-    pdf.setTextColor(255, 255, 255);
-    pdf.text("9 782847 365894", barcodeX - 8, barcodeY + barcodeHeight + 4);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text("9 782847 365894", barcodeX - 10, barcodeY + barcodeHeight + 6);
+    
+    // Magazine code above barcode
+    pdf.setFontSize(5);
+    pdf.text("M 02650-894", barcodeX - 6, barcodeY - 3);
   }
 
   /**
@@ -366,32 +404,36 @@ export class MagazineDecoPdfService {
     
     const contentY = swatchY + swatchSize + 20;
     
-    // Slugline (handwritten, diagonal positioning)
+    // Slugline (handwritten, with red accent, AD style)
     if (aiCaptions?.slugline) {
+      const slugX = margins.left + 10;
+      const slugY = contentY;
+      
+      // Red vertical bar accent
+      pdf.setFillColor(colors.dicaRed);
+      pdf.rect(slugX - 3, slugY - 5, 2, 12, 'F');
+      
       pdf.setFont(typography.slugline.fontFamily, 'normal');
       pdf.setFontSize(typography.slugline.fontSize);
       pdf.setTextColor(typography.slugline.color);
       
-      const slugX = margins.left + 10;
-      const slugY = contentY;
-      
       // Rotate text slightly for handwritten feel (-3 degrees)
-      pdf.text(aiCaptions.slugline, slugX, slugY, { angle: -3 });
+      pdf.text(aiCaptions.slugline, slugX + 3, slugY, { angle: -3 });
     }
     
-    // Caption (serif, left aligned)
+    // Caption (serif italic, left aligned, AD style)
     if (aiCaptions?.caption) {
-      pdf.setFont(typography.caption.fontFamily, 'normal');
-      pdf.setFontSize(typography.caption.fontSize);
-      pdf.setTextColor(typography.caption.color);
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(11);
+      pdf.setTextColor(0, 0, 0);
       
       const captionX = margins.left + 10;
-      const captionY = contentY + 15;
+      const captionY = contentY + 18;
       const maxWidth = (pageWidth * 0.6);
       
       const lines = pdf.splitTextToSize(aiCaptions.caption, maxWidth);
       pdf.text(lines, captionX, captionY, { 
-        lineHeightFactor: typography.caption.lineHeight 
+        lineHeightFactor: 1.5
       });
     }
     
