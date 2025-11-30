@@ -13,8 +13,14 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Create client with anon key for user token validation
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Create client with service role for admin operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verify admin role
     const authHeader = req.headers.get("Authorization");
@@ -31,7 +37,7 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     console.log("Token length:", token.length);
     
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     console.log("User auth result:", { hasUser: !!userData.user, error: userError?.message });
     
     if (userError || !userData.user) {
@@ -44,7 +50,7 @@ serve(async (req) => {
 
     console.log("Checking role for user:", userData.user.id);
     
-    const { data: roleData, error: roleError } = await supabase
+    const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", userData.user.id)
@@ -86,26 +92,26 @@ serve(async (req) => {
     }
 
     // Get total metrics
-    const { count: totalProjects } = await supabase
+    const { count: totalProjects } = await supabaseAdmin
       .from("projects")
       .select("*", { count: "exact", head: true })
       .gte("created_at", startDate.toISOString());
 
-    const { count: totalRenders } = await supabase
+    const { count: totalRenders } = await supabaseAdmin
       .from("render_results")
       .select("*", { count: "exact", head: true })
       .gte("created_at", startDate.toISOString());
 
-    const { count: totalUsers } = await supabase
+    const { count: totalUsers } = await supabaseAdmin
       .from("profiles")
       .select("*", { count: "exact", head: true });
 
-    const { count: activeUsers } = await supabase
+    const { count: activeUsers } = await supabaseAdmin
       .from("projects")
       .select("user_id", { count: "exact", head: true })
       .gte("created_at", startDate.toISOString());
 
-    const { count: totalDecors } = await supabase
+    const { count: totalDecors } = await supabaseAdmin
       .from("decors")
       .select("*", { count: "exact", head: true })
       .eq("is_active", true);
@@ -121,14 +127,14 @@ serve(async (req) => {
       : 0;
 
     // Get daily trends for renders
-    const { data: renderTrends } = await supabase
+    const { data: renderTrends } = await supabaseAdmin
       .from("render_results")
       .select("created_at")
       .gte("created_at", startDate.toISOString())
       .order("created_at", { ascending: true });
 
     // Get daily trends for projects
-    const { data: projectTrends } = await supabase
+    const { data: projectTrends } = await supabaseAdmin
       .from("projects")
       .select("created_at")
       .gte("created_at", startDate.toISOString())
@@ -148,7 +154,7 @@ serve(async (req) => {
     const projectsData = groupByDate(projectTrends || []);
 
     // Get top decors
-    const { data: topDecorsData } = await supabase
+    const { data: topDecorsData } = await supabaseAdmin
       .from("render_results")
       .select("decor_id, decors(name, reference_code)")
       .not("decor_id", "is", null)
@@ -174,7 +180,7 @@ serve(async (req) => {
       .slice(0, 5);
 
     // Get top users
-    const { data: topUsersData } = await supabase
+    const { data: topUsersData } = await supabaseAdmin
       .from("projects")
       .select("user_id, profiles(first_name, last_name)")
       .gte("created_at", startDate.toISOString());
@@ -196,7 +202,7 @@ serve(async (req) => {
       .slice(0, 5);
 
     // Get usage by category
-    const { data: categoryData } = await supabase
+    const { data: categoryData } = await supabaseAdmin
       .from("render_results")
       .select("decors(category)")
       .gte("created_at", startDate.toISOString());
