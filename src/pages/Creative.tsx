@@ -625,7 +625,7 @@ const Creative = () => {
                               className={`rounded-lg px-4 py-3 ${
                                 message.role === "user"
                                   ? "bg-primary text-primary-foreground"
-                                  : "bg-muted"
+                                  : "bg-muted text-foreground"
                               }`}
                             >
                               {message.sourceImageUrls && message.sourceImageUrls.length > 0 && message.role === "user" && (
@@ -651,7 +651,7 @@ const Creative = () => {
                               )}
                               {message.imageUrl ? (
                                 <div className="space-y-3">
-                                  <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                                  <p className="whitespace-pre-wrap text-sm text-foreground">{message.content}</p>
                                   <div className="space-y-2">
                                     {/* Image avec overlay de zoom */}
                                     <div 
@@ -665,8 +665,8 @@ const Creative = () => {
                                       />
                                       {/* Overlay avec icône zoom */}
                                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-lg flex items-center justify-center">
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-3 shadow-lg">
-                                          <Maximize2 className="h-6 w-6 text-foreground" />
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-black/90 rounded-full p-3 shadow-lg">
+                                          <Maximize2 className="h-6 w-6 text-primary" />
                                         </div>
                                       </div>
                                     </div>
@@ -703,7 +703,7 @@ const Creative = () => {
                                   </div>
                                 </div>
                               ) : (
-                                <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                                <p className="whitespace-pre-wrap text-sm text-foreground">{message.content}</p>
                               )}
                             </div>
                             {message.role === "assistant" && index > 0 && (
@@ -826,7 +826,7 @@ const Creative = () => {
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
                     <div className="flex-1">
-                      <label htmlFor="show-references-creative" className="cursor-pointer text-sm font-medium">
+                      <label htmlFor="show-references-creative" className="cursor-pointer text-sm font-medium text-foreground">
                         🏷️ Afficher les références DICA
                       </label>
                       <p className="text-xs text-muted-foreground">
@@ -877,12 +877,12 @@ const Creative = () => {
                   {favorites.map((favorite, index) => (
                     <div 
                       key={favorite.id} 
-                      className="p-5 rounded-xl border border-border/50 bg-white/50 hover:shadow-sm transition-shadow animate-slide-up"
+                      className="p-5 rounded-xl border border-border/50 bg-card hover:shadow-sm transition-shadow animate-slide-up"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="font-semibold">{favorite.title}</h3>
+                          <h3 className="font-semibold text-foreground">{favorite.title}</h3>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {new Date(favorite.created_at).toLocaleDateString("fr-FR", {
                               day: "numeric",
@@ -905,11 +905,11 @@ const Creative = () => {
                       <div className="space-y-3">
                         <div>
                           <p className="text-xs font-medium text-muted-foreground mb-1">Demande</p>
-                          <p className="text-sm text-muted-foreground">{favorite.prompt}</p>
+                          <p className="text-sm text-foreground">{favorite.prompt}</p>
                         </div>
                         <div>
                           <p className="text-xs font-medium text-muted-foreground mb-1">Réponse</p>
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4">{favorite.response}</p>
+                          <p className="text-sm text-foreground whitespace-pre-wrap line-clamp-4">{favorite.response}</p>
                         </div>
                       </div>
                     </div>
@@ -976,7 +976,7 @@ const Creative = () => {
               <div className="space-y-4">
                 {projects.length > 0 && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Projet existant</label>
+                    <label className="text-sm font-medium text-foreground">Projet existant</label>
                     <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Sélectionner un projet" />
@@ -1002,7 +1002,7 @@ const Creative = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Nouveau projet</label>
+                  <label className="text-sm font-medium text-foreground">Nouveau projet</label>
                   <Input
                     value={newProjectTitle}
                     onChange={(e) => {
