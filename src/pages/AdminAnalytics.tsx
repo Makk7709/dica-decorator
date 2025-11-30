@@ -164,12 +164,8 @@ const AdminAnalytics: React.FC = () => {
   };
 
   return (
-    <PremiumLayout>
-      <div 
-        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-10"
-        style={{ backgroundImage: 'url(/images/analytics-bg.jpg)' }}
-      />
-      <ContentContainer className="relative z-10">
+    <PremiumLayout backgroundImage="/images/analytics-bg.jpg">
+      <ContentContainer>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
