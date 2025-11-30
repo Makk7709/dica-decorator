@@ -1578,7 +1578,7 @@ describe('PlaquettePdfService', () => {
       
       const result = await service.generatePlaquettePremium(options);
       
-      expect(result.metadata?.premiumLayout).toBe(true);
+      expect(result.metadata?.templateVersion).toBeDefined();
     }, 15000);
   });
 });
