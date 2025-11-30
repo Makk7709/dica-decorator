@@ -2,7 +2,11 @@
 
 ## Vue d'ensemble
 
-Le DICA Prompt Orchestrator est une couche d'intelligence artificielle qui se situe entre les demandes utilisateurs et le modèle de génération d'images (Nano Banana / Gemini 3 Pro Image Preview).
+Le DICA Prompt Orchestrator est une couche d'intelligence artificielle **créative et non-bloquante** qui se situe entre les demandes utilisateurs et le modèle de génération d'images (Nano Banana / Gemini 3 Pro Image Preview).
+
+### Principe fondamental
+
+**TOUJOURS OPTIMISER, JAMAIS BLOQUER** : L'orchestrateur retourne presque toujours `status="ok"` (~95% des cas) en comblant intelligemment les détails manquants, avec seulement 2 contraintes strictes et non-négociables.
 
 ## Architecture
 
@@ -12,9 +16,9 @@ Le DICA Prompt Orchestrator est une couche d'intelligence artificielle qui se si
 │   (Prompt)   │       │  (Lovable AI)    │       │  (Génération)  │
 └─────────────┘       └──────────────────┘       └────────────────┘
                               │
-                              ├── Validation métier DICA
-                              ├── Vérification décors
-                              └── Structuration JSON
+                              ├── Optimisation créative
+                              ├── Respect décors catalogue DICA
+                              └── Exactitude visuelle stricte
 ```
 
 ## Workflow détaillé
@@ -28,92 +32,149 @@ L'orchestrateur reçoit:
 - `imageLabels`: Les labels pour chaque image source
 - `projectContext`: Contexte du projet (type, secteur, etc.)
 
-### 2. Analyse et validation
+### 2. Analyse et optimisation créative
 
 L'orchestrateur (via Lovable AI GPT model) effectue:
-- ✅ Identification du type d'espace demandé (van, cuisine, ascenseur, etc.)
-- ✅ Extraction des décors DICA mentionnés ou appropriés
-- ✅ Vérification que les décors existent dans le catalogue
-- ✅ Validation de la cohérence métier (secteur, usage, contraintes)
-- ✅ Détection des informations manquantes ou ambiguës
+- ✅ Identification ou **invention intelligente** du type d'espace (van, cuisine, ascenseur, etc.)
+- ✅ Extraction ou **sélection automatique** des décors DICA appropriés
+- ✅ Vérification stricte que les décors existent dans le catalogue
+- ✅ Validation de l'exactitude visuelle des décors (propriétés matériaux respectées)
+- ✅ **Comblement créatif** des informations manquantes ou ambiguës
+- ✅ Enrichissement du prompt avec contexte professionnel cohérent
 
-### 3. Statuts de sortie
+### 3. Statuts de sortie (approche non-bloquante)
 
-#### ✅ Status: "ok"
-La demande est claire, validée et prête pour la génération.
+#### ✅ Status: "ok" (~95% des cas)
+La demande est optimisée et prête pour la génération, avec détails manquants complétés intelligemment.
 
 Contient:
-- `projectType`: Type d'espace identifié
-- `decorReferences`: Codes de référence DICA à utiliser
+- `projectType`: Type d'espace identifié ou inventé intelligemment
+- `decorReferences`: Codes de référence DICA à utiliser (catalogue uniquement)
 - `decorLabels`: Noms lisibles des décors
 - `nbVariants`: Nombre de variantes à générer (1-4)
-- `finalPromptForImageModel`: Prompt propre et structuré en anglais pour Nano Banana
+- `finalPromptForImageModel`: Prompt enrichi et structuré en anglais pour Nano Banana
 - `technicalConstraints`: Contraintes techniques identifiées
+
+**L'orchestrateur retourne "ok" même si :**
+- Le prompt utilisateur est flou ou vague (il invente les détails)
+- Le type d'espace n'est pas spécifié (il choisit le plus logique)
+- Aucun décor n'est mentionné (il sélectionne le plus approprié)
+- Des détails manquent (il les complète créativement)
 
 Exemple de prompt généré:
 ```
 Professional interior visualization of a modern van conversion 
 with DICA decorative panels. The space features DICA Metal panels 
-(ref: 3040_BN_PF - brushed stainless steel) on interior walls and 
+(ref: 3040_BN_PF - brushed stainless steel with authentic brushed 
+texture and directional light reflections) on interior walls and 
 cabinet fronts, creating a sleek contemporary aesthetic. Soft 
 natural daylight from side windows, cozy compact layout with bench 
 seating and storage. Photorealistic rendering, high-end catalog 
-quality, sharp details on panel textures.
+quality, sharp details on authentic material properties.
 ```
 
-#### ⚠️ Status: "need_clarification"
-La demande est ambiguë ou manque d'informations.
+#### ⚠️ Status: "need_clarification" (<3% des cas)
+La demande est vraiment impossible à interpréter ou les décors mentionnés n'existent pas.
 
 Contient:
 - `clarificationQuestions`: Liste de 1-3 questions précises à poser
+
+**Cas d'usage extrêmement rares :**
+- Décors mentionnés inexistants ET intention impossible à deviner
+- Demande totalement absurde
 
 Exemple:
 ```json
 {
   "status": "need_clarification",
   "clarificationQuestions": [
-    "Quel type de van souhaitez-vous aménager ? (VW Combi, fourgon moderne, camping-car ?)",
-    "Quelle ambiance recherchez-vous ? (Moderne minimaliste, chaleureux bois, industriel métal ?)"
+    "Le décor 'ULTRA_GOLD_9999' n'existe pas dans notre catalogue. Souhaitez-vous utiliser un décor Metal brillant ou Unis doré à la place ?"
   ]
 }
 ```
 
-#### ❌ Status: "reject"
-La demande est impossible, hors gamme, ou invalide.
+#### ❌ Status: "reject" (<2% des cas)
+La demande viole les contraintes strictes de façon irréparable.
 
 Contient:
 - `rejectionReason`: Explication claire du rejet
+
+**Cas d'usage exceptionnels :**
+- Demande explicite de ne pas utiliser de décors DICA
+- Impossibilité absolue de respecter les 2 contraintes strictes
 
 Exemple:
 ```json
 {
   "status": "reject",
-  "rejectionReason": "Les décors mentionnés ('Bleu roi brillant', 'Or massif') ne font pas partie du catalogue DICA. Veuillez choisir parmi les décors disponibles: Metal, Unis, Bois, Marbre, ou Déco."
+  "rejectionReason": "La demande exige explicitement de ne pas utiliser le catalogue DICA, ce qui viole notre contrainte métier fondamentale."
 }
 ```
 
-## Règles de validation métier
+## Contraintes strictes (2 seules règles non-négociables)
 
-### 1. Décors autorisés uniquement
-- ✅ Utiliser UNIQUEMENT les décors du catalogue DICA fourni
-- ❌ JAMAIS inventer de couleurs, textures ou références
-- ✅ Vérifier que les références existent dans le catalogue
+### 1. Décors catalogue DICA uniquement
+- ✅ Utiliser EXCLUSIVEMENT les décors du catalogue DICA fourni
+- ❌ JAMAIS inventer de couleurs, textures ou références hors catalogue
+- ✅ Si l'utilisateur mentionne une couleur/style, trouver le décor DICA le plus proche
+- ✅ Vérifier que chaque référence existe dans le catalogue
 
-### 2. Type d'espace obligatoire
-- ✅ Identifier clairement: van, cuisine, ascenseur, terrasse, bureau, salon, sdb, etc.
-- ⚠️ Si ambigu ou flou → `need_clarification`
-- ❌ Si impossible/hors gamme → `reject`
+### 2. Exactitude visuelle des décors
+Respecter STRICTEMENT les propriétés matériaux de chaque décor :
 
-### 3. Cohérence métier
-- Metal → Ascenseurs, vans, cuisines modernes
-- Bois → Ambiances chaleureuses (vans, bureaux, salons)
-- Marbre → Espaces premium (sdb, cuisines, halls)
-- Unis → Minimalisme moderne (tous espaces)
+- **Metal** : lignes de brossage visibles, reflets directionnels, jamais grain/mat
+- **Unis** : surface lisse sans grain, lumière diffuse, jamais reflets métalliques
+- **Marbre** : veines minérales réalistes, léger brillant jamais métallique, profondeur mate avec reflets subtils
+- **Bois** : veinage orienté suivant panneaux existants, lumière chaleureuse non-métallique, structure bois préservée
+- **Déco** : motifs originaux préservés, pas de brillant non désiré, contraste/densité/répétition respectés
 
-### 4. Contraintes techniques
-- Secteur santé/écoles → résistance au feu requise
-- Ascenseurs → robustesse et entretien facile
-- Extérieur/terrasse → résistance intempéries
+Les textures et couleurs des décors doivent être appliquées EXACTEMENT comme dans le catalogue, sans modification de l'apparence intrinsèque.
+
+## Approche créative et non-bloquante
+
+### Philosophie
+L'orchestrateur est un **optimiseur créatif**, pas un validateur strict. Son rôle est d'améliorer et compléter les prompts, pas de les rejeter.
+
+### Exemples de gestion créative
+
+#### Prompt flou
+```
+Entrée: "un van avec des panneaux blancs"
+Sortie: Status "ok" avec invention créative
+→ "Modern van interior with DICA Unis white panels (ref: 800_SATIN - smooth matte white) 
+   on walls and ceiling, contemporary minimalist design, professional lighting"
+```
+
+#### Prompt avec image source
+```
+Entrée: "améliore cette cuisine" + [photo fournie]
+Sortie: Status "ok" avec application intelligente
+→ "Apply DICA Marbre premium panels (ref: 3133_SPA_FC - natural marble with realistic veining) 
+   to kitchen walls and backsplash, preserving existing layout, enhancing with subtle gloss finish"
+```
+
+#### Prompt créatif libre
+```
+Entrée: "un bureau futuriste avec du métal"
+Sortie: Status "ok" avec structuration professionnelle
+→ "Futuristic office interior featuring DICA Metal panels (ref: 3025_HR_FC - hairline brushed steel 
+   with authentic directional reflections), modern architecture, clean lines, professional lighting"
+```
+
+#### Prompt totalement vague
+```
+Entrée: "quelque chose de joli"
+Sortie: Status "ok" avec choix intelligent
+→ "Premium interior space with DICA Unis panels (ref: 800_SATIN) creating a sophisticated minimalist 
+   aesthetic, modern furniture, soft natural lighting, clean contemporary design"
+```
+
+### Règles d'optimisation
+
+1. **Toujours compléter** : Si type d'espace manquant → choisir le plus logique
+2. **Toujours enrichir** : Ajouter contexte professionnel, éclairage, ambiance
+3. **Toujours sélectionner** : Si aucun décor mentionné → choisir le plus approprié du catalogue
+4. **Toujours respecter** : Catalogue DICA + exactitude visuelle décors
 
 ## Intégration technique
 
@@ -192,31 +253,32 @@ console.log("📊 Orchestration result:", {
 #### 1. Prompts clairs
 ```
 "Crée un van moderne avec les panneaux Metal 3040 BN"
-→ Doit retourner status="ok"
+→ Doit retourner status="ok" avec prompt enrichi
 ```
 
-#### 2. Prompts ambigus
+#### 2. Prompts flous/vagues
 ```
 "Je veux quelque chose de joli"
-→ Doit retourner status="need_clarification"
+→ Doit retourner status="ok" en inventant détails cohérents
 ```
 
-#### 3. Prompts invalides
+#### 3. Prompts sans décor spécifié
+```
+"Une cuisine moderne"
+→ Doit retourner status="ok" en sélectionnant décor approprié du catalogue
+```
+
+#### 4. Prompts avec image source
+```
+"Applique un décor à cette photo" + [image]
+→ Doit retourner status="ok" avec application intelligente
+```
+
+#### 5. Prompts avec décors invalides
 ```
 "Utilise du marbre rose pailleté et de l'or massif"
-→ Doit retourner status="reject"
-```
-
-#### 4. Prompts agressifs
-```
-"Crée-moi n'importe quoi, tu choisis"
-→ Doit demander clarification sur le type d'espace et les décors
-```
-
-#### 5. Validation décors
-```
-"Applique le décor XYZ123 qui n'existe pas"
-→ Doit rejeter ou demander un décor valide
+→ Peut retourner status="ok" en substituant avec décors DICA proches, 
+   ou "need_clarification" si impossible de deviner l'intention
 ```
 
 ## Évolution future
@@ -255,10 +317,11 @@ console.log("📊 Orchestration result:", {
 ## Résumé
 
 Le DICA Prompt Orchestrator garantit:
-- ✅ Conformité métier stricte
-- ✅ Utilisation exclusive des décors DICA
-- ✅ Prompts structurés et validés
-- ✅ Qualité d'image supérieure
-- ✅ Expérience utilisateur améliorée
+- ✅ Approche créative et non-bloquante (~95% taux de succès)
+- ✅ Respect strict du catalogue DICA (contrainte #1)
+- ✅ Exactitude visuelle des décors (contrainte #2)
+- ✅ Prompts enrichis et structurés automatiquement
+- ✅ Qualité d'image supérieure avec propriétés matériaux authentiques
+- ✅ Expérience utilisateur fluide sans blocages inutiles
 
-C'est un garde-fou intelligent qui protège la qualité des générations tout en guidant les utilisateurs vers les meilleures visualisations possibles.
+C'est un **optimiseur intelligent** qui transforme toute demande en prompt de haute qualité tout en protégeant l'intégrité de la marque DICA et l'exactitude visuelle des décors.
