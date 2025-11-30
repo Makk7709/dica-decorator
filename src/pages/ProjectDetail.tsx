@@ -84,12 +84,32 @@ const ProjectDetail = () => {
     decorCode?: string;
   } | null>(null);
   const [selectedRenderIds, setSelectedRenderIds] = useState<Set<string>>(new Set());
+  const [userCoBrandingEnabled, setUserCoBrandingEnabled] = useState<boolean>(false);
 
   useEffect(() => {
     loadProject();
     loadDecors();
     loadFavorites();
+    loadUserProfile();
   }, [id, user]);
+
+  const loadUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("cobranding_enabled")
+        .eq("id", user.id)
+        .single();
+
+      if (!error && data) {
+        setUserCoBrandingEnabled(data.cobranding_enabled ?? false);
+      }
+    } catch (error: any) {
+      console.error("Error loading user profile:", error);
+    }
+  };
 
   const loadFavorites = async () => {
     if (!user) return;
@@ -438,9 +458,9 @@ const ProjectDetail = () => {
   if (!project) {
     return (
       <PremiumLayout backgroundImage="/images/project-photos-bg.jpg">
-        <div className="flex min-h-screen items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
       </PremiumLayout>
     );
   }
@@ -554,7 +574,7 @@ const ProjectDetail = () => {
                     }),
                   ]}
                   originalImage={photos[0]?.original_image_url}
-                  appSettings={{ ...DEFAULT_APP_SETTINGS, resellerBrandingEnabled: false }}
+                  appSettings={{ ...DEFAULT_APP_SETTINGS, resellerBrandingEnabled: userCoBrandingEnabled }}
                   variant="ghost"
                   size="sm"
                   className="text-muted-foreground hover:text-foreground"
@@ -660,7 +680,7 @@ const ProjectDetail = () => {
                   {isUploading ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   ) : (
-                    <Upload className="mr-2 h-5 w-5" />
+                  <Upload className="mr-2 h-5 w-5" />
                   )}
                   {isUploading ? "Upload..." : "Ajouter une photo"}
                 </span>
@@ -844,21 +864,21 @@ const ProjectDetail = () => {
                     className="w-full aspect-[4/3] object-cover"
                   />
                 </div>
-                
+                  
                 {/* Action Button */}
-                <Button
-                  onClick={() => {
-                    setSelectedPhoto(photo);
-                    setShowDecorDialog(true);
-                  }}
+                    <Button
+                      onClick={() => {
+                        setSelectedPhoto(photo);
+                        setShowDecorDialog(true);
+                      }}
                   className="w-full btn-primary-premium h-11 rounded-xl"
-                >
+                    >
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Appliquer un décor
-                </Button>
+                      Appliquer un décor
+                    </Button>
 
                 {/* Renders Grid - Masonry Layout */}
-                {renders[photo.id] && renders[photo.id].length > 0 && (
+                  {renders[photo.id] && renders[photo.id].length > 0 && (
                   <div className="mt-6 pt-6 border-t border-border/50">
                     <p className="text-sm font-medium mb-4">
                       Rendus générés ({renders[photo.id].length})
@@ -871,9 +891,9 @@ const ProjectDetail = () => {
                           style={{ animationDelay: `${renderIndex * 50}ms` }}
                         >
                           <div className="relative">
-                            <img
-                              src={render.result_image_url}
-                              alt="Rendu"
+                              <img
+                                src={render.result_image_url}
+                                alt="Rendu"
                               className="w-full h-auto"
                             />
                             
@@ -910,13 +930,13 @@ const ProjectDetail = () => {
                             <div className="absolute top-2 right-2 z-20">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button
+                                <Button
                                     variant="secondary"
                                     size="icon"
                                     className="h-8 w-8 bg-white/95 hover:bg-white shadow-md backdrop-blur-sm"
                                   >
                                     <MoreVertical className="h-4 w-4 text-foreground" />
-                                  </Button>
+                                </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
                                   <DropdownMenuItem
@@ -943,21 +963,21 @@ const ProjectDetail = () => {
                                     Comparer avant/après
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    asChild
+                                  asChild
                                     className="cursor-pointer"
-                                  >
+                                >
                                     <a href={render.result_image_url} download className="flex items-center">
-                                      <Download className="mr-2 h-4 w-4" />
+                                    <Download className="mr-2 h-4 w-4" />
                                       Télécharger
                                     </a>
                                   </DropdownMenuItem>
                                   {render.decor_id && (
                                     <DropdownMenuItem
-                                      onClick={() => handleRegenerateRender(render.id, photo.id)}
-                                      disabled={isGenerating}
+                                  onClick={() => handleRegenerateRender(render.id, photo.id)}
+                                  disabled={isGenerating}
                                       className="cursor-pointer"
-                                    >
-                                      <RotateCcw className="mr-2 h-4 w-4" />
+                                >
+                                  <RotateCcw className="mr-2 h-4 w-4" />
                                       Régénérer
                                     </DropdownMenuItem>
                                   )}
@@ -976,7 +996,7 @@ const ProjectDetail = () => {
                                     {favoriteRenderIds.has(render.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                    onClick={() => handleDeleteRender(render.id, photo.id)}
+                                  onClick={() => handleDeleteRender(render.id, photo.id)}
                                     className="cursor-pointer text-destructive focus:text-destructive"
                                   >
                                     <Trash2 className="mr-2 h-4 w-4" />
@@ -984,13 +1004,13 @@ const ProjectDetail = () => {
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
-                            </div>
+                              </div>
                           </div>
                         </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             ))}
           </div>
@@ -1203,10 +1223,10 @@ const ProjectDetail = () => {
                       <span>Télécharger</span>
                     </a>
                   </Button>
-                </div>
+      </div>
               </>
             )}
-          </div>
+    </div>
         </DialogContent>
       </Dialog>
 

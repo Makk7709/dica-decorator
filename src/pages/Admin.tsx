@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck, Building2, BarChart3 } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck, Building2, BarChart3, Palette } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ResellerBrandingSettings } from "@/components/admin/reseller-branding-settings";
 import { ResellerBranding } from "@/types/plaquette.types";
@@ -47,6 +48,7 @@ interface UserData {
   quota_limit: number;
   quota_used: number;
   project_count: number;
+  cobranding_enabled: boolean;
 }
 
 const Admin = () => {
@@ -187,6 +189,21 @@ const Admin = () => {
       loadUsers();
     } catch (error: any) {
       toast.error("Erreur lors de la mise à jour du compte");
+    }
+  };
+
+  const handleToggleCoBranding = async (userId: string, currentValue: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ cobranding_enabled: !currentValue })
+        .eq("id", userId);
+
+      if (error) throw error;
+      toast.success(!currentValue ? "Co-branding activé" : "Co-branding désactivé");
+      loadUsers();
+    } catch (error: any) {
+      toast.error("Erreur lors de la mise à jour du co-branding");
     }
   };
 
@@ -489,6 +506,21 @@ const Admin = () => {
                             <span>Projets: {user.project_count}</span>
                             <span>
                               Quota: {user.quota_used} / {user.quota_limit} générations
+                            </span>
+                          </div>
+                          
+                          {/* Co-branding Toggle */}
+                          <div className="flex items-center gap-3 mt-3 pt-3 border-t">
+                            <div className="flex items-center gap-2">
+                              <Palette className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Co-branding PDF</span>
+                            </div>
+                            <Switch
+                              checked={user.cobranding_enabled}
+                              onCheckedChange={() => handleToggleCoBranding(user.id, user.cobranding_enabled)}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {user.cobranding_enabled ? "Activé" : "Désactivé"}
                             </span>
                           </div>
                         </div>

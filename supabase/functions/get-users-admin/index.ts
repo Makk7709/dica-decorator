@@ -102,6 +102,7 @@ serve(async (req) => {
           first_name: profile?.first_name || null,
           last_name: profile?.last_name || null,
           is_active: profile?.is_active ?? true,
+          cobranding_enabled: profile?.cobranding_enabled ?? false,
           created_at: user.created_at,
           quota_limit: quota?.quota_limit || 50,
           quota_used: quota?.quota_used || 0,
