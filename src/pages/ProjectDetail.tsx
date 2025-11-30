@@ -8,8 +8,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon, Maximize2, X, SplitSquareHorizontal, FileText, Share2 } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon, Maximize2, X, SplitSquareHorizontal, FileText, Share2, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/premium-layout";
 import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
@@ -766,118 +767,105 @@ const ProjectDetail = () => {
                   Appliquer un décor
                 </Button>
 
-                {/* Renders Grid */}
+                {/* Renders Grid - Masonry Layout */}
                 {renders[photo.id] && renders[photo.id].length > 0 && (
                   <div className="mt-6 pt-6 border-t border-border/50">
                     <p className="text-sm font-medium mb-4">
                       Rendus générés ({renders[photo.id].length})
                     </p>
-                    <div className={`grid gap-3 ${
-                      renders[photo.id].length === 1 
-                        ? "grid-cols-1" 
-                        : "grid-cols-2"
-                    }`}>
+                    <div className="columns-1 sm:columns-2 lg:columns-3 gap-3 space-y-3">
                       {renders[photo.id].map((render, renderIndex) => (
                         <div 
                           key={render.id} 
-                          className="group rounded-xl border border-border/50 overflow-hidden bg-white/50 animate-fade-in"
+                          className="break-inside-avoid rounded-xl border border-border/50 overflow-hidden bg-white/50 animate-fade-in shadow-sm hover:shadow-md transition-shadow"
                           style={{ animationDelay: `${renderIndex * 50}ms` }}
                         >
                           <div className="relative">
                             <img
                               src={render.result_image_url}
                               alt="Rendu"
-                              className="w-full aspect-square object-cover"
+                              className="w-full h-auto"
                             />
-                            {/* Icônes en bas à droite */}
-                            <div className="absolute bottom-2 right-2 flex gap-1.5 z-20">
-                              {/* Bouton comparaison avant/après */}
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-7 w-7 bg-white/90 hover:bg-white shadow-md"
-                                onClick={() => {
-                                  const decor = decors.find(d => d.id === render.decor_id);
-                                  const isCreativeRender = !render.decor_id;
-                                  setComparisonMode({
-                                    before: photo.original_image_url,
-                                    after: render.result_image_url,
-                                    decorName: decor?.name || (isCreativeRender ? 'Création Assistant IA' : undefined),
-                                    decorCode: decor?.reference_code || (isCreativeRender ? 'CREATIVE-AI' : undefined),
-                                  });
-                                }}
-                                title="Comparer avant/après"
-                              >
-                                <SplitSquareHorizontal className="h-3.5 w-3.5 text-foreground" />
-                              </Button>
-                              {/* Bouton agrandir */}
-                              <Button
-                                variant="secondary"
-                                size="icon"
-                                className="h-7 w-7 bg-white/90 hover:bg-white shadow-md"
-                                onClick={() => setZoomedImage(render.result_image_url)}
-                                title="Agrandir"
-                              >
-                                <Maximize2 className="h-3.5 w-3.5 text-foreground" />
-                              </Button>
-                            </div>
-                            {/* Overlay actions */}
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 z-10">
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
-                                  asChild
-                                >
-                                  <a href={render.result_image_url} download className="flex items-center gap-1.5">
-                                    <Download className="h-3.5 w-3.5 text-foreground" />
-                                    <span className="text-foreground">Télécharger</span>
-                                  </a>
-                                </Button>
-                                {render.decor_id && (
+                            
+                            {/* Menu contextuel en haut à droite */}
+                            <div className="absolute top-2 right-2 z-20">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
                                   <Button
                                     variant="secondary"
-                                    size="sm"
-                                    className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
-                                    onClick={() => handleRegenerateRender(render.id, photo.id)}
-                                    disabled={isGenerating}
+                                    size="icon"
+                                    className="h-8 w-8 bg-white/95 hover:bg-white shadow-md backdrop-blur-sm"
                                   >
-                                    <RotateCcw className="h-3.5 w-3.5 text-foreground" />
-                                    <span className="text-foreground ml-1.5">Recommencer</span>
+                                    <MoreVertical className="h-4 w-4 text-foreground" />
                                   </Button>
-                                )}
-                              </div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuItem
+                                    onClick={() => setZoomedImage(render.result_image_url)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Maximize2 className="mr-2 h-4 w-4" />
+                                    Agrandir
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      const decor = decors.find(d => d.id === render.decor_id);
+                                      const isCreativeRender = !render.decor_id;
+                                      setComparisonMode({
+                                        before: photo.original_image_url,
+                                        after: render.result_image_url,
+                                        decorName: decor?.name || (isCreativeRender ? 'Création Assistant IA' : undefined),
+                                        decorCode: decor?.reference_code || (isCreativeRender ? 'CREATIVE-AI' : undefined),
+                                      });
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <SplitSquareHorizontal className="mr-2 h-4 w-4" />
+                                    Comparer avant/après
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    asChild
+                                    className="cursor-pointer"
+                                  >
+                                    <a href={render.result_image_url} download className="flex items-center">
+                                      <Download className="mr-2 h-4 w-4" />
+                                      Télécharger
+                                    </a>
+                                  </DropdownMenuItem>
+                                  {render.decor_id && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleRegenerateRender(render.id, photo.id)}
+                                      disabled={isGenerating}
+                                      className="cursor-pointer"
+                                    >
+                                      <RotateCcw className="mr-2 h-4 w-4" />
+                                      Régénérer
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => toggleFavorite(render.id)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Heart 
+                                      className={`mr-2 h-4 w-4 ${
+                                        favoriteRenderIds.has(render.id) 
+                                          ? "fill-current text-red-500" 
+                                          : ""
+                                      }`} 
+                                    />
+                                    {favoriteRenderIds.has(render.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeleteRender(render.id, photo.id)}
+                                    className="cursor-pointer text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Supprimer
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
-                          </div>
-                          
-                          {/* Render footer */}
-                          <div className="p-2 flex items-center justify-between">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2"
-                              onClick={() => toggleFavorite(render.id)}
-                            >
-                              <Heart 
-                                className={`h-3.5 w-3.5 mr-1.5 ${
-                                  favoriteRenderIds.has(render.id) 
-                                    ? "fill-current text-red-500" 
-                                    : ""
-                                }`} 
-                              />
-                              <span className="text-xs">
-                                {favoriteRenderIds.has(render.id) ? "Favori" : "Ajouter"}
-                              </span>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteRender(render.id, photo.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
                           </div>
                         </div>
                       ))}
