@@ -132,8 +132,19 @@ const Admin = () => {
   const loadUsers = async () => {
     setIsLoadingUsers(true);
     try {
-      // Call edge function to get users with admin privileges
-      const { data, error } = await supabase.functions.invoke("get-users-admin");
+      // Get current session to include auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error("No valid session");
+      }
+
+      // Call edge function with auth headers
+      const { data, error } = await supabase.functions.invoke("get-users-admin", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
       
       if (error) throw error;
       
