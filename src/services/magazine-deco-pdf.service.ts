@@ -156,32 +156,28 @@ export class MagazineDecoPdfService {
   ) {
     const { colors } = MAGAZINE_DECO_CONFIG;
     
-    // Full bleed image - show ENTIRE image with letterboxing if needed
+    // Full bleed image - cover mode (remplir toute la page sans bandes)
     const imgRatio = image.width / image.height;
     const pageRatio = pageWidth / pageHeight;
     
     let finalWidth, finalHeight, x, y;
     
-    // Always fit the entire image (contain mode)
+    // Mode "cover" - l'image remplit toute la page (accepte le crop)
     if (imgRatio > pageRatio) {
-      // Image wider - fit to page width
-      finalWidth = pageWidth;
-      finalHeight = finalWidth / imgRatio;
-      x = 0;
-      y = (pageHeight - finalHeight) / 2;
-    } else {
-      // Image taller - fit to page height
+      // Image plus large - fit en hauteur, crop sur les côtés
       finalHeight = pageHeight;
       finalWidth = finalHeight * imgRatio;
       x = (pageWidth - finalWidth) / 2;
       y = 0;
+    } else {
+      // Image plus haute - fit en largeur, crop en haut/bas
+      finalWidth = pageWidth;
+      finalHeight = finalWidth / imgRatio;
+      x = 0;
+      y = (pageHeight - finalHeight) / 2;
     }
     
-    // Fill background with dark color for letterboxing
-    pdf.setFillColor(20, 20, 20);
-    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-    
-    // Add image on top
+    // Add image (no background fill, direct full bleed)
     pdf.addImage(image.base64, 'JPEG', x, y, finalWidth, finalHeight, undefined, 'FAST');
     
     // DICA BRANDING - Top-left (HUGE serif magazine title, AD-style)
