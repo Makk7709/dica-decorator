@@ -56,70 +56,32 @@ interface AnalyticsData {
 }
 
 // ============================================================================
-// Mock Data (replace with real API calls)
+// Real Analytics Data
 // ============================================================================
 
-const generateMockData = (period: PeriodPreset): AnalyticsData => {
-  const days = period === '7d' ? 7 : period === '30d' ? 30 : period === '90d' ? 90 : 30;
-  
-  return {
-    metrics: {
-      totalProjects: Math.floor(Math.random() * 200) + 100,
-      totalRenders: Math.floor(Math.random() * 3000) + 1500,
-      totalUsers: Math.floor(Math.random() * 80) + 40,
-      activeUsers: Math.floor(Math.random() * 50) + 25,
-      totalDecors: 89,
-      avgRendersPerProject: Math.floor(Math.random() * 10) + 5,
-      engagementRate: Math.floor(Math.random() * 30) + 60,
-    },
-    trends: {
-      renders: {
-        data: Array.from({ length: days }, (_, i) => ({
-          date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
-          value: Math.floor(Math.random() * 50) + 20,
-        })),
-        direction: 'up',
-        percentageChange: Math.random() * 30 + 5,
+import { supabase } from "@/integrations/supabase/client";
+
+const fetchRealAnalytics = async (period: PeriodPreset): Promise<AnalyticsData> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.access_token) {
+      throw new Error("No valid session");
+    }
+
+    const { data, error } = await supabase.functions.invoke("get-analytics", {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
       },
-      projects: {
-        data: Array.from({ length: days }, (_, i) => ({
-          date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
-          value: Math.floor(Math.random() * 10) + 2,
-        })),
-        direction: 'up',
-        percentageChange: Math.random() * 20 + 3,
-      },
-      users: {
-        data: Array.from({ length: days }, (_, i) => ({
-          date: new Date(Date.now() - (days - i) * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
-          value: Math.floor(Math.random() * 20) + 10,
-        })),
-        direction: 'stable',
-        percentageChange: Math.random() * 5 - 2.5,
-      },
-    },
-    topDecors: [
-      { id: '1', name: 'Inox Brossé Premium', value: 245, code: '3020BN' },
-      { id: '2', name: 'Marbre Blanc Carrare', value: 189, code: 'MBC-001' },
-      { id: '3', name: 'Chêne Naturel', value: 156, code: 'CN-402' },
-      { id: '4', name: 'Béton Ciré', value: 134, code: 'BC-201' },
-      { id: '5', name: 'Noir Mat', value: 112, code: 'NM-001' },
-    ],
-    topUsers: [
-      { id: 'u1', name: 'Jean Dupont', value: 45, email: 'jean@example.com' },
-      { id: 'u2', name: 'Marie Martin', value: 38, email: 'marie@example.com' },
-      { id: 'u3', name: 'Pierre Durand', value: 32, email: 'pierre@example.com' },
-      { id: 'u4', name: 'Sophie Bernard', value: 28, email: 'sophie@example.com' },
-      { id: 'u5', name: 'Lucas Petit', value: 24, email: 'lucas@example.com' },
-    ],
-    usageData: [
-      { name: 'Métal', value: 35 },
-      { name: 'Bois', value: 28 },
-      { name: 'Marbre', value: 20 },
-      { name: 'Uni', value: 12 },
-      { name: 'Autre', value: 5 },
-    ],
-  };
+      body: { period },
+    });
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error fetching analytics:", error);
+    throw error;
+  }
 };
 
 // ============================================================================
@@ -138,12 +100,15 @@ const AdminAnalytics: React.FC = () => {
     const loadData = async () => {
       setIsLoading(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const mockData = generateMockData(period);
-      setData(mockData);
-      setIsLoading(false);
+      try {
+        const realData = await fetchRealAnalytics(period);
+        setData(realData);
+      } catch (error) {
+        toast.error("Erreur lors du chargement des analytics");
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadData();
@@ -183,11 +148,19 @@ const AdminAnalytics: React.FC = () => {
     toast.success('Rapport exporté');
   };
 
-  const handleRefresh = () => {
-    service.invalidateCache();
-    const mockData = generateMockData(period);
-    setData(mockData);
-    toast.success('Données actualisées');
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      service.invalidateCache();
+      const realData = await fetchRealAnalytics(period);
+      setData(realData);
+      toast.success('Données actualisées');
+    } catch (error) {
+      toast.error("Erreur lors de l'actualisation");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
