@@ -83,6 +83,7 @@ const ProjectDetail = () => {
     decorName?: string;
     decorCode?: string;
   } | null>(null);
+  const [selectedRenderIds, setSelectedRenderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadProject();
@@ -495,6 +496,19 @@ const ProjectDetail = () => {
             {/* Plaquette Premium Export */}
             {project && (Object.values(renders).flat().length > 0 || creativeImports.length > 0) && (
               <>
+                {/* Sélection d'images pour Magazine DECO */}
+                {selectedRenderIds.size > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium">
+                    <span>{selectedRenderIds.size} image{selectedRenderIds.size > 1 ? 's' : ''} sélectionnée{selectedRenderIds.size > 1 ? 's' : ''}</span>
+                    <button 
+                      onClick={() => setSelectedRenderIds(new Set())}
+                      className="hover:underline"
+                    >
+                      Désélectionner
+                    </button>
+                  </div>
+                )}
+                
                 <PlaquetteExportButton
                   project={{
                     id: project.id,
@@ -562,22 +576,25 @@ const ProjectDetail = () => {
                       referenceCode: d.reference_code,
                       category: d.category,
                     }))[0]}
-                    images={Object.entries(renders).flatMap(([photoId, photoRenders]) => {
-                      const photo = photos.find(p => p.id === photoId);
-                      return photoRenders.map(render => {
-                        const decor = decors.find(d => d.id === render.decor_id);
-                        return {
-                          id: render.id,
-                          url: render.result_image_url,
-                          originalUrl: photo?.original_image_url,
-                          decorId: render.decor_id || '',
-                          decorName: decor?.name || '',
-                          decorCode: decor?.reference_code || '',
-                          createdAt: new Date(render.created_at),
-                          isHighResolution: true,
-                        };
-                      });
-                    })}
+                    images={Object.entries(renders)
+                      .flatMap(([photoId, photoRenders]) => {
+                        const photo = photos.find(p => p.id === photoId);
+                        return photoRenders.map(render => {
+                          const decor = decors.find(d => d.id === render.decor_id);
+                          return {
+                            id: render.id,
+                            url: render.result_image_url,
+                            originalUrl: photo?.original_image_url,
+                            decorId: render.decor_id || '',
+                            decorName: decor?.name || '',
+                            decorCode: decor?.reference_code || '',
+                            createdAt: new Date(render.created_at),
+                            isHighResolution: true,
+                          };
+                        });
+                      })
+                      .filter(img => selectedRenderIds.size === 0 || selectedRenderIds.has(img.id))
+                    }
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-foreground"
@@ -825,7 +842,7 @@ const ProjectDetail = () => {
                     </p>
                     <div className="columns-1 sm:columns-2 lg:columns-3 gap-3 space-y-3">
                       {renders[photo.id].map((render, renderIndex) => (
-                        <div 
+                         <div 
                           key={render.id} 
                           className="break-inside-avoid rounded-xl border border-border/50 overflow-hidden bg-white/50 animate-fade-in shadow-sm hover:shadow-md transition-shadow"
                           style={{ animationDelay: `${renderIndex * 50}ms` }}
@@ -836,6 +853,35 @@ const ProjectDetail = () => {
                               alt="Rendu"
                               className="w-full h-auto"
                             />
+                            
+                            {/* Checkbox sélection pour Magazine DECO - en haut à gauche */}
+                            <div className="absolute top-2 left-2 z-20">
+                              <button
+                                onClick={() => {
+                                  setSelectedRenderIds(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(render.id)) {
+                                      next.delete(render.id);
+                                    } else {
+                                      next.add(render.id);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className={`h-6 w-6 rounded-md border-2 flex items-center justify-center transition-all ${
+                                  selectedRenderIds.has(render.id)
+                                    ? 'bg-primary border-primary text-primary-foreground'
+                                    : 'bg-white/95 border-white hover:bg-primary/10'
+                                }`}
+                                title="Sélectionner pour Magazine DECO"
+                              >
+                                {selectedRenderIds.has(render.id) && (
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
                             
                             {/* Menu contextuel en haut à droite */}
                             <div className="absolute top-2 right-2 z-20">
