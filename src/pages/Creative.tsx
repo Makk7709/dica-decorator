@@ -552,7 +552,7 @@ const Creative = () => {
               <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-lg md:text-xl font-semibold tracking-tight">Assistant Créatif</h1>
+              <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">Assistant Créatif</h1>
               <p className="text-xs text-muted-foreground">Powered by DICA AI</p>
             </div>
           </div>
@@ -579,14 +579,14 @@ const Creative = () => {
             <TabsList className="h-12 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
               <TabsTrigger 
                 value="chat" 
-                className="h-10 px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                className="h-10 px-6 rounded-lg text-foreground data-[state=active]:bg-card data-[state=active]:shadow-sm"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
                 Nouvelle création
               </TabsTrigger>
               <TabsTrigger 
                 value="favorites" 
-                className="h-10 px-6 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                className="h-10 px-6 rounded-lg text-foreground data-[state=active]:bg-card data-[state=active]:shadow-sm"
               >
                 <Heart className="mr-2 h-4 w-4" />
                 Favoris ({favorites.length})
