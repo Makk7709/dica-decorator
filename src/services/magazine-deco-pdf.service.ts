@@ -57,7 +57,7 @@ export class MagazineDecoPdfService {
       const loadedImages = await this.loadImagesWithBase64(options.images);
       
       // PAGE 1 - COVER
-      await this.renderCoverPage(pdf, options, loadedImages[0], pageWidth, pageHeight);
+      await this.renderCoverPage(pdf, options, loadedImages[0], aiCaptions, pageWidth, pageHeight);
       
       // PAGE 2 - NARRATIVE + DECOR FOCUS
       if (loadedImages.length > 0) {
@@ -118,12 +118,14 @@ export class MagazineDecoPdfService {
 
       if (error) throw error;
       
-      if (!data || !data.slugline || !data.caption) {
+      if (!data || !data.headline || !data.subheadline || !data.slugline || !data.caption) {
         throw new Error("Invalid AI response");
       }
 
       console.log("✅ AI captions generated:", data);
       return {
+        headline: data.headline,
+        subheadline: data.subheadline,
         slugline: data.slugline,
         caption: data.caption
       };
@@ -132,6 +134,8 @@ export class MagazineDecoPdfService {
       console.error("❌ AI caption generation failed:", error);
       // Fallback to generic captions
       return {
+        headline: "L'excellence du design intérieur",
+        subheadline: `Découvrez comment le décor ${options.decor.name} transforme les espaces avec une élégance intemporelle et une précision exceptionnelle.`,
         slugline: "Style et élégance",
         caption: `Le décor ${options.decor.name} sublime cet espace avec finesse`
       };
@@ -139,49 +143,123 @@ export class MagazineDecoPdfService {
   }
 
   /**
-   * PAGE 1 - Cover project
+   * PAGE 1 - Cover magazine style AD
    */
   private async renderCoverPage(
     pdf: jsPDF, 
     options: MagazineDecoOptions,
     image: LoadedImage,
+    aiCaptions: MagazineAICaption | undefined,
     pageWidth: number,
     pageHeight: number
   ) {
-    const { margins } = MAGAZINE_DECO_CONFIG;
+    const { colors } = MAGAZINE_DECO_CONFIG;
     
-    // Full bleed or large centered image
+    // Full bleed image (no margins)
     const imgRatio = image.width / image.height;
-    const targetHeight = pageHeight * 0.85;
-    const targetWidth = targetHeight * imgRatio;
+    const pageRatio = pageWidth / pageHeight;
     
-    const x = (pageWidth - targetWidth) / 2;
-    const y = margins.top;
+    let finalWidth, finalHeight, x, y;
     
-    pdf.addImage(image.base64, 'JPEG', x, y, targetWidth, targetHeight, undefined, 'FAST');
+    if (imgRatio > pageRatio) {
+      // Image wider than page - fit to height
+      finalHeight = pageHeight;
+      finalWidth = finalHeight * imgRatio;
+      x = (pageWidth - finalWidth) / 2;
+      y = 0;
+    } else {
+      // Image taller than page - fit to width
+      finalWidth = pageWidth;
+      finalHeight = finalWidth / imgRatio;
+      x = 0;
+      y = (pageHeight - finalHeight) / 2;
+    }
     
-    // Bottom-left text block
-    const textY = pageHeight - margins.bottom - 15;
+    pdf.addImage(image.base64, 'JPEG', x, y, finalWidth, finalHeight, undefined, 'FAST');
     
-    // Project name
+    // OVERLAY TEXT ON IMAGE
+    const headline = aiCaptions?.headline || "L'excellence du design";
+    const subheadline = aiCaptions?.subheadline || "Découvrez une nouvelle dimension de l'élégance intérieure avec les finitions DICA.";
+    
+    // Headline (center-left, huge, white with shadow)
     pdf.setFont('Playfair Display', 'bold');
-    pdf.setFontSize(16);
-    pdf.setTextColor(MAGAZINE_DECO_CONFIG.colors.textPrimary);
-    pdf.text(options.project.name, margins.left, textY);
+    pdf.setFontSize(42);
     
-    // Project type
+    // Text shadow effect (multiple offset black layers)
+    pdf.setTextColor(0, 0, 0);
+    const headlineX = 25;
+    const headlineY = pageHeight * 0.35;
+    const maxWidth = pageWidth - 50;
+    
+    const headlineLines = pdf.splitTextToSize(headline, maxWidth);
+    
+    // Shadow layers
+    for (let dx = 0.3; dx <= 0.9; dx += 0.3) {
+      for (let dy = 0.3; dy <= 0.9; dy += 0.3) {
+        pdf.text(headlineLines, headlineX + dx, headlineY + dy);
+      }
+    }
+    
+    // White text on top
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(headlineLines, headlineX, headlineY);
+    
+    // Sub-headline (under headline, smaller, white with shadow)
+    pdf.setFont('Playfair Display', 'normal');
+    pdf.setFontSize(14);
+    
+    const subheadlineY = headlineY + (headlineLines.length * 14) + 8;
+    const subheadlineLines = pdf.splitTextToSize(subheadline, maxWidth - 20);
+    
+    // Shadow
+    pdf.setTextColor(0, 0, 0);
+    for (let dx = 0.2; dx <= 0.6; dx += 0.2) {
+      for (let dy = 0.2; dy <= 0.6; dy += 0.2) {
+        pdf.text(subheadlineLines, headlineX + dx, subheadlineY + dy, { lineHeightFactor: 1.4 });
+      }
+    }
+    
+    // White text
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(subheadlineLines, headlineX, subheadlineY, { lineHeightFactor: 1.4 });
+    
+    // RED CIRCULAR BADGE (top-right)
+    const badgeX = pageWidth - 30;
+    const badgeY = 30;
+    const badgeRadius = 18;
+    
+    // Red circle
+    pdf.setFillColor(colors.dicaRed);
+    pdf.circle(badgeX, badgeY, badgeRadius, 'F');
+    
+    // Badge text
+    pdf.setFont('Inter', 'bold');
+    pdf.setFontSize(7);
+    pdf.setTextColor(255, 255, 255);
+    
+    const badgeText = "NOUVEAUTÉ";
+    const badgeTextWidth = pdf.getTextWidth(badgeText);
+    pdf.text(badgeText, badgeX - (badgeTextWidth / 2), badgeY + 2);
+    
+    // FAKE BARCODE (bottom-right, vertical)
+    const barcodeX = pageWidth - 15;
+    const barcodeY = pageHeight - 60;
+    const barcodeHeight = 40;
+    const barWidth = 1;
+    
+    pdf.setFillColor(0, 0, 0);
+    // Generate random barcode pattern
+    for (let i = 0; i < 30; i++) {
+      const barHeight = Math.random() * barcodeHeight * 0.8 + barcodeHeight * 0.2;
+      const yOffset = barcodeY + (barcodeHeight - barHeight) / 2;
+      pdf.rect(barcodeX + (i * (barWidth + 0.3)), yOffset, barWidth, barHeight, 'F');
+    }
+    
+    // Barcode number below
     pdf.setFont('Inter', 'normal');
-    pdf.setFontSize(10);
-    pdf.setTextColor(MAGAZINE_DECO_CONFIG.colors.textSecondary);
-    pdf.text(this.getProjectTypeLabel(options.project.type), margins.left, textY + 5);
-    
-    // Underline (20mm, DICA red)
-    pdf.setDrawColor(MAGAZINE_DECO_CONFIG.colors.dicaRed);
-    pdf.setLineWidth(0.3);
-    pdf.line(margins.left, textY + 8, margins.left + 20, textY + 8);
-    
-    // Footer
-    this.renderFooter(pdf, pageWidth, pageHeight, 1);
+    pdf.setFontSize(6);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text("9 782847 365894", barcodeX - 8, barcodeY + barcodeHeight + 4);
   }
 
   /**

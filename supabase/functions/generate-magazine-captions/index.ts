@@ -15,6 +15,8 @@ interface CaptionRequest {
 }
 
 interface CaptionResponse {
+  headline: string;
+  subheadline: string;
   slugline: string;
   caption: string;
 }
@@ -45,15 +47,28 @@ serve(async (req) => {
     // Build editorial AI prompt
     const systemPrompt = `Tu es un rédacteur éditorial expert pour des magazines d'architecture et de décoration haut de gamme (style AD, Architectural Digest).
 
-Tu dois générer 2 types de textes pour un visuel de projet DICA DÉCOR:
+Tu dois générer 4 types de textes pour un projet DICA DÉCOR:
 
-1. SLUGLINE (3-6 mots maximum)
+1. HEADLINE (5-12 mots, 2 lignes max)
+   - Style: COUVERTURE MAGAZINE, premium, impactant
+   - Ton: émotionnel fort, aspirationnel, luxueux
+   - Doit capturer l'essence du projet en quelques mots puissants
+   - Exemples: "La nouvelle ère du design intérieur", "Quand l'élégance rencontre l'innovation"
+   - Format: 2 lignes maximum, chaque ligne 3-6 mots
+
+2. SUB-HEADLINE (15-25 mots)
+   - Style: mini paragraphe éditorial premium
+   - Ton: descriptif sophistiqué, contexte émotionnel et technique
+   - Complète le headline avec détails précis et impact
+   - Exemples: "Dans cet espace contemporain, les finitions DICA révèlent une sophistication inédite. Le décor métal sublime chaque surface avec une précision architecturale."
+
+3. SLUGLINE (3-6 mots maximum)
    - Style: handwritten, poétique, évocateur
    - Ton: émotionnel, sensoriel, inspirant
    - Utilise des mots qui évoquent l'atmosphère et le ressenti
    - Exemples: "Élégance intemporelle", "Lumière et matière", "Harmonie moderne"
 
-2. CAPTION (10-15 mots maximum)
+4. CAPTION (10-15 mots maximum)
    - Style: éditorial magazine, professionnel mais accessible
    - Ton: descriptif et valorisant, sans marketing forcé
    - Décrit l'ambiance, le décor, et l'impact visuel
@@ -65,11 +80,11 @@ CONTRAINTES STRICTES:
 - JAMAIS de répétition du type de projet dans le slugline (si c'est un van, ne pas écrire "Van moderne")
 - Les textes doivent s'adapter PARFAITEMENT au projectType fourni
 - Valoriser le décor DICA de manière organique et naturelle
-- Rester court, impactant, magazine-quality
+- Headline et sub-headline doivent avoir l'impact d'une vraie couverture AD Magazine
 
-Réponds en JSON avec {slugline, caption}.`;
+Réponds en JSON avec {headline, subheadline, slugline, caption}.`;
 
-    const userPrompt = `Génère un slugline et une caption pour ce projet DICA DÉCOR:
+    const userPrompt = `Génère un headline, sub-headline, slugline et caption pour ce projet DICA DÉCOR:
 
 Projet: ${projectName}
 Type d'espace: ${projectType}
@@ -78,12 +93,27 @@ Référence: ${decorReference}
 ${decorCategory ? `Catégorie: ${decorCategory}` : ''}
 
 Le projectType indique le contexte (van, restaurant, bureau, ascenseur, etc.).
-Le slugline et la caption doivent refléter l'atmosphère de ce type d'espace avec le décor DICA.
+Tous les textes doivent refléter l'atmosphère de ce type d'espace avec le décor DICA.
 
 Exemples de qualité attendue:
-- Van aménagé + décor Metal → slugline: "Liberté nomade", caption: "L'acier brossé DICA transforme ce van en cocon d'aventure raffiné"
-- Restaurant + décor Marbre → slugline: "Élégance naturelle", caption: "Le marbre DICA sublime l'expérience culinaire dans une ambiance intemporelle"
-- Bureau + décor Unis blanc → slugline: "Clarté inspirante", caption: "La finition satinée DICA crée un espace de travail lumineux et apaisant"`;
+
+Van aménagé + décor Metal:
+- headline: "La route devient un art de vivre"
+- subheadline: "Dans ce van aménagé, les panneaux DICA métal brossé créent un espace nomade où luxe et liberté se rejoignent. Chaque détail respire la sophistication itinérante."
+- slugline: "Liberté nomade"
+- caption: "L'acier brossé DICA transforme ce van en cocon d'aventure raffiné"
+
+Restaurant + décor Marbre:
+- headline: "Quand la gastronomie rencontre le design"
+- subheadline: "Les finitions marbre DICA redéfinissent l'expérience culinaire. Dans cet espace, chaque surface raconte une histoire d'élégance intemporelle et de raffinement absolu."
+- slugline: "Élégance naturelle"
+- caption: "Le marbre DICA sublime l'expérience culinaire dans une ambiance intemporelle"
+
+Bureau + décor Unis blanc:
+- headline: "Réinventer l'espace de travail"
+- subheadline: "La finition satinée DICA transforme ce bureau en sanctuaire de créativité. Lumière, clarté et design épuré convergent pour inspirer l'excellence quotidienne."
+- slugline: "Clarté inspirante"
+- caption: "La finition satinée DICA crée un espace de travail lumineux et apaisant"`;
 
     // Call Lovable AI with tool calling for structured output
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -103,10 +133,18 @@ Exemples de qualité attendue:
             type: "function",
             function: {
               name: "generate_magazine_caption",
-              description: "Génère un slugline et une caption pour un visuel magazine DICA",
+              description: "Génère headline, sub-headline, slugline et caption pour couverture magazine DICA",
               parameters: {
                 type: "object",
                 properties: {
+                  headline: {
+                    type: "string",
+                    description: "Headline principal (5-12 mots, 2 lignes max) style couverture magazine"
+                  },
+                  subheadline: {
+                    type: "string",
+                    description: "Sub-headline éditorial (15-25 mots) mini paragraphe premium"
+                  },
                   slugline: {
                     type: "string",
                     description: "Accroche courte (3-6 mots) style handwritten"
@@ -116,7 +154,7 @@ Exemples de qualité attendue:
                     description: "Légende éditoriale (10-15 mots) style magazine"
                   }
                 },
-                required: ["slugline", "caption"],
+                required: ["headline", "subheadline", "slugline", "caption"],
                 additionalProperties: false
               }
             }
@@ -159,8 +197,19 @@ Exemples de qualité attendue:
     const result = JSON.parse(toolCall.function.arguments) as CaptionResponse;
 
     // Validate output
-    if (!result.slugline || !result.caption) {
+    if (!result.headline || !result.subheadline || !result.slugline || !result.caption) {
       throw new Error("AI did not generate required fields");
+    }
+
+    // Truncate if needed
+    if (result.headline.split(' ').length > 15) {
+      console.warn("Headline too long, truncating");
+      result.headline = result.headline.split(' ').slice(0, 12).join(' ');
+    }
+
+    if (result.subheadline.split(' ').length > 30) {
+      console.warn("Sub-headline too long, truncating");
+      result.subheadline = result.subheadline.split(' ').slice(0, 25).join(' ');
     }
 
     if (result.slugline.split(' ').length > 8) {
@@ -185,6 +234,8 @@ Exemples de qualité attendue:
     return new Response(
       JSON.stringify({ 
         error: error.message || "Unknown error",
+        headline: "",
+        subheadline: "",
         slugline: "",
         caption: ""
       }),

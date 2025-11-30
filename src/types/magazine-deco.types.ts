@@ -9,6 +9,12 @@ import { PlaquetteProject, PlaquetteDecor, PlaquetteImage } from './plaquette.ty
  * Texte AI généré par l'orchestrateur DICA
  */
 export interface MagazineAICaption {
+  /** Headline principal couverture (5-12 mots, 2 lignes max) */
+  headline: string;
+  
+  /** Sub-headline éditorial (15-25 mots) */
+  subheadline: string;
+  
   /** Accroche courte (3-6 mots) style handwritten script */
   slugline: string;
   
