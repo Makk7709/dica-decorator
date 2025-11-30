@@ -284,10 +284,6 @@ export class MagazineDecoPdfService {
     const dateWidth = pdf.getTextWidth(dateText);
     pdf.text(dateText, pageWidth - dateWidth - 12, 15);
     
-    const priceText = "8,50€";
-    const priceWidth = pdf.getTextWidth(priceText);
-    pdf.text(priceText, pageWidth - priceWidth - 12, 20);
-    
     // FAKE BARCODE (bottom-right, vertical)
     const barcodeX = pageWidth - 15;
     const barcodeY = pageHeight - 70;
