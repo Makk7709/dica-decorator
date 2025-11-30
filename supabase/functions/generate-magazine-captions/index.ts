@@ -78,7 +78,7 @@ CONTEXTE: ${contextLabel}
 
 RÈGLE: ANALYSER L'IMAGE pour baser ton récit sur ce que tu vois réellement.
 
-TEXTES À GÉNÉRER:
+🚨 OBLIGATOIRE: Tu DOIS générer les 5 textes suivants (pas 4, pas 3, mais 5) :
 
 1. **headline** (titre couverture): 5-12 mots, 2 lignes max, poétique et premium
 
@@ -88,9 +88,11 @@ TEXTES À GÉNÉRER:
 
 4. **caption** (légende): 10-15 mots, ton lifestyle raffiné
 
-5. **article** (récit éditorial): 80-120 mots
+5. **article** (récit éditorial - OBLIGATOIRE): 80-120 mots minimum
    
-   STYLE NARRATIF:
+   ⚠️ L'ARTICLE EST OBLIGATOIRE - Ne JAMAIS l'omettre !
+   
+   STYLE NARRATIF pour l'article:
    - Commence par une observation poétique de l'espace
    - Évoque l'atmosphère, la lumière, les sensations
    - Glisse subtilement 2-3 qualités techniques (résistance, durabilité, entretien facile)
@@ -100,24 +102,27 @@ TEXTES À GÉNÉRER:
    - 70% storytelling et émotion
    - 30% expertise technique (intégrée naturellement)
    
-   EXEMPLES DE FORMULATIONS ÉLÉGANTES:
+   EXEMPLES DE FORMULATIONS ÉLÉGANTES pour l'article:
    - "La lumière caresse les surfaces aux reflets subtils..."
    - "Une matière qui traverse le temps sans jamais faillir..."
    - "L'œil se pose, la main effleure, l'esprit s'apaise..."
    - "Derrière cette élégance, une technologie qui défie l'usure..."
+   - "Les surfaces respirent avec l'espace, dans une harmonie parfaite..."
+   - "Chaque détail raconte une histoire de savoir-faire..."
    
-   ${decorCategory === 'metal' ? 'TOUCHE TECHNIQUE: évoquer les reflets, la modernité, la facilité d\'entretien' : ''}
-   ${decorCategory === 'bois' ? 'TOUCHE TECHNIQUE: évoquer la chaleur naturelle, l\'authenticité du toucher, la pérennité' : ''}
-   ${decorCategory === 'unis' ? 'TOUCHE TECHNIQUE: évoquer la pureté des lignes, l\'intemporalité, la sérénité' : ''}
-   ${decorCategory === 'marbre' ? 'TOUCHE TECHNIQUE: évoquer le prestige, la légèreté inattendue, la perfection des veines' : ''}
+   ${decorCategory === 'metal' ? 'TOUCHE TECHNIQUE pour l\'article: évoquer les reflets, la modernité, la facilité d\'entretien, les surfaces anti-trace' : ''}
+   ${decorCategory === 'bois' ? 'TOUCHE TECHNIQUE pour l\'article: évoquer la chaleur naturelle, l\'authenticité du toucher, la pérennité, la stabilité dimensionnelle' : ''}
+   ${decorCategory === 'unis' ? 'TOUCHE TECHNIQUE pour l\'article: évoquer la pureté des lignes, l\'intemporalité, la sérénité, la lumière diffuse' : ''}
+   ${decorCategory === 'marbre' ? 'TOUCHE TECHNIQUE pour l\'article: évoquer le prestige minéral, la légèreté inattendue, la perfection des veines, la reproduction haute définition' : ''}
 
-RÈGLES:
+RÈGLES GÉNÉRALES:
 - Français littéraire et élégant
 - JAMAIS de ponctuation exclamative
 - Créer du désir, pas informer froidement
 - Le lecteur doit ressentir l'espace
 
-Retourne UNIQUEMENT un JSON valide avec ces 5 clés.`;
+⚠️ IMPORTANT: Retourne un JSON avec EXACTEMENT 5 clés: headline, subheadline, slugline, caption, article
+Si tu oublies l'article, la fonction échouera !`;
 
     // Build user message with IMAGE
     const userMessageContent: any[] = [
@@ -133,7 +138,10 @@ CRITIQUE — ANALYSE L'IMAGE:
 Regarde attentivement l'image. Identifie l'espace réel visible (terrasse, bureau, ascenseur, etc.).
 Base tes textes UNIQUEMENT sur ce que tu vois, pas sur le "type suggéré".
 
-Retourne un JSON avec {headline, subheadline, slugline, caption}.`
+🚨 RAPPEL CRITIQUE: Tu dois générer 5 textes (headline, subheadline, slugline, caption, ET article).
+L'article de 80-120 mots est OBLIGATOIRE - ne l'oublie pas !
+
+Retourne un JSON avec {headline, subheadline, slugline, caption, article}.`
       }
     ];
 
@@ -185,7 +193,7 @@ Retourne un JSON avec {headline, subheadline, slugline, caption}.`
                   },
                   article: {
                     type: "string",
-                    description: "Article technique complet (80-120 mots) avec propriétés HPL, avantages pros, résistance, entretien"
+                    description: "Article éditorial narratif OBLIGATOIRE (80-120 mots minimum) mêlant storytelling élégant et touches d'expertise technique. Commence par une évocation poétique, intègre 2-3 qualités matérielles (résistance, entretien, durabilité), termine sur l'émotion. Style magazine premium, pas catalogue produit. CE CHAMP EST OBLIGATOIRE."
                   }
                 },
                 required: ["headline", "subheadline", "slugline", "caption", "article"],
