@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { BookOpen, Download, Loader2, Sparkles } from 'lucide-react';
+import { BookOpen, Download, Loader2, Sparkles, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -50,22 +50,59 @@ export function MagazineDecoExportButton({
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [coverImageId, setCoverImageId] = useState<string>('');
+  const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
   
   const { toast } = useToast();
 
-  // Initialize cover image to first image when dialog opens
+  // Initialize cover image and select all images when dialog opens
   const handleOpenChange = (open: boolean) => {
-    if (open && images.length > 0 && !coverImageId) {
-      setCoverImageId(images[0].id);
+    if (open && images.length > 0) {
+      if (!coverImageId) {
+        setCoverImageId(images[0].id);
+      }
+      // Select all images by default
+      setSelectedImageIds(new Set(images.map(img => img.id)));
     }
     setIsOpen(open);
   };
 
+  // Toggle image selection
+  const toggleImageSelection = (imageId: string) => {
+    const newSelected = new Set(selectedImageIds);
+    if (newSelected.has(imageId)) {
+      // Don't allow deselecting the cover image
+      if (imageId === coverImageId) {
+        toast({
+          title: 'Image de couverture',
+          description: 'L\'image de couverture doit rester sélectionnée.',
+          variant: 'default',
+        });
+        return;
+      }
+      newSelected.delete(imageId);
+    } else {
+      newSelected.add(imageId);
+    }
+    setSelectedImageIds(newSelected);
+  };
+
+  // Set cover image (also ensures it's selected)
+  const handleSetCover = (imageId: string) => {
+    setCoverImageId(imageId);
+    // Ensure cover is selected
+    const newSelected = new Set(selectedImageIds);
+    newSelected.add(imageId);
+    setSelectedImageIds(newSelected);
+  };
+
+  // Get selected images count
+  const selectedCount = selectedImageIds.size;
+
   const handleExport = async () => {
-    if (images.length === 0) {
+    if (selectedCount === 0) {
       toast({
         title: 'Export impossible',
-        description: 'Aucune image à exporter.',
+        description: 'Veuillez sélectionner au moins une image.',
         variant: 'destructive',
       });
       return;
@@ -77,10 +114,13 @@ export function MagazineDecoExportButton({
     try {
       setProgress(30);
       
+      // Filter only selected images
+      const selectedImages = images.filter(img => selectedImageIds.has(img.id));
+      
       // Reorder images: cover first, then others
-      const coverImage = images.find(img => img.id === coverImageId);
-      const otherImages = images.filter(img => img.id !== coverImageId);
-      const orderedImages = coverImage ? [coverImage, ...otherImages] : images;
+      const coverImage = selectedImages.find(img => img.id === coverImageId);
+      const otherImages = selectedImages.filter(img => img.id !== coverImageId);
+      const orderedImages = coverImage ? [coverImage, ...otherImages] : selectedImages;
       
       // Generate Magazine DECO PDF with AI captions
       const result = await magazineDecoPdfService.generateMagazinePDF({
@@ -161,47 +201,98 @@ export function MagazineDecoExportButton({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Image de couverture */}
+          {/* Sélection des images */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm font-semibold">Image de couverture</h4>
-              <Badge variant="outline" className="text-xs">
-                {images.length} image{images.length > 1 ? 's' : ''} disponible{images.length > 1 ? 's' : ''}
-              </Badge>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-semibold">Sélection des images</h4>
+                <Badge variant="outline" className="text-xs">
+                  {selectedCount}/{images.length} sélectionnée{selectedCount > 1 ? 's' : ''}
+                </Badge>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedImageIds(new Set(images.map(img => img.id)))}
+                  className="text-xs h-7"
+                >
+                  Tout sélectionner
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedImageIds(new Set([coverImageId]))}
+                  className="text-xs h-7"
+                >
+                  Couverture seule
+                </Button>
+              </div>
             </div>
             
+            <p className="text-xs text-muted-foreground">
+              Cliquez sur une image pour la sélectionner/désélectionner. Double-cliquez pour définir la couverture.
+            </p>
+            
             <div className="grid grid-cols-3 gap-3">
-              {images.map((image) => (
-                <button
-                  key={image.id}
-                  type="button"
-                  onClick={() => setCoverImageId(image.id)}
-                  className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
-                    coverImageId === image.id
-                      ? 'border-primary ring-2 ring-primary/20'
-                      : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <img
-                    src={image.url}
-                    alt={`Option ${image.decorName}`}
-                    className="w-full h-full object-cover"
-                  />
-                  {image.isFavorite && (
-                    <Badge 
-                      variant="secondary" 
-                      className="absolute top-2 right-2 text-xs bg-yellow-500/90 text-white border-0"
+              {images.map((image) => {
+                const isSelected = selectedImageIds.has(image.id);
+                const isCover = coverImageId === image.id;
+                
+                return (
+                  <div
+                    key={image.id}
+                    className="relative"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleImageSelection(image.id)}
+                      onDoubleClick={() => handleSetCover(image.id)}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all w-full ${
+                        isCover
+                          ? 'border-primary ring-2 ring-primary/20'
+                          : isSelected
+                            ? 'border-green-500 ring-1 ring-green-500/20'
+                            : 'border-border opacity-50 grayscale hover:opacity-75 hover:grayscale-0'
+                      }`}
                     >
-                      ★ Favori
-                    </Badge>
-                  )}
-                  {coverImageId === image.id && (
-                    <div className="absolute inset-0 bg-primary/10 flex items-center justify-center">
-                      <Badge className="bg-primary">Couverture</Badge>
-                    </div>
-                  )}
-                </button>
-              ))}
+                      <img
+                        src={image.url}
+                        alt={`Option ${image.decorName}`}
+                        className="w-full h-full object-cover"
+                      />
+                      
+                      {/* Indicateur de sélection */}
+                      <div className={`absolute top-2 left-2 w-5 h-5 rounded-full flex items-center justify-center ${
+                        isSelected ? 'bg-green-500' : 'bg-gray-400/80'
+                      }`}>
+                        {isSelected ? (
+                          <Check className="h-3 w-3 text-white" />
+                        ) : (
+                          <X className="h-3 w-3 text-white" />
+                        )}
+                      </div>
+                      
+                      {/* Badge favori */}
+                      {image.isFavorite && (
+                        <Badge 
+                          variant="secondary" 
+                          className="absolute top-2 right-2 text-xs bg-yellow-500/90 text-white border-0"
+                        >
+                          ★
+                        </Badge>
+                      )}
+                      
+                      {/* Badge couverture */}
+                      {isCover && (
+                        <div className="absolute bottom-0 inset-x-0 bg-primary/90 py-1">
+                          <p className="text-xs text-white text-center font-medium">Couverture</p>
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           </div>
           
@@ -211,8 +302,13 @@ export function MagazineDecoExportButton({
               <div>
                 <h4 className="font-playfair font-semibold text-lg">{project.name}</h4>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {images.length} image{images.length > 1 ? 's' : ''} • Décor {decor.name}
+                  {selectedCount} image{selectedCount > 1 ? 's' : ''} sélectionnée{selectedCount > 1 ? 's' : ''} • Décor {decor.name}
                 </p>
+                {selectedCount > 0 && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    = {selectedCount + 1} page{selectedCount > 0 ? 's' : ''} (couverture + {selectedCount} article{selectedCount > 1 ? 's' : ''})
+                  </p>
+                )}
               </div>
               
               {/* Features */}
