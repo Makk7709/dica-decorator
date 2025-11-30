@@ -527,87 +527,120 @@ export class MagazineDecoPdfService {
     pdf.text(logoText, (pageWidth - logoWidth) / 2, 16);
     
     // ═══════════════════════════════════════════════════════════════════
-    // COMPOSITION MULTI-IMAGES (AVANT / APRÈS côte à côte)
+    // COMPOSITION IMAGE - Fusion avant/après en une seule image A4
     // ═══════════════════════════════════════════════════════════════════
     const compositionY = 25;
-    const compositionHeight = pageHeight * 0.68; // Équilibre entre taille d'images et espace pour texte
-    const gap = 6; // Espace entre les images
+    const compositionHeight = pageHeight * 0.70;
+    
+    let finalImageBase64: string;
+    let finalImageWidth: number;
+    let finalImageHeight: number;
     
     if (originalImage) {
-      // Mode AVANT/APRÈS côte à côte
-      const halfWidth = (pageWidth - margins.left - margins.right - gap) / 2;
-      const leftX = margins.left;
-      const rightX = margins.left + halfWidth + gap;
+      // Créer une image composite fusionnant avant/après
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d')!;
       
-      // ─────────────────────────────────────────────────────────────────
-      // IMAGE AVANT (gauche)
-      // ─────────────────────────────────────────────────────────────────
-      const beforeRatio = originalImage.width / originalImage.height;
-      let beforeW = halfWidth;
-      let beforeH = beforeW / beforeRatio;
-      if (beforeH > compositionHeight) {
-        beforeH = compositionHeight;
-        beforeW = beforeH * beforeRatio;
-      }
-      const beforeX = leftX + (halfWidth - beforeW) / 2;
+      // Dimensions A4 paysage optimisées
+      const compositeWidth = 2000;
+      const compositeHeight = 1400;
+      canvas.width = compositeWidth;
+      canvas.height = compositeHeight;
       
-      pdf.addImage(originalImage.base64, 'JPEG', beforeX, compositionY, beforeW, beforeH, undefined, 'FAST');
+      // Fond blanc
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, compositeWidth, compositeHeight);
       
-      // Label AVANT
-      pdf.setFont('Inter', 'bold');
-      pdf.setFontSize(9);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text("AVANT", leftX, compositionY + beforeH + 6);
+      // Dimensions pour chaque image
+      const gap = 40;
+      const labelHeight = 80;
+      const singleWidth = (compositeWidth - gap) / 2;
+      const imageHeight = compositeHeight - labelHeight;
       
-      // ─────────────────────────────────────────────────────────────────
-      // IMAGE APRÈS (droite)
-      // ─────────────────────────────────────────────────────────────────
-      const afterRatio = renderedImage.width / renderedImage.height;
-      let afterW = halfWidth;
-      let afterH = afterW / afterRatio;
-      if (afterH > compositionHeight) {
-        afterH = compositionHeight;
-        afterW = afterH * afterRatio;
-      }
-      const afterX = rightX + (halfWidth - afterW) / 2;
+      // Charger les images
+      const originalImg = new Image();
+      const renderedImg = new Image();
       
-      pdf.addImage(renderedImage.base64, 'JPEG', afterX, compositionY, afterW, afterH, undefined, 'FAST');
+      await Promise.all([
+        new Promise((resolve) => {
+          originalImg.onload = resolve;
+          originalImg.src = originalImage.base64.startsWith('data:') 
+            ? originalImage.base64 
+            : `data:image/jpeg;base64,${originalImage.base64}`;
+        }),
+        new Promise((resolve) => {
+          renderedImg.onload = resolve;
+          renderedImg.src = renderedImage.base64.startsWith('data:') 
+            ? renderedImage.base64 
+            : `data:image/jpeg;base64,${renderedImage.base64}`;
+        })
+      ]);
       
-      // Label APRÈS avec couleur DICA
-      pdf.setTextColor(colors.dicaRed);
-      pdf.text("APRÈS", rightX, compositionY + afterH + 6);
+      // Fonction pour dessiner une image avec fit
+      const drawImageFit = (img: HTMLImageElement, x: number, width: number) => {
+        const ratio = img.height / img.width;
+        const finalH = Math.min(imageHeight, width * ratio);
+        const finalW = finalH / ratio;
+        const offsetX = x + (width - finalW) / 2;
+        const offsetY = labelHeight + (imageHeight - finalH) / 2;
+        ctx.drawImage(img, offsetX, offsetY, finalW, finalH);
+      };
       
-      // Référence décor sous l'image APRÈS
-      pdf.setFont('Inter', 'normal');
-      pdf.setFontSize(7);
-      pdf.setTextColor(120, 120, 120);
-      pdf.text(`${options.decor.name} • Réf. ${options.decor.referenceCode}`, rightX, compositionY + afterH + 12);
+      // Labels en haut
+      ctx.font = 'bold 48px Inter, Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      
+      // Label AVANT (gauche, gris)
+      ctx.fillStyle = '#666666';
+      ctx.fillText('AVANT', singleWidth / 2, 20);
+      
+      // Label APRÈS (droite, rouge DICA)
+      ctx.fillStyle = '#DC2626';
+      ctx.fillText('APRÈS', singleWidth + gap + singleWidth / 2, 20);
+      
+      // Dessiner les images
+      drawImageFit(originalImg, 0, singleWidth);
+      drawImageFit(renderedImg, singleWidth + gap, singleWidth);
+      
+      // Convertir en base64
+      finalImageBase64 = canvas.toDataURL('image/jpeg', 0.95);
+      finalImageWidth = compositeWidth;
+      finalImageHeight = compositeHeight;
       
     } else {
-      // Mode image unique (pas d'original)
-      const imgRatio = renderedImage.width / renderedImage.height;
-      const maxWidth = pageWidth - margins.left - margins.right;
-      let imgW = maxWidth;
-      let imgH = imgW / imgRatio;
-      if (imgH > compositionHeight) {
-        imgH = compositionHeight;
-        imgW = imgH * imgRatio;
-      }
-      const imgX = (pageWidth - imgW) / 2;
-      
-      pdf.addImage(renderedImage.base64, 'JPEG', imgX, compositionY, imgW, imgH, undefined, 'FAST');
-      
-      // Crédits
-      pdf.setFont('Times', 'italic');
-      pdf.setFontSize(7);
-      pdf.setTextColor(120, 120, 120);
-      pdf.text(`${options.decor.name} • Réf. ${options.decor.referenceCode}`, imgX, compositionY + imgH + 5);
+      // Image unique
+      finalImageBase64 = renderedImage.base64;
+      finalImageWidth = renderedImage.width;
+      finalImageHeight = renderedImage.height;
     }
+    
+    // Ajouter l'image finale au PDF (centrée, format A4)
+    const imgRatio = finalImageHeight / finalImageWidth;
+    const maxWidth = pageWidth - margins.left - margins.right;
+    let imgW = maxWidth * 0.95;
+    let imgH = imgW * imgRatio;
+    
+    if (imgH > compositionHeight) {
+      imgH = compositionHeight;
+      imgW = imgH / imgRatio;
+    }
+    
+    const imgX = (pageWidth - imgW) / 2;
+    pdf.addImage(finalImageBase64, 'JPEG', imgX, compositionY, imgW, imgH, undefined, 'FAST');
+    
+    // Référence décor sous l'image
+    pdf.setFont('Inter', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(120, 120, 120);
+    const creditText = `${options.decor.name} • Réf. ${options.decor.referenceCode}`;
+    const creditWidth = pdf.getTextWidth(creditText);
+    pdf.text(creditText, (pageWidth - creditWidth) / 2, compositionY + imgH + 5);
     
     // ═══════════════════════════════════════════════════════════════════
     // SECTION TEXTE ÉDITORIALE
     // ═══════════════════════════════════════════════════════════════════
-    const textSectionY = compositionY + compositionHeight + 8; // Espace minimal
+    const textSectionY = compositionY + imgH + 15; // Espace après l'image composite
     
     // Label "DÉCORATION" centré avec lignes
     pdf.setFont('Inter', 'normal');
