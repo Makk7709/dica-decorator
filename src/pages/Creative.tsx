@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, Download, FolderPlus, ImagePlus, X, Home } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, Download, FolderPlus, ImagePlus, X, Home, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,6 +78,7 @@ const Creative = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [currentImageLabel, setCurrentImageLabel] = useState<string>("");
   const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null); // Image en plein écran
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -652,12 +653,33 @@ const Creative = () => {
                                 <div className="space-y-3">
                                   <p className="whitespace-pre-wrap text-sm">{message.content}</p>
                                   <div className="space-y-2">
-                                    <img 
-                                      src={message.imageUrl} 
-                                      alt="Visualisation générée" 
-                                      className="rounded-lg w-full max-w-2xl"
-                                    />
-                                    <div className="flex gap-2">
+                                    {/* Image avec overlay de zoom */}
+                                    <div 
+                                      className="relative group cursor-pointer"
+                                      onClick={() => setZoomedImage(message.imageUrl!)}
+                                    >
+                                      <img 
+                                        src={message.imageUrl} 
+                                        alt="Visualisation générée" 
+                                        className="rounded-lg w-full max-w-2xl transition-transform hover:scale-[1.02]"
+                                      />
+                                      {/* Overlay avec icône zoom */}
+                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-lg flex items-center justify-center">
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-3 shadow-lg">
+                                          <Maximize2 className="h-6 w-6 text-foreground" />
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {/* Bouton Zoom */}
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setZoomedImage(message.imageUrl!)}
+                                      >
+                                        <Maximize2 className="h-4 w-4 mr-2" />
+                                        Agrandir
+                                      </Button>
                                       <Button
                                         variant="outline"
                                         size="sm"
@@ -1012,6 +1034,61 @@ const Creative = () => {
                     )}
                   </Button>
                 </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Dialog Zoom Plein Écran */}
+          <Dialog open={!!zoomedImage} onOpenChange={(open) => !open && setZoomedImage(null)}>
+            <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
+              <div className="relative w-full h-full flex items-center justify-center">
+                {/* Bouton fermer */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 text-white rounded-full h-10 w-10"
+                  onClick={() => setZoomedImage(null)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+                
+                {/* Actions en haut à gauche */}
+                <div className="absolute top-4 left-4 z-50 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/10 hover:bg-white/20 text-white border-none"
+                    onClick={() => zoomedImage && downloadImage(zoomedImage)}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Télécharger
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/10 hover:bg-white/20 text-white border-none"
+                    onClick={() => {
+                      if (zoomedImage) {
+                        setSelectedImageUrl(zoomedImage);
+                        setZoomedImage(null);
+                        setSaveToProjectDialogOpen(true);
+                      }
+                    }}
+                  >
+                    <FolderPlus className="h-4 w-4 mr-2" />
+                    Enregistrer
+                  </Button>
+                </div>
+
+                {/* Image zoomée */}
+                {zoomedImage && (
+                  <img
+                    src={zoomedImage}
+                    alt="Visualisation en plein écran"
+                    className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
               </div>
             </DialogContent>
           </Dialog>
