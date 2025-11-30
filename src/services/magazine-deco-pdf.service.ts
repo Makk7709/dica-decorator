@@ -36,10 +36,13 @@ export class MagazineDecoPdfService {
         throw new Error("Missing required data for Magazine DECO generation");
       }
 
-      // Generate AI captions if requested and not provided
-      let aiCaptions = options.aiCaptions;
-      if (options.generateAICaptions && !aiCaptions) {
-        aiCaptions = await this.generateAICaptions(options);
+      // Generate AI captions for COVER if requested and not provided
+      let coverCaptions = options.aiCaptions;
+      if (options.generateAICaptions && !coverCaptions) {
+        coverCaptions = await this.generateAICaptions({
+          ...options,
+          images: [options.images[0]] // Cover uses first image
+        });
       }
 
       // Create PDF instance (A4 portrait, 300 DPI quality)
@@ -57,11 +60,20 @@ export class MagazineDecoPdfService {
       const loadedImages = await this.loadImagesWithBase64(options.images);
       
       // PAGE 1 - COVER
-      await this.renderCoverPage(pdf, options, loadedImages[0], aiCaptions, pageWidth, pageHeight);
+      await this.renderCoverPage(pdf, options, loadedImages[0], coverCaptions, pageWidth, pageHeight);
       
-      // PAGE 2+ - EDITORIAL ARTICLES with before/after
+      // PAGE 2+ - EDITORIAL ARTICLES with before/after (UNIQUE captions per image)
       for (let i = 0; i < loadedImages.length; i++) {
         pdf.addPage();
+        
+        // Generate UNIQUE AI captions for THIS specific image
+        const pageCaptions = options.generateAICaptions 
+          ? await this.generateAICaptions({
+              ...options,
+              images: [options.images[i]] // Pass current image for analysis
+            })
+          : undefined;
+        
         const originalImage = options.images[i]?.originalUrl 
           ? await this.loadSingleImageWithBase64(options.images[i].originalUrl!)
           : null;
@@ -71,7 +83,7 @@ export class MagazineDecoPdfService {
           originalImage,
           loadedImages[i], 
           options,
-          aiCaptions, 
+          pageCaptions, // Use image-specific captions
           pageWidth, 
           pageHeight, 
           i + 2
@@ -85,7 +97,7 @@ export class MagazineDecoPdfService {
       console.log("✅ Magazine DECO PDF generated:", {
         filename,
         pageCount: pdf.getNumberOfPages(),
-        aiCaptions
+        aiCaptions: coverCaptions
       });
 
       return {
@@ -93,7 +105,7 @@ export class MagazineDecoPdfService {
         blob,
         filename,
         pageCount: pdf.getNumberOfPages(),
-        aiCaptions
+        aiCaptions: coverCaptions
       };
 
     } catch (error: any) {
@@ -502,7 +514,7 @@ export class MagazineDecoPdfService {
   }
 
   /**
-   * PAGE 2+ - Editorial article with before/after comparison
+   * PAGE 2+ - Editorial article with before/after comparison (AD Magazine style)
    */
   private async renderEditorialArticlePage(
     pdf: jsPDF,
@@ -516,37 +528,53 @@ export class MagazineDecoPdfService {
   ) {
     const { margins, typography, colors } = MAGAZINE_DECO_CONFIG;
     
-    // Top section: Article title + intro (40mm from top)
-    const titleY = margins.top + 15;
+    // Top section: DÉCORATION label centered
+    const labelY = margins.top + 15;
+    pdf.setFont('Inter', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(colors.textLight);
+    const labelText = "DÉCORATION";
+    const labelWidth = pdf.getTextWidth(labelText);
+    pdf.text(labelText, (pageWidth - labelWidth) / 2, labelY);
     
-    // Red accent bar
-    pdf.setFillColor(colors.dicaRed);
-    pdf.rect(margins.left, titleY - 5, 3, 15, 'F');
-    
-    // Article title (large serif)
-    pdf.setFont('Playfair Display', 'bold');
-    pdf.setFontSize(22);
+    // Article title (large serif, CENTERED, no tilting)
+    const titleY = labelY + 12;
+    pdf.setFont('Playfair Display', 'normal');
+    pdf.setFontSize(32);
     pdf.setTextColor(colors.textPrimary);
+    
     const articleTitle = aiCaptions?.headline || "L'art de la transformation";
-    const titleLines = pdf.splitTextToSize(articleTitle, pageWidth - margins.left - margins.right - 20);
-    pdf.text(titleLines, margins.left + 10, titleY);
+    const titleLines = pdf.splitTextToSize(articleTitle, pageWidth - 60);
     
-    const titleHeight = titleLines.length * 8;
+    // Center each title line
+    let currentY = titleY;
+    titleLines.forEach((line: string) => {
+      const lineWidth = pdf.getTextWidth(line);
+      pdf.text(line, (pageWidth - lineWidth) / 2, currentY);
+      currentY += 12;
+    });
     
-    // Intro editorial paragraph (expert voice)
-    const introY = titleY + titleHeight + 8;
-    pdf.setFont('Times', 'italic');
+    // Intro editorial paragraph (centered, justified)
+    const introY = currentY + 8;
+    pdf.setFont('Times', 'normal');
     pdf.setFontSize(11);
     pdf.setTextColor(colors.textSecondary);
     
-    const introText = this.generateEditorialIntro(options.project.type, options.decor.category || '');
-    const introLines = pdf.splitTextToSize(introText, pageWidth - margins.left - margins.right - 20);
-    pdf.text(introLines, margins.left + 10, introY, { lineHeightFactor: 1.6 });
+    const introText = aiCaptions?.subheadline || this.getDefaultIntro(options.decor.category || '');
+    const introLines = pdf.splitTextToSize(introText, pageWidth - 80);
     
-    const introHeight = introLines.length * 5;
+    // Center intro text
+    let introCurrentY = introY;
+    introLines.forEach((line: string) => {
+      const lineWidth = pdf.getTextWidth(line);
+      pdf.text(line, (pageWidth - (pageWidth - 80)) / 2 + 40, introCurrentY);
+      introCurrentY += 5.5;
+    });
+    
+    const introHeight = introLines.length * 5.5;
     
     // Before/After images section (side by side)
-    const imagesY = introY + introHeight + 15;
+    const imagesY = introCurrentY + 15;
     const imageWidth = (pageWidth - margins.left - margins.right - 15) / 2;
     const imageHeight = 100;
     
@@ -610,35 +638,33 @@ export class MagazineDecoPdfService {
     pdf.text("APRÈS", afterX, imagesY + afterH + 5);
     
     // Expert analysis section (below images)
-    const analysisY = imagesY + imageHeight + 15;
+    const analysisY = imagesY + imageHeight + 18;
     
-    // Section title with handwritten slugline
+    // Section title with handwritten slugline (VERY slight angle)
     if (aiCaptions?.slugline) {
       pdf.setFont(typography.slugline.fontFamily, 'normal');
-      pdf.setFontSize(typography.slugline.fontSize);
+      pdf.setFontSize(20);
       pdf.setTextColor(typography.slugline.color);
-      pdf.text(aiCaptions.slugline, margins.left + 10, analysisY, { angle: -2 });
+      const slugWidth = pdf.getTextWidth(aiCaptions.slugline);
+      pdf.text(aiCaptions.slugline, (pageWidth - slugWidth) / 2, analysisY, { angle: -1 });
     }
     
-    // Expert commentary (multi-paragraph)
+    // Expert commentary (justified, professional)
     const commentaryY = analysisY + 12;
     pdf.setFont('Times', 'normal');
-    pdf.setFontSize(10);
+    pdf.setFontSize(10.5);
     pdf.setTextColor(colors.textPrimary);
     
-    const commentary = this.generateExpertCommentary(
-      options.project.type,
-      options.decor.name,
-      options.decor.category || '',
-      aiCaptions?.caption
-    );
+    const commentary = aiCaptions?.caption || this.getDefaultCommentary(options.decor.name);
     
     const commentaryLines = pdf.splitTextToSize(
       commentary, 
-      pageWidth - margins.left - margins.right - 20
+      pageWidth - 60
     );
-    pdf.text(commentaryLines, margins.left + 10, commentaryY, { 
-      lineHeightFactor: 1.7 
+    pdf.text(commentaryLines, margins.left + 30, commentaryY, { 
+      align: 'justify',
+      lineHeightFactor: 1.7,
+      maxWidth: pageWidth - 60
     });
     
     // Décor technical info box (bottom section)
@@ -675,36 +701,17 @@ export class MagazineDecoPdfService {
   }
   
   /**
-   * Generate editorial intro based on project type
+   * Get default intro when AI captions not available
    */
-  private generateEditorialIntro(projectType: string, decorCategory: string): string {
-    const intros: Record<string, string> = {
-      ascenseur: "Dans l'univers de l'architecture verticale, chaque détail compte. La cabine d'ascenseur, espace de transition par excellence, mérite une attention particulière. Les finitions DICA transforment ces volumes contraints en véritables écrins de raffinement.",
-      van: "L'aménagement d'un véhicule aménagé exige une approche où fonctionnalité et esthétique se rejoignent. Les finitions DICA apportent cette touche de sophistication qui fait la différence, créant un intérieur à la fois pratique et élégant.",
-      terrasse: "L'espace extérieur devient le prolongement naturel de l'intérieur. Les finitions DICA résistent aux éléments tout en offrant une esthétique contemporaine qui dialogue harmonieusement avec le paysage environnant.",
-      autre: "Chaque projet mérite une attention particulière aux finitions. Les revêtements DICA apportent cette signature distinctive qui élève l'ensemble de la réalisation, créant une atmosphère unique et mémorable."
-    };
-    
-    return intros[projectType] || intros.autre;
+  private getDefaultIntro(decorCategory: string): string {
+    return "Les finitions DICA transforment chaque espace en une œuvre d'exception, où la qualité des matériaux et la précision de l'application créent une atmosphère unique.";
   }
   
   /**
-   * Generate expert commentary
+   * Get default commentary when AI captions not available
    */
-  private generateExpertCommentary(
-    projectType: string, 
-    decorName: string, 
-    decorCategory: string,
-    aiCaption?: string
-  ): string {
-    const baseCommentary = aiCaption || 
-      `L'application de la finition ${decorName} révèle tout le potentiel de cet espace. La texture subtile et la profondeur du matériau créent un jeu de lumière qui évolue au fil de la journée.`;
-    
-    const technicalNote = `\n\nLe choix de cette finition ${decorCategory.toLowerCase()} n'est pas anodin : elle apporte une dimension tactile et visuelle qui enrichit l'expérience de l'espace. La précision de l'application garantit une intégration parfaite avec l'architecture existante.`;
-    
-    const conclusion = `\n\nCette transformation illustre comment les finitions DICA permettent de réinventer un espace sans en modifier la structure, offrant aux professionnels un outil de persuasion visuelle incomparable pour convaincre leurs clients.`;
-    
-    return baseCommentary + technicalNote + conclusion;
+  private getDefaultCommentary(decorName: string): string {
+    return `L'application de la finition ${decorName} révèle tout le potentiel de cet espace. La texture subtile et la profondeur du matériau créent un dialogue harmonieux avec l'architecture, offrant aux professionnels un outil de persuasion visuelle incomparable pour convaincre leurs clients.`;
   }
   
   /**
