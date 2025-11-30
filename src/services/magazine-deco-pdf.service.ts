@@ -59,17 +59,23 @@ export class MagazineDecoPdfService {
       // PAGE 1 - COVER
       await this.renderCoverPage(pdf, options, loadedImages[0], aiCaptions, pageWidth, pageHeight);
       
-      // PAGE 2 - NARRATIVE + DECOR FOCUS
-      if (loadedImages.length > 0) {
+      // PAGE 2+ - EDITORIAL ARTICLES with before/after
+      for (let i = 0; i < loadedImages.length; i++) {
         pdf.addPage();
-        const heroImage = loadedImages.length > 1 ? loadedImages[1] : loadedImages[0];
-        await this.renderNarrativePage(pdf, options, heroImage, aiCaptions, pageWidth, pageHeight);
-      }
-      
-      // PAGE 3+ - ADDITIONAL IMAGES
-      for (let i = 2; i < loadedImages.length; i++) {
-        pdf.addPage();
-        await this.renderImagePage(pdf, loadedImages[i], pageWidth, pageHeight, i + 1);
+        const originalImage = options.images[i]?.originalUrl 
+          ? await this.loadSingleImageWithBase64(options.images[i].originalUrl!)
+          : null;
+        
+        await this.renderEditorialArticlePage(
+          pdf, 
+          originalImage,
+          loadedImages[i], 
+          options,
+          aiCaptions, 
+          pageWidth, 
+          pageHeight, 
+          i + 2
+        );
       }
 
       // Generate blob
@@ -493,6 +499,231 @@ export class MagazineDecoPdfService {
     
     // Footer
     this.renderFooter(pdf, pageWidth, pageHeight, pageNumber);
+  }
+
+  /**
+   * PAGE 2+ - Editorial article with before/after comparison
+   */
+  private async renderEditorialArticlePage(
+    pdf: jsPDF,
+    originalImage: LoadedImage | null,
+    renderedImage: LoadedImage,
+    options: MagazineDecoOptions,
+    aiCaptions: MagazineAICaption | undefined,
+    pageWidth: number,
+    pageHeight: number,
+    pageNumber: number
+  ) {
+    const { margins, typography, colors } = MAGAZINE_DECO_CONFIG;
+    
+    // Top section: Article title + intro (40mm from top)
+    const titleY = margins.top + 15;
+    
+    // Red accent bar
+    pdf.setFillColor(colors.dicaRed);
+    pdf.rect(margins.left, titleY - 5, 3, 15, 'F');
+    
+    // Article title (large serif)
+    pdf.setFont('Playfair Display', 'bold');
+    pdf.setFontSize(22);
+    pdf.setTextColor(colors.textPrimary);
+    const articleTitle = aiCaptions?.headline || "L'art de la transformation";
+    const titleLines = pdf.splitTextToSize(articleTitle, pageWidth - margins.left - margins.right - 20);
+    pdf.text(titleLines, margins.left + 10, titleY);
+    
+    const titleHeight = titleLines.length * 8;
+    
+    // Intro editorial paragraph (expert voice)
+    const introY = titleY + titleHeight + 8;
+    pdf.setFont('Times', 'italic');
+    pdf.setFontSize(11);
+    pdf.setTextColor(colors.textSecondary);
+    
+    const introText = this.generateEditorialIntro(options.project.type, options.decor.category || '');
+    const introLines = pdf.splitTextToSize(introText, pageWidth - margins.left - margins.right - 20);
+    pdf.text(introLines, margins.left + 10, introY, { lineHeightFactor: 1.6 });
+    
+    const introHeight = introLines.length * 5;
+    
+    // Before/After images section (side by side)
+    const imagesY = introY + introHeight + 15;
+    const imageWidth = (pageWidth - margins.left - margins.right - 15) / 2;
+    const imageHeight = 100;
+    
+    // AVANT image
+    if (originalImage) {
+      const beforeX = margins.left + 10;
+      
+      // Image
+      const beforeImgRatio = originalImage.width / originalImage.height;
+      let beforeW = imageWidth;
+      let beforeH = beforeW / beforeImgRatio;
+      if (beforeH > imageHeight) {
+        beforeH = imageHeight;
+        beforeW = beforeH * beforeImgRatio;
+      }
+      
+      pdf.addImage(
+        originalImage.base64, 
+        'JPEG', 
+        beforeX, 
+        imagesY, 
+        beforeW, 
+        beforeH, 
+        undefined, 
+        'FAST'
+      );
+      
+      // "AVANT" label
+      pdf.setFont('Inter', 'bold');
+      pdf.setFontSize(8);
+      pdf.setTextColor(colors.textLight);
+      pdf.text("AVANT", beforeX, imagesY + beforeH + 5);
+    }
+    
+    // APRÈS image
+    const afterX = margins.left + 10 + imageWidth + 5;
+    
+    const afterImgRatio = renderedImage.width / renderedImage.height;
+    let afterW = imageWidth;
+    let afterH = afterW / afterImgRatio;
+    if (afterH > imageHeight) {
+      afterH = imageHeight;
+      afterW = afterH * afterImgRatio;
+    }
+    
+    pdf.addImage(
+      renderedImage.base64, 
+      'JPEG', 
+      afterX, 
+      imagesY, 
+      afterW, 
+      afterH, 
+      undefined, 
+      'FAST'
+    );
+    
+    // "APRÈS" label with red accent
+    pdf.setFont('Inter', 'bold');
+    pdf.setFontSize(8);
+    pdf.setTextColor(colors.dicaRed);
+    pdf.text("APRÈS", afterX, imagesY + afterH + 5);
+    
+    // Expert analysis section (below images)
+    const analysisY = imagesY + imageHeight + 15;
+    
+    // Section title with handwritten slugline
+    if (aiCaptions?.slugline) {
+      pdf.setFont(typography.slugline.fontFamily, 'normal');
+      pdf.setFontSize(typography.slugline.fontSize);
+      pdf.setTextColor(typography.slugline.color);
+      pdf.text(aiCaptions.slugline, margins.left + 10, analysisY, { angle: -2 });
+    }
+    
+    // Expert commentary (multi-paragraph)
+    const commentaryY = analysisY + 12;
+    pdf.setFont('Times', 'normal');
+    pdf.setFontSize(10);
+    pdf.setTextColor(colors.textPrimary);
+    
+    const commentary = this.generateExpertCommentary(
+      options.project.type,
+      options.decor.name,
+      options.decor.category || '',
+      aiCaptions?.caption
+    );
+    
+    const commentaryLines = pdf.splitTextToSize(
+      commentary, 
+      pageWidth - margins.left - margins.right - 20
+    );
+    pdf.text(commentaryLines, margins.left + 10, commentaryY, { 
+      lineHeightFactor: 1.7 
+    });
+    
+    // Décor technical info box (bottom section)
+    const decorBoxY = pageHeight - margins.bottom - 35;
+    
+    // Background box
+    pdf.setFillColor(250, 250, 250);
+    pdf.rect(margins.left + 10, decorBoxY, pageWidth - margins.left - margins.right - 20, 28, 'F');
+    
+    // Décor name and reference
+    pdf.setFont('Playfair Display', 'bold');
+    pdf.setFontSize(13);
+    pdf.setTextColor(colors.textPrimary);
+    pdf.text(options.decor.name, margins.left + 15, decorBoxY + 8);
+    
+    pdf.setFont('Inter', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(colors.textLight);
+    pdf.text(`Réf. ${options.decor.referenceCode}`, margins.left + 15, decorBoxY + 14);
+    
+    if (options.decor.category) {
+      pdf.setFontSize(8);
+      pdf.text(`Collection ${options.decor.category}`, margins.left + 15, decorBoxY + 19);
+    }
+    
+    // DICA signature (bottom-right of box)
+    pdf.setFont('Inter', 'bold');
+    pdf.setFontSize(7);
+    pdf.setTextColor(colors.dicaRed);
+    pdf.text("DICA DÉCOR", pageWidth - margins.right - 30, decorBoxY + 24);
+    
+    // Footer
+    this.renderFooter(pdf, pageWidth, pageHeight, pageNumber);
+  }
+  
+  /**
+   * Generate editorial intro based on project type
+   */
+  private generateEditorialIntro(projectType: string, decorCategory: string): string {
+    const intros: Record<string, string> = {
+      ascenseur: "Dans l'univers de l'architecture verticale, chaque détail compte. La cabine d'ascenseur, espace de transition par excellence, mérite une attention particulière. Les finitions DICA transforment ces volumes contraints en véritables écrins de raffinement.",
+      van: "L'aménagement d'un véhicule aménagé exige une approche où fonctionnalité et esthétique se rejoignent. Les finitions DICA apportent cette touche de sophistication qui fait la différence, créant un intérieur à la fois pratique et élégant.",
+      terrasse: "L'espace extérieur devient le prolongement naturel de l'intérieur. Les finitions DICA résistent aux éléments tout en offrant une esthétique contemporaine qui dialogue harmonieusement avec le paysage environnant.",
+      autre: "Chaque projet mérite une attention particulière aux finitions. Les revêtements DICA apportent cette signature distinctive qui élève l'ensemble de la réalisation, créant une atmosphère unique et mémorable."
+    };
+    
+    return intros[projectType] || intros.autre;
+  }
+  
+  /**
+   * Generate expert commentary
+   */
+  private generateExpertCommentary(
+    projectType: string, 
+    decorName: string, 
+    decorCategory: string,
+    aiCaption?: string
+  ): string {
+    const baseCommentary = aiCaption || 
+      `L'application de la finition ${decorName} révèle tout le potentiel de cet espace. La texture subtile et la profondeur du matériau créent un jeu de lumière qui évolue au fil de la journée.`;
+    
+    const technicalNote = `\n\nLe choix de cette finition ${decorCategory.toLowerCase()} n'est pas anodin : elle apporte une dimension tactile et visuelle qui enrichit l'expérience de l'espace. La précision de l'application garantit une intégration parfaite avec l'architecture existante.`;
+    
+    const conclusion = `\n\nCette transformation illustre comment les finitions DICA permettent de réinventer un espace sans en modifier la structure, offrant aux professionnels un outil de persuasion visuelle incomparable pour convaincre leurs clients.`;
+    
+    return baseCommentary + technicalNote + conclusion;
+  }
+  
+  /**
+   * Load single image with base64
+   */
+  private async loadSingleImageWithBase64(url: string): Promise<LoadedImage> {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
+    
+    const blob = await response.blob();
+    const base64 = await this.blobToBase64(blob);
+    const dimensions = await this.getImageDimensions(url);
+    
+    return {
+      url,
+      base64,
+      width: dimensions.width,
+      height: dimensions.height
+    };
   }
 
   /**
