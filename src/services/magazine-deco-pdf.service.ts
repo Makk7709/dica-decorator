@@ -199,34 +199,32 @@ export class MagazineDecoPdfService {
     pdf.addImage(image.base64, 'JPEG', x, y, finalWidth, finalHeight, undefined, 'FAST');
     
     // ═══════════════════════════════════════════════════════════════════
-    // DICA BRANDING - Style AD Magazine (élégant, serif fin, noir)
+    // DICA BRANDING - Logo magazine élégant
     // ═══════════════════════════════════════════════════════════════════
     
-    // Titre "DICA" - Typographie serif élégante, taille équilibrée
-    pdf.setFont('Times', 'normal'); // Serif fin, pas bold
-    pdf.setFontSize(52); // Taille proportionnée comme AD
+    // Titre "DICA" - Plus grand et impactant
+    pdf.setFont('Times', 'normal');
+    pdf.setFontSize(72); // Agrandi pour plus d'impact
     
     // Ombre subtile pour lisibilité sur image
     pdf.setTextColor(255, 255, 255);
-    for (let dx = 0.3; dx <= 0.9; dx += 0.3) {
-      for (let dy = 0.3; dy <= 0.9; dy += 0.3) {
-        pdf.text("DICA", 15 + dx, 32 + dy);
+    for (let dx = 0.4; dx <= 1.2; dx += 0.4) {
+      for (let dy = 0.4; dy <= 1.2; dy += 0.4) {
+        pdf.text("DICA", 12 + dx, 38 + dy);
       }
     }
     
-    // Texte principal en noir pur (comme AD)
+    // Texte principal en noir pur
     pdf.setTextColor(0, 0, 0);
-    pdf.text("DICA", 15, 32);
+    pdf.text("DICA", 12, 38);
     
-    // Sous-titre élégant (lettres espacées, style magazine)
+    // Sous-titre élégant
     pdf.setFont('Times', 'italic');
-    pdf.setFontSize(8);
-    pdf.setTextColor(0, 0, 0);
-    // Ombre légère
+    pdf.setFontSize(9);
     pdf.setTextColor(255, 255, 255);
-    pdf.text("ARCHITECTURAL  DIGEST", 15.3, 38.3);
+    pdf.text("DÉCOR  MAGAZINE", 12.3, 46.3);
     pdf.setTextColor(0, 0, 0);
-    pdf.text("ARCHITECTURAL  DIGEST", 15, 38);
+    pdf.text("DÉCOR  MAGAZINE", 12, 46);
     
     // OVERLAY TEXT ON IMAGE (style AD)
     const headline = aiCaptions?.headline || "La nouvelle décoration";
@@ -488,7 +486,7 @@ export class MagazineDecoPdfService {
   }
 
   /**
-   * PAGE 2+ - Editorial article AD Magazine style (grande image + typographie élégante)
+   * PAGE 2+ - Editorial avec composition multi-images (AVANT/APRÈS côte à côte)
    */
   private async renderEditorialArticlePage(
     pdf: jsPDF,
@@ -503,62 +501,97 @@ export class MagazineDecoPdfService {
     const { margins, colors } = MAGAZINE_DECO_CONFIG;
     
     // ═══════════════════════════════════════════════════════════════════
-    // STYLE AD MAGAZINE - Grande image dominante + typographie éditoriale
+    // EN-TÊTE - Logo DICA centré
     // ═══════════════════════════════════════════════════════════════════
-    
-    // AD Logo en haut centré
-    pdf.setFont('Times', 'bold');
-    pdf.setFontSize(28);
+    pdf.setFont('Times', 'normal');
+    pdf.setFontSize(24);
     pdf.setTextColor(0, 0, 0);
-    const adLogo = "AD";
-    const adLogoWidth = pdf.getTextWidth(adLogo);
-    pdf.text(adLogo, (pageWidth - adLogoWidth) / 2, 18);
+    const logoText = "DICA";
+    const logoWidth = pdf.getTextWidth(logoText);
+    pdf.text(logoText, (pageWidth - logoWidth) / 2, 16);
     
-    // ─────────────────────────────────────────────────────────────────────
-    // GRANDE IMAGE PRINCIPALE (70% de la page)
-    // ─────────────────────────────────────────────────────────────────────
-    const imageTopY = 28;
-    const imageMaxHeight = pageHeight * 0.52;
-    const imageMaxWidth = pageWidth - 20; // Marges fines
+    // ═══════════════════════════════════════════════════════════════════
+    // COMPOSITION MULTI-IMAGES (AVANT / APRÈS côte à côte)
+    // ═══════════════════════════════════════════════════════════════════
+    const compositionY = 25;
+    const compositionHeight = pageHeight * 0.55;
+    const gap = 4; // Espace entre les images
     
-    const imgRatio = renderedImage.width / renderedImage.height;
-    let imgWidth, imgHeight;
-    
-    // Calculer pour remplir au maximum en respectant le ratio
-    if (imgRatio > (imageMaxWidth / imageMaxHeight)) {
-      imgWidth = imageMaxWidth;
-      imgHeight = imgWidth / imgRatio;
+    if (originalImage) {
+      // Mode AVANT/APRÈS côte à côte
+      const halfWidth = (pageWidth - margins.left - margins.right - gap) / 2;
+      const leftX = margins.left;
+      const rightX = margins.left + halfWidth + gap;
+      
+      // ─────────────────────────────────────────────────────────────────
+      // IMAGE AVANT (gauche)
+      // ─────────────────────────────────────────────────────────────────
+      const beforeRatio = originalImage.width / originalImage.height;
+      let beforeW = halfWidth;
+      let beforeH = beforeW / beforeRatio;
+      if (beforeH > compositionHeight) {
+        beforeH = compositionHeight;
+        beforeW = beforeH * beforeRatio;
+      }
+      const beforeX = leftX + (halfWidth - beforeW) / 2;
+      
+      pdf.addImage(originalImage.base64, 'JPEG', beforeX, compositionY, beforeW, beforeH, undefined, 'FAST');
+      
+      // Label AVANT
+      pdf.setFont('Inter', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("AVANT", leftX, compositionY + beforeH + 6);
+      
+      // ─────────────────────────────────────────────────────────────────
+      // IMAGE APRÈS (droite)
+      // ─────────────────────────────────────────────────────────────────
+      const afterRatio = renderedImage.width / renderedImage.height;
+      let afterW = halfWidth;
+      let afterH = afterW / afterRatio;
+      if (afterH > compositionHeight) {
+        afterH = compositionHeight;
+        afterW = afterH * afterRatio;
+      }
+      const afterX = rightX + (halfWidth - afterW) / 2;
+      
+      pdf.addImage(renderedImage.base64, 'JPEG', afterX, compositionY, afterW, afterH, undefined, 'FAST');
+      
+      // Label APRÈS avec couleur DICA
+      pdf.setTextColor(colors.dicaRed);
+      pdf.text("APRÈS", rightX, compositionY + afterH + 6);
+      
+      // Référence décor sous l'image APRÈS
+      pdf.setFont('Inter', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text(`${options.decor.name} • Réf. ${options.decor.referenceCode}`, rightX, compositionY + afterH + 12);
+      
     } else {
-      imgHeight = imageMaxHeight;
-      imgWidth = imgHeight * imgRatio;
+      // Mode image unique (pas d'original)
+      const imgRatio = renderedImage.width / renderedImage.height;
+      const maxWidth = pageWidth - margins.left - margins.right;
+      let imgW = maxWidth;
+      let imgH = imgW / imgRatio;
+      if (imgH > compositionHeight) {
+        imgH = compositionHeight;
+        imgW = imgH * imgRatio;
+      }
+      const imgX = (pageWidth - imgW) / 2;
+      
+      pdf.addImage(renderedImage.base64, 'JPEG', imgX, compositionY, imgW, imgH, undefined, 'FAST');
+      
+      // Crédits
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(7);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text(`${options.decor.name} • Réf. ${options.decor.referenceCode}`, imgX, compositionY + imgH + 5);
     }
     
-    const imgX = (pageWidth - imgWidth) / 2;
-    const imgY = imageTopY;
-    
-    // Image principale (l'APRÈS, le résultat)
-    pdf.addImage(renderedImage.base64, 'JPEG', imgX, imgY, imgWidth, imgHeight, undefined, 'FAST');
-    
-    // ─────────────────────────────────────────────────────────────────────
-    // CRÉDITS PHOTO (style AD - discrets sous l'image)
-    // ─────────────────────────────────────────────────────────────────────
-    const creditsY = imgY + imgHeight + 4;
-    
-    // Crédit gauche (photographe fictif)
-    pdf.setFont('Times', 'italic');
-    pdf.setFontSize(7);
-    pdf.setTextColor(120, 120, 120);
-    pdf.text("© DICA France", imgX, creditsY);
-    
-    // Crédit droit (décor + site)
-    const decorCredit = `${options.decor.name} • www.dica-france.com`;
-    const decorCreditWidth = pdf.getTextWidth(decorCredit);
-    pdf.text(decorCredit, imgX + imgWidth - decorCreditWidth, creditsY);
-    
-    // ─────────────────────────────────────────────────────────────────────
-    // SECTION TEXTE ÉDITORIALE (style AD Magazine)
-    // ─────────────────────────────────────────────────────────────────────
-    const textSectionY = creditsY + 12;
+    // ═══════════════════════════════════════════════════════════════════
+    // SECTION TEXTE ÉDITORIALE
+    // ═══════════════════════════════════════════════════════════════════
+    const textSectionY = compositionY + compositionHeight + 20;
     
     // Label "DÉCORATION" centré avec lignes
     pdf.setFont('Inter', 'normal');
@@ -568,7 +601,6 @@ export class MagazineDecoPdfService {
     const labelWidth = pdf.getTextWidth(labelText);
     const labelX = (pageWidth - labelWidth) / 2;
     
-    // Lignes de chaque côté du label
     pdf.setDrawColor(200, 200, 200);
     pdf.setLineWidth(0.3);
     pdf.line(40, textSectionY, labelX - 5, textSectionY);
@@ -576,122 +608,73 @@ export class MagazineDecoPdfService {
     pdf.text(labelText, labelX, textSectionY + 1);
     
     // ─────────────────────────────────────────────────────────────────────
-    // TITRE PRINCIPAL (grande typographie serif italique)
+    // TITRE (grande typographie serif italique)
     // ─────────────────────────────────────────────────────────────────────
-    const titleY = textSectionY + 18;
+    const titleY = textSectionY + 15;
     pdf.setFont('Times', 'italic');
-    pdf.setFontSize(28);
+    pdf.setFontSize(24);
     pdf.setTextColor(0, 0, 0);
     
     const articleTitle = aiCaptions?.headline || "L'art de la transformation";
     const titleLines = pdf.splitTextToSize(articleTitle, pageWidth - 50);
     
-    // Centrer chaque ligne du titre
     let currentTitleY = titleY;
     titleLines.forEach((line: string) => {
       const lineWidth = pdf.getTextWidth(line);
       pdf.text(line, (pageWidth - lineWidth) / 2, currentTitleY);
-      currentTitleY += 11;
+      currentTitleY += 9;
     });
     
     // ─────────────────────────────────────────────────────────────────────
-    // CHAPÔ (introduction éditoriale - style magazine)
+    // CHAPÔ (introduction)
     // ─────────────────────────────────────────────────────────────────────
-    const chapoY = currentTitleY + 8;
+    const chapoY = currentTitleY + 6;
     pdf.setFont('Times', 'normal');
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setTextColor(60, 60, 60);
     
     const chapoText = aiCaptions?.subheadline || 
-      `Découvrez comment les finitions ${options.decor.name} de DICA transforment les espaces avec une élégance intemporelle.`;
+      `Les finitions ${options.decor.name} de DICA transforment les espaces avec élégance.`;
     const chapoLines = pdf.splitTextToSize(chapoText, pageWidth - 60);
     
-    // Centrer le chapô
     chapoLines.forEach((line: string, idx: number) => {
       const lineWidth = pdf.getTextWidth(line);
-      pdf.text(line, (pageWidth - lineWidth) / 2, chapoY + (idx * 5));
+      pdf.text(line, (pageWidth - lineWidth) / 2, chapoY + (idx * 4.5));
     });
     
     // ─────────────────────────────────────────────────────────────────────
-    // AUTEUR & DATE (style AD)
+    // AUTEUR & DATE
     // ─────────────────────────────────────────────────────────────────────
-    const authorY = chapoY + (chapoLines.length * 5) + 10;
+    const authorY = chapoY + (chapoLines.length * 4.5) + 8;
     pdf.setFont('Inter', 'bold');
-    pdf.setFontSize(8);
+    pdf.setFontSize(7);
     pdf.setTextColor(0, 0, 0);
     const authorText = "Par DICA Design Studio";
     const authorWidth = pdf.getTextWidth(authorText);
     pdf.text(authorText, (pageWidth - authorWidth) / 2, authorY);
     
-    // Date
     const now = new Date();
     const months = ['JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN', 'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE'];
     const dateText = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
     pdf.setFont('Inter', 'normal');
-    pdf.setFontSize(7);
+    pdf.setFontSize(6);
     pdf.setTextColor(120, 120, 120);
     const dateWidth = pdf.getTextWidth(dateText);
-    pdf.text(dateText, (pageWidth - dateWidth) / 2, authorY + 5);
+    pdf.text(dateText, (pageWidth - dateWidth) / 2, authorY + 4);
     
-    // ─────────────────────────────────────────────────────────────────────
-    // MÉDAILLON "AVANT" (petit, coin inférieur gauche si disponible)
-    // ─────────────────────────────────────────────────────────────────────
-    if (originalImage) {
-      const medallionSize = 35;
-      const medallionX = margins.left + 10;
-      const medallionY = pageHeight - margins.bottom - medallionSize - 15;
-      
-      // Cadre du médaillon
-      pdf.setDrawColor(200, 200, 200);
-      pdf.setLineWidth(0.5);
-      pdf.rect(medallionX - 1, medallionY - 1, medallionSize + 2, medallionSize + 2);
-      
-      // Image AVANT en médaillon
-      const beforeRatio = originalImage.width / originalImage.height;
-      let beforeW = medallionSize;
-      let beforeH = medallionSize;
-      
-      if (beforeRatio > 1) {
-        beforeH = medallionSize / beforeRatio;
-      } else {
-        beforeW = medallionSize * beforeRatio;
-      }
-      
-      const beforeX = medallionX + (medallionSize - beforeW) / 2;
-      const beforeY = medallionY + (medallionSize - beforeH) / 2;
-      
-      pdf.addImage(originalImage.base64, 'JPEG', beforeX, beforeY, beforeW, beforeH, undefined, 'FAST');
-      
-      // Label "AVANT" sous le médaillon
-      pdf.setFont('Inter', 'bold');
-      pdf.setFontSize(6);
-      pdf.setTextColor(120, 120, 120);
-      pdf.text("AVANT", medallionX + medallionSize / 2 - 5, medallionY + medallionSize + 5);
-    }
-    
-    // ─────────────────────────────────────────────────────────────────────
-    // NUMÉRO DE PAGE STYLISÉ (grand chiffre, style AD)
-    // ─────────────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════
+    // NUMÉRO DE PAGE (grand, discret)
+    // ═══════════════════════════════════════════════════════════════════
     pdf.setFont('Times', 'bold');
-    pdf.setFontSize(48);
-    pdf.setTextColor(230, 230, 230); // Gris très clair
-    const pageNum = pageNumber.toString();
-    pdf.text(pageNum, pageWidth - margins.right - 25, pageHeight - margins.bottom);
+    pdf.setFontSize(36);
+    pdf.setTextColor(235, 235, 235);
+    pdf.text(pageNumber.toString(), pageWidth - margins.right - 15, pageHeight - margins.bottom + 5);
     
-    // ─────────────────────────────────────────────────────────────────────
-    // RÉFÉRENCE DÉCOR (discret, bas de page droite)
-    // ─────────────────────────────────────────────────────────────────────
+    // Footer
     pdf.setFont('Inter', 'normal');
-    pdf.setFontSize(7);
-    pdf.setTextColor(150, 150, 150);
-    const refText = `Réf. ${options.decor.referenceCode} | ${options.decor.category || 'DICA'}`;
-    const refWidth = pdf.getTextWidth(refText);
-    pdf.text(refText, pageWidth - margins.right - refWidth - 5, pageHeight - margins.bottom - 35);
-    
-    // Footer minimal
-    pdf.setFontSize(6);
+    pdf.setFontSize(5);
     pdf.setTextColor(180, 180, 180);
-    pdf.text("Visuels non contractuels", margins.left, pageHeight - 8);
+    pdf.text("Visuels non contractuels • www.dica-france.com", margins.left, pageHeight - 6);
   }
   
   /**
