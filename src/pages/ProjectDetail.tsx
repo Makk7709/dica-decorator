@@ -48,6 +48,14 @@ interface RenderResult {
   created_at: string;
 }
 
+// Création de l'assistant IA (sans décor associé)
+interface CreativeImport {
+  id: string;
+  result_image_url: string;
+  created_at: string;
+  photoId: string;
+}
+
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -56,6 +64,7 @@ const ProjectDetail = () => {
   const [photos, setPhotos] = useState<ProjectPhoto[]>([]);
   const [decors, setDecors] = useState<Decor[]>([]);
   const [renders, setRenders] = useState<{ [photoId: string]: RenderResult[] }>({});
+  const [creativeImports, setCreativeImports] = useState<CreativeImport[]>([]); // Créations Assistant IA
   const [selectedPhoto, setSelectedPhoto] = useState<ProjectPhoto | null>(null);
   const [selectedDecor, setSelectedDecor] = useState<Decor | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -160,8 +169,10 @@ const ProjectDetail = () => {
       if (photosError) throw photosError;
       setPhotos(photosData || []);
 
-      // Load renders for each photo
+      // Load renders for each photo and separate creative imports
       const rendersByPhoto: { [photoId: string]: RenderResult[] } = {};
+      const allCreativeImports: CreativeImport[] = [];
+      
       for (const photo of photosData || []) {
         const { data: rendersData } = await supabase
           .from("render_results")
@@ -169,9 +180,29 @@ const ProjectDetail = () => {
           .eq("project_photo_id", photo.id)
           .order("created_at", { ascending: false });
         
-        rendersByPhoto[photo.id] = rendersData || [];
+        // Séparer les créations IA (sans decor_id) des rendus décors
+        const decorRenders: RenderResult[] = [];
+        
+        for (const render of rendersData || []) {
+          if (render.decor_id === null) {
+            // C'est une création de l'assistant IA
+            allCreativeImports.push({
+              id: render.id,
+              result_image_url: render.result_image_url,
+              created_at: render.created_at,
+              photoId: photo.id,
+            });
+          } else {
+            // C'est un rendu décor classique
+            decorRenders.push(render);
+          }
+        }
+        
+        rendersByPhoto[photo.id] = decorRenders;
       }
+      
       setRenders(rendersByPhoto);
+      setCreativeImports(allCreativeImports);
     } catch (error: any) {
       toast.error("Erreur lors du chargement du projet");
       navigate("/dashboard");
@@ -451,7 +482,7 @@ const ProjectDetail = () => {
             )}
             
             {/* Plaquette Premium Export */}
-            {project && renders && Object.values(renders).flat().length > 0 && (
+            {project && (Object.values(renders).flat().length > 0 || creativeImports.length > 0) && (
               <PlaquetteExportButton
                 project={{
                   id: project.id,
@@ -466,24 +497,36 @@ const ProjectDetail = () => {
                   referenceCode: d.reference_code,
                   category: d.category,
                 }))}
-                images={Object.entries(renders).flatMap(([photoId, photoRenders]) => {
-                  const photo = photos.find(p => p.id === photoId);
-                  return photoRenders.map(render => {
-                    const decor = decors.find(d => d.id === render.decor_id);
-                    // Si pas de décor = création de l'assistant créatif
-                    const isCreativeRender = !render.decor_id;
-                    return {
-                      id: render.id,
-                      url: render.result_image_url,
-                      originalUrl: photo?.original_image_url,
-                      decorId: render.decor_id || 'creative',
-                      decorName: decor?.name || (isCreativeRender ? 'Création Assistant IA' : ''),
-                      decorCode: decor?.reference_code || (isCreativeRender ? 'CREATIVE-AI' : ''),
-                      createdAt: new Date(render.created_at),
-                      isHighResolution: true,
-                    };
-                  });
-                })}
+                images={[
+                  // Créations IA
+                  ...creativeImports.map(creative => ({
+                    id: creative.id,
+                    url: creative.result_image_url,
+                    originalUrl: photos.find(p => p.id === creative.photoId)?.original_image_url,
+                    decorId: 'creative',
+                    decorName: 'Création Assistant IA',
+                    decorCode: 'CREATIVE-AI',
+                    createdAt: new Date(creative.created_at),
+                    isHighResolution: true,
+                  })),
+                  // Rendus décors classiques
+                  ...Object.entries(renders).flatMap(([photoId, photoRenders]) => {
+                    const photo = photos.find(p => p.id === photoId);
+                    return photoRenders.map(render => {
+                      const decor = decors.find(d => d.id === render.decor_id);
+                      return {
+                        id: render.id,
+                        url: render.result_image_url,
+                        originalUrl: photo?.original_image_url,
+                        decorId: render.decor_id || '',
+                        decorName: decor?.name || '',
+                        decorCode: decor?.reference_code || '',
+                        createdAt: new Date(render.created_at),
+                        isHighResolution: true,
+                      };
+                    });
+                  }),
+                ]}
                 originalImage={photos[0]?.original_image_url}
                 appSettings={{ ...DEFAULT_APP_SETTINGS, resellerBrandingEnabled: false }}
                 variant="ghost"
@@ -542,8 +585,114 @@ const ProjectDetail = () => {
           </div>
         </div>
 
+        {/* Section Créations Assistant IA */}
+        {creativeImports.length > 0 && (
+          <div className="card-premium p-5 md:p-6 mb-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                <h3 className="font-semibold">Créations Assistant IA</h3>
+                <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                  {creativeImports.length}
+                </span>
+              </div>
+            </div>
+            
+            <div className={`grid gap-4 ${
+              creativeImports.length === 1 
+                ? "grid-cols-1 max-w-md" 
+                : creativeImports.length === 2
+                  ? "grid-cols-2"
+                  : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+            }`}>
+              {creativeImports.map((creative, index) => (
+                <div 
+                  key={creative.id}
+                  className="group rounded-xl border border-purple-200 dark:border-purple-800/50 overflow-hidden bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-background animate-fade-in"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="relative">
+                    <img
+                      src={creative.result_image_url}
+                      alt="Création IA"
+                      className="w-full aspect-square object-cover"
+                    />
+                    {/* Badge IA */}
+                    <div className="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      IA
+                    </div>
+                    {/* Icônes d'action */}
+                    <div className="absolute bottom-2 right-2 flex gap-1.5 z-20">
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7 bg-white/90 hover:bg-white shadow-md"
+                        onClick={() => setZoomedImage(creative.result_image_url)}
+                        title="Agrandir"
+                      >
+                        <Maximize2 className="h-3.5 w-3.5 text-foreground" />
+                      </Button>
+                    </div>
+                    {/* Overlay actions au survol */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 z-10">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
+                          asChild
+                        >
+                          <a href={creative.result_image_url} download className="flex items-center gap-1.5">
+                            <Download className="h-3.5 w-3.5 text-foreground" />
+                            <span className="text-foreground">Télécharger</span>
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Footer avec favoris et suppression */}
+                  <div className="p-2 flex items-center justify-between">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2"
+                      onClick={() => toggleFavorite(creative.id)}
+                    >
+                      <Heart 
+                        className={`h-3.5 w-3.5 mr-1.5 ${
+                          favoriteRenderIds.has(creative.id) 
+                            ? "fill-current text-red-500" 
+                            : ""
+                        }`} 
+                      />
+                      <span className="text-xs">
+                        {favoriteRenderIds.has(creative.id) ? "Favori" : "Ajouter"}
+                      </span>
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(creative.created_at).toLocaleDateString('fr-FR')}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteRender(creative.id, creative.photoId)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Photos Grid */}
-        {photos.length === 0 ? (
+        {photos.length === 0 && creativeImports.length === 0 ? (
           <div className="card-premium p-12 md:p-16 text-center animate-fade-in">
             <div className="max-w-sm mx-auto">
               <div className="mb-6 mx-auto w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
