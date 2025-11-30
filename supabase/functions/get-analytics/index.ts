@@ -18,35 +18,49 @@ serve(async (req) => {
 
     // Verify admin role
     const authHeader = req.headers.get("Authorization");
+    console.log("Auth header:", authHeader ? "present" : "missing");
+    
     if (!authHeader) {
+      console.error("No auth header provided");
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized - No auth header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const token = authHeader.replace("Bearer ", "");
+    console.log("Token length:", token.length);
+    
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    console.log("User auth result:", { hasUser: !!userData.user, error: userError?.message });
     
     if (userError || !userData.user) {
+      console.error("Auth failed:", userError?.message);
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized - Invalid token", details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log("Checking role for user:", userData.user.id);
+    
     const { data: roleData, error: roleError } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userData.user.id)
       .single();
 
+    console.log("Role check result:", { role: roleData?.role, error: roleError?.message });
+
     if (roleError || roleData?.role !== "admin") {
+      console.error("Not admin:", { role: roleData?.role, error: roleError?.message });
       return new Response(
-        JSON.stringify({ error: "Forbidden: Admin access required" }),
+        JSON.stringify({ error: "Forbidden: Admin access required", userRole: roleData?.role }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    console.log("Admin access granted, fetching analytics...");
 
     const { period = "30d" } = await req.json().catch(() => ({ period: "30d" }));
     
