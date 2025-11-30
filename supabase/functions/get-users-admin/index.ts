@@ -13,44 +13,64 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Create client with anon key for user token validation
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Create client with service role for admin operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verify the user making the request is an admin
     const authHeader = req.headers.get("Authorization");
+    console.log("Auth header present:", !!authHeader);
+    
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized - No auth header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    console.log("Token length:", token.length);
+    
+    // Validate user token with anon key client
+    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
+    console.log("User validation:", { hasUser: !!userData?.user, error: userError?.message });
     
     if (userError || !userData.user) {
+      console.error("User validation failed:", userError?.message);
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized - Invalid token", details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if user has admin role
-    const { data: roleData, error: roleError } = await supabase
+    console.log("User ID:", userData.user.id);
+
+    // Check if user has admin role using service role client
+    const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", userData.user.id)
       .single();
 
+    console.log("Role check:", { role: roleData?.role, error: roleError?.message });
+
     if (roleError || roleData?.role !== "admin") {
+      console.error("Admin check failed:", { role: roleData?.role, error: roleError?.message });
       return new Response(
-        JSON.stringify({ error: "Forbidden: Admin access required" }),
+        JSON.stringify({ error: "Forbidden: Admin access required", userRole: roleData?.role }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log("Admin access granted");
+
     // Fetch all users from auth.users using service role
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
     
     if (authError) {
       console.error("Error fetching users:", authError);
@@ -61,21 +81,21 @@ serve(async (req) => {
     const usersWithData = await Promise.all(
       authUsers.users.map(async (user) => {
         // Get profile
-        const { data: profile } = await supabase
+        const { data: profile } = await supabaseAdmin
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .maybeSingle();
 
         // Get quota
-        const { data: quota } = await supabase
+        const { data: quota } = await supabaseAdmin
           .from("user_quotas")
           .select("*")
           .eq("user_id", user.id)
           .maybeSingle();
 
         // Count projects
-        const { count: projectCount } = await supabase
+        const { count: projectCount } = await supabaseAdmin
           .from("projects")
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id);
