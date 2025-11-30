@@ -467,30 +467,57 @@ const Creative = () => {
       const base64Data = selectedImageUrl.split(',')[1];
       const blob = await fetch(`data:image/png;base64,${base64Data}`).then(r => r.blob());
       
-      // Upload to storage
+      // Upload to storage in creative subfolder
       const fileName = `creative-${Date.now()}.png`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("project-photos")
-        .upload(`${user.id}/${fileName}`, blob);
+        .upload(`${user.id}/creative/${fileName}`, blob);
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from("project-photos")
-        .getPublicUrl(`${user.id}/${fileName}`);
+        .getPublicUrl(`${user.id}/creative/${fileName}`);
 
-      // Save to project_photos
-      const { error: photoError } = await supabase
+      // Check if project has photos, if not create one
+      const { data: existingPhotos } = await supabase
         .from("project_photos")
+        .select("id")
+        .eq("project_id", projectId)
+        .limit(1);
+
+      let photoId: string;
+      
+      if (!existingPhotos || existingPhotos.length === 0) {
+        // Create a photo entry for the project (using the creative image as source)
+        const { data: newPhoto, error: photoError } = await supabase
+          .from("project_photos")
+          .insert({
+            project_id: projectId,
+            original_image_url: publicUrl
+          })
+          .select()
+          .single();
+
+        if (photoError) throw photoError;
+        photoId = newPhoto.id;
+      } else {
+        photoId = existingPhotos[0].id;
+      }
+
+      // Save as RENDER RESULT for full features (zoom, export, plaquette)
+      const { error: renderError } = await supabase
+        .from("render_results")
         .insert({
-          project_id: projectId,
-          original_image_url: publicUrl
+          project_photo_id: photoId,
+          result_image_url: publicUrl,
+          decor_id: null // Creative generation - no specific decor
         });
 
-      if (photoError) throw photoError;
+      if (renderError) throw renderError;
 
-      toast.success("Image ajoutée au projet");
+      toast.success("✅ Image ajoutée avec zoom, export et plaquette disponibles !");
       setSaveToProjectDialogOpen(false);
       setSelectedImageUrl(null);
       setSelectedProjectId("");

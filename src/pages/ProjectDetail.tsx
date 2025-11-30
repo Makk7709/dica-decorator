@@ -470,13 +470,15 @@ const ProjectDetail = () => {
                   const photo = photos.find(p => p.id === photoId);
                   return photoRenders.map(render => {
                     const decor = decors.find(d => d.id === render.decor_id);
+                    // Si pas de décor = création de l'assistant créatif
+                    const isCreativeRender = !render.decor_id;
                     return {
                       id: render.id,
                       url: render.result_image_url,
                       originalUrl: photo?.original_image_url,
-                      decorId: render.decor_id || '',
-                      decorName: decor?.name || '',
-                      decorCode: decor?.reference_code || '',
+                      decorId: render.decor_id || 'creative',
+                      decorName: decor?.name || (isCreativeRender ? 'Création Assistant IA' : ''),
+                      decorCode: decor?.reference_code || (isCreativeRender ? 'CREATIVE-AI' : ''),
                       createdAt: new Date(render.created_at),
                       isHighResolution: true,
                     };
@@ -647,11 +649,12 @@ const ProjectDetail = () => {
                                 className="h-7 w-7 bg-white/90 hover:bg-white shadow-md"
                                 onClick={() => {
                                   const decor = decors.find(d => d.id === render.decor_id);
+                                  const isCreativeRender = !render.decor_id;
                                   setComparisonMode({
                                     before: photo.original_image_url,
                                     after: render.result_image_url,
-                                    decorName: decor?.name,
-                                    decorCode: decor?.reference_code,
+                                    decorName: decor?.name || (isCreativeRender ? 'Création Assistant IA' : undefined),
+                                    decorCode: decor?.reference_code || (isCreativeRender ? 'CREATIVE-AI' : undefined),
                                   });
                                 }}
                                 title="Comparer avant/après"
@@ -683,16 +686,18 @@ const ProjectDetail = () => {
                                     <span className="text-foreground">Télécharger</span>
                                   </a>
                                 </Button>
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
-                                  onClick={() => handleRegenerateRender(render.id, photo.id)}
-                                  disabled={isGenerating}
-                                >
-                                  <RotateCcw className="h-3.5 w-3.5 text-foreground" />
-                                  <span className="text-foreground ml-1.5">Recommencer</span>
-                                </Button>
+                                {render.decor_id && (
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
+                                    onClick={() => handleRegenerateRender(render.id, photo.id)}
+                                    disabled={isGenerating}
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5 text-foreground" />
+                                    <span className="text-foreground ml-1.5">Recommencer</span>
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </div>
