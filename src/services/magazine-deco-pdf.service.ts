@@ -530,8 +530,8 @@ export class MagazineDecoPdfService {
     // COMPOSITION MULTI-IMAGES (AVANT / APRÈS côte à côte)
     // ═══════════════════════════════════════════════════════════════════
     const compositionY = 25;
-    const compositionHeight = pageHeight * 0.55;
-    const gap = 4; // Espace entre les images
+    const compositionHeight = pageHeight * 0.72; // Agrandi pour mieux occuper la page
+    const gap = 6; // Espace entre les images
     
     if (originalImage) {
       // Mode AVANT/APRÈS côte à côte
@@ -607,7 +607,7 @@ export class MagazineDecoPdfService {
     // ═══════════════════════════════════════════════════════════════════
     // SECTION TEXTE ÉDITORIALE
     // ═══════════════════════════════════════════════════════════════════
-    const textSectionY = compositionY + compositionHeight + 20;
+    const textSectionY = compositionY + compositionHeight + 10; // Réduit l'espace
     
     // Label "DÉCORATION" centré avec lignes
     pdf.setFont('Inter', 'normal');
@@ -626,9 +626,9 @@ export class MagazineDecoPdfService {
     // ─────────────────────────────────────────────────────────────────────
     // TITRE (grande typographie serif italique)
     // ─────────────────────────────────────────────────────────────────────
-    const titleY = textSectionY + 15;
+    const titleY = textSectionY + 10; // Réduit l'espacement
     pdf.setFont('Times', 'italic');
-    pdf.setFontSize(24);
+    pdf.setFontSize(20); // Légèrement réduit pour mieux proportionner
     pdf.setTextColor(0, 0, 0);
     
     const articleTitle = aiCaptions?.headline || "L'art de la transformation";
@@ -638,13 +638,13 @@ export class MagazineDecoPdfService {
     titleLines.forEach((line: string) => {
       const lineWidth = pdf.getTextWidth(line);
       pdf.text(line, (pageWidth - lineWidth) / 2, currentTitleY);
-      currentTitleY += 9;
+      currentTitleY += 8; // Interligne réduit
     });
     
     // ─────────────────────────────────────────────────────────────────────
     // ARTICLE TECHNIQUE (par l'expert stratifiés)
     // ─────────────────────────────────────────────────────────────────────
-    const articleY = currentTitleY + 8;
+    const articleY = currentTitleY + 6; // Réduit l'espace
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(9);
     pdf.setTextColor(40, 40, 40);
