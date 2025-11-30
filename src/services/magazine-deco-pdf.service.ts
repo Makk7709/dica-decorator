@@ -123,6 +123,20 @@ export class MagazineDecoPdfService {
   private async generateAICaptions(options: MagazineDecoOptions): Promise<MagazineAICaption> {
     console.log("🤖 Generating AI captions with image analysis");
     
+    // Générer un article de fallback basé sur la catégorie du décor
+    const getFallbackArticle = (category: string = '') => {
+      const cat = category.toLowerCase();
+      if (cat.includes('metal')) {
+        return `La lumière joue sur les surfaces métallisées avec une élégance rare. Dans cet espace, les reflets subtils des finitions DICA créent une atmosphère résolument contemporaine. Le regard se pose, captivé par ces nuances qui évoluent au fil des heures. Derrière cette modernité assumée se cache une technologie de pointe : des surfaces anti-trace qui conservent leur éclat au quotidien, une résistance aux rayures qui défie le temps. L'entretien devient un geste simple, presque anodin. C'est ainsi que DICA réconcilie l'audace esthétique et la praticité du quotidien.`;
+      } else if (cat.includes('bois')) {
+        return `La chaleur du bois enveloppe l'espace d'une présence rassurante. Les finitions DICA reproduisent avec une fidélité troublante les veinages naturels, ces lignes qui racontent l'histoire de chaque essence. La main effleure la surface et découvre un toucher authentique, une texture qui invite à la contemplation. Pourtant, derrière cette apparence organique se cache une robustesse exemplaire : stabilité dimensionnelle parfaite, résistance aux variations d'humidité, pérennité garantie. Le beau et le durable ne font plus qu'un.`;
+      } else if (cat.includes('marbre')) {
+        return `Les veines du marbre dessinent sur les surfaces une cartographie silencieuse du temps. Les finitions DICA capturent cette noblesse minérale avec une précision qui frôle la perfection. Chaque nuance, chaque nervure trouve sa place dans cette reproduction haute définition. Mais l'illusion s'accompagne d'un avantage précieux : la légèreté. Là où le marbre naturel impose ses contraintes, DICA offre une liberté nouvelle. La pose se simplifie, les possibilités se multiplient. L'élégance aristocratique devient accessible.`;
+      } else {
+        return `La lumière du jour glisse sur les surfaces avec une douceur inattendue. Dans cet espace, chaque détail a été pensé pour créer une harmonie visuelle qui apaise autant qu'elle fascine. Les finitions DICA, avec leur texture subtile et leurs reflets maîtrisés, transforment les murs en véritables tableaux vivants. Derrière cette élégance se cache une robustesse remarquable : des matériaux conçus pour traverser le temps sans jamais perdre de leur éclat. Un simple geste d'entretien suffit à leur redonner toute leur splendeur. C'est ainsi que le beau rejoint le durable.`;
+      }
+    };
+    
     try {
       const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
         body: {
@@ -146,17 +160,19 @@ export class MagazineDecoPdfService {
         headline: data.headline,
         subheadline: data.subheadline,
         slugline: data.slugline,
-        caption: data.caption
+        caption: data.caption,
+        article: data.article || getFallbackArticle(options.decor.category)
       };
 
     } catch (error: any) {
       console.error("❌ AI caption generation failed:", error);
-      // Fallback to generic captions (no specific décor mention)
+      // Fallback avec article storytelling
       return {
-        headline: "L'excellence du design intérieur",
-        subheadline: `Découvrez comment les finitions DICA transforment les espaces avec une élégance intemporelle et une précision exceptionnelle.`,
-        slugline: "Style et élégance",
-        caption: `Les finitions DICA subliment cet espace avec raffinement`
+        headline: "Quand la lumière rencontre la matière",
+        subheadline: `Un dialogue subtil entre l'espace et les surfaces, où chaque reflet raconte une histoire d'élégance intemporelle.`,
+        slugline: "L'art du raffinement",
+        caption: `Les finitions DICA subliment cet espace avec une grâce naturelle`,
+        article: getFallbackArticle(options.decor.category)
       };
     }
   }
