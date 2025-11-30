@@ -3,6 +3,7 @@
 // Developed by KOREV AI for DICA France
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { orchestrateDicaPrompt, type OrchestratorInput } from "./orchestrator.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -113,6 +114,11 @@ serve(async (req) => {
       throw new Error("GOOGLE_AI_API_KEY is not configured");
     }
 
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
     // Detect if user wants an image generation
     const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || "";
     const imageKeywords = [
@@ -170,31 +176,70 @@ serve(async (req) => {
         console.error("Decor context is empty or too short!");
         throw new Error("Contexte des décors non disponible");
       }
+
+      // ========================================================================
+      // STEP 1: ORCHESTRATION - Validate and structure the request
+      // ========================================================================
       
-      // Extract key elements from user request
-      const userRequest = messages[messages.length - 1]?.content || "";
+      console.log("🎯 Starting DICA Prompt Orchestrator...");
       
-      // Detect what type of space/object the user wants
-      const spaceKeywords = {
-        van: ["van", "volkswagen", "vw", "combi", "fourgon", "camper", "camping-car", "aménagé"],
-        cuisine: ["cuisine", "kitchen", "îlot", "plan de travail", "crédence"],
-        sdb: ["salle de bain", "bathroom", "douche", "baignoire", "wc", "toilettes"],
-        terrasse: ["terrasse", "balcon", "extérieur", "patio", "pergola"],
-        ascenseur: ["ascenseur", "cabine", "lift", "elevator"],
-        bureau: ["bureau", "office", "desk", "workspace"],
-        salon: ["salon", "living", "séjour"],
-        meuble: ["meuble", "armoire", "placard", "rangement", "commode", "table"]
-      };
-      
-      let detectedSpace = "espace personnalisé";
-      const lowerRequest = userRequest.toLowerCase();
-      for (const [space, keywords] of Object.entries(spaceKeywords)) {
-        if (keywords.some(kw => lowerRequest.includes(kw))) {
-          detectedSpace = space;
-          break;
+      const orchestratorInput: OrchestratorInput = {
+        userPrompt: messages[messages.length - 1]?.content || "",
+        decorContext,
+        sourceImages: allSourceImages,
+        imageLabels: allImageLabels,
+        projectContext: {
+          projectType: "assistant_crea", // This is creative mode
         }
+      };
+
+      const orchestrationResult = await orchestrateDicaPrompt(orchestratorInput, LOVABLE_API_KEY);
+      
+      console.log("📊 Orchestration result:", {
+        status: orchestrationResult.status,
+        projectType: orchestrationResult.projectType,
+        decorReferences: orchestrationResult.decorReferences,
+        nbVariants: orchestrationResult.nbVariants
+      });
+
+      // Handle orchestration statuses
+      if (orchestrationResult.status === "need_clarification") {
+        console.log("⚠️ Clarification needed");
+        const clarificationMessage = `Je comprends votre demande, mais j'ai besoin de quelques précisions pour vous générer la meilleure visualisation possible:\n\n${orchestrationResult.clarificationQuestions?.map((q, i) => `${i + 1}. ${q}`).join('\n\n')}\n\nPouvez-vous me donner ces détails ?`;
+        
+        return new Response(JSON.stringify({ 
+          type: "text",
+          content: clarificationMessage
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
-      console.log("Detected space type:", detectedSpace);
+
+      if (orchestrationResult.status === "reject") {
+        console.log("❌ Request rejected:", orchestrationResult.rejectionReason);
+        const rejectionMessage = `Désolé, je ne peux pas traiter cette demande:\n\n${orchestrationResult.rejectionReason}\n\nPourriez-vous reformuler votre demande en utilisant uniquement les décors DICA disponibles dans notre catalogue ?`;
+        
+        return new Response(JSON.stringify({ 
+          type: "text",
+          content: rejectionMessage
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ========================================================================
+      // STEP 2: IMAGE GENERATION - Use orchestrated prompt with Nano Banana
+      // ========================================================================
+      
+      console.log("✅ Request validated, proceeding with image generation");
+      console.log("Using orchestrated prompt:", orchestrationResult.finalPromptForImageModel?.substring(0, 200));
+      
+      // Use orchestrated data
+      const userRequest = messages[messages.length - 1]?.content || "";
+      const detectedSpace = orchestrationResult.projectType || "espace personnalisé";
+      
+      console.log("Orchestrated space type:", detectedSpace);
+      console.log("Orchestrated decor references:", orchestrationResult.decorReferences);
 
       // Build multi-image description
       let imageDescription = "";
@@ -202,227 +247,116 @@ serve(async (req) => {
         if (allSourceImages.length === 1) {
           const label = allImageLabels[0] || "Image source";
           imageDescription = `
-📷 IMAGE SOURCE FOURNIE - "${label}":
-- REPRODUIS fidèlement cet espace/objet
-- CONSERVE la structure, les proportions et l'angle de vue
-- APPLIQUE les panneaux DICA sur les surfaces planes visibles
-- NE CHANGE PAS le type d'espace (si c'est un van, garde un van)`;
+📷 SOURCE IMAGE PROVIDED - "${label}":
+- FAITHFULLY REPRODUCE this space/object
+- PRESERVE structure, proportions and viewing angle
+- APPLY DICA panels only on visible flat surfaces
+- DO NOT CHANGE the space type (if it's a van, keep it a van)`;
         } else {
           imageDescription = `
-📷 ${allSourceImages.length} IMAGES À COMBINER:
-${allImageLabels.map((label, i) => `  • Image ${i + 1}: ${label || "Élément"}`).join('\n')}
+📷 ${allSourceImages.length} IMAGES TO COMBINE:
+${allImageLabels.map((label, i) => `  • Image ${i + 1}: ${label || "Element"}`).join('\n')}
 
-INSTRUCTIONS DE COMBINAISON:
-- FUSIONNE ces éléments dans UNE SEULE scène cohérente
-- RESPECTE chaque élément fourni
-- INTÈGRE les panneaux DICA de manière visible et réaliste`;
+COMBINATION INSTRUCTIONS:
+- MERGE these elements into ONE coherent scene
+- RESPECT each provided element
+- INTEGRATE DICA panels visibly and realistically`;
         }
       }
       
-      // Build the master prompt - ULTRA STRICT
+      // Build decor descriptions from orchestrated references
+      let decorDescriptions = "";
+      if (orchestrationResult.decorReferences.length > 0) {
+        decorDescriptions = "\n\n🎨 DICA DECORS TO USE:\n";
+        orchestrationResult.decorReferences.forEach((ref, idx) => {
+          const label = orchestrationResult.decorLabels?.[idx] || ref;
+          decorDescriptions += `- ${label} (Ref: ${ref})\n`;
+        });
+      }
+      
+      // Use the orchestrated prompt as the base, enhanced with DICA-specific details
       const basePrompt = `═══════════════════════════════════════════════════════════════════
-🎯 MISSION CRITIQUE - GÉNÉRATION D'IMAGE DICA
+🎯 DICA IMAGE GENERATION - ORCHESTRATED REQUEST
 ═══════════════════════════════════════════════════════════════════
 
-DEMANDE CLIENT (À RESPECTER À 100%):
+VALIDATED REQUEST:
 "${userRequest}"
 
-TYPE D'ESPACE DÉTECTÉ: ${detectedSpace.toUpperCase()}
-
-═══════════════════════════════════════════════════════════════════
-🚨 RÈGLE ABSOLUE #1 - AUCUNE EXCEPTION POSSIBLE
-═══════════════════════════════════════════════════════════════════
-
-LE TYPE D'ESPACE EST: ${detectedSpace.toUpperCase()}
-
-TU DOIS CRÉER EXACTEMENT: ${detectedSpace.toUpperCase()}
-
-⚠️ ATTENTION CRITIQUE:
-- Si c'est un VAN → Crée l'INTÉRIEUR d'un VAN AMÉNAGÉ (camping-car, fourgon)
-- Si c'est une CUISINE → Crée une CUISINE avec meubles, plan de travail
-- Si c'est un ASCENSEUR → Crée une CABINE D'ASCENSEUR
-- Si c'est une TERRASSE → Crée un ESPACE EXTÉRIEUR/BALCON
-
-🚫 INTERDICTION ABSOLUE:
-- NE CRÉE JAMAIS UN ASCENSEUR si le client demande un VAN
-- NE CRÉE JAMAIS UN VAN si le client demande une CUISINE
-- NE TE LAISSE PAS INFLUENCER par les "contextes d'usage" des décors
-- Les contextes d'usage (ascenseur, van, terrasse) sont des SUGGESTIONS, pas des ORDRES
-
-VÉRIFIE AVANT DE GÉNÉRER:
-✓ Est-ce que je crée bien un ${detectedSpace} ?
-✓ Est-ce que l'image correspondra à la demande "${userRequest}" ?
-✓ Ai-je ignoré les "contextes d'usage" des décors pour respecter la demande ?
-
-═══════════════════════════════════════════════════════════════════
-⚠️ RÈGLES NON-NÉGOCIABLES - ÉCHEC = IMAGE REJETÉE
-═══════════════════════════════════════════════════════════════════
-
-1. ✅ SUJET OBLIGATOIRE: ${detectedSpace.toUpperCase()}
-   → Tu DOIS créer un(e) ${detectedSpace}, PAS autre chose
-   → Les décors peuvent être utilisés PARTOUT, même si leur "contexte d'usage" dit autre chose
-   → SEULE la demande du client compte, pas les métadonnées des décors
-
-2. ✅ PANNEAUX DICA OBLIGATOIREMENT VISIBLES
-   → Les panneaux stratifiés DICA doivent occuper MIN 40% de l'image
-   → Ils doivent être le SUJET PRINCIPAL de la visualisation
-   → Montrer clairement la TEXTURE et la QUALITÉ des panneaux
-   → Le client doit voir EXACTEMENT à quoi ressemblera son projet
-
-3. ✅ QUALITÉ PHOTOGRAPHIQUE PREMIUM
-   → Photo de catalogue professionnel haut de gamme
-   → Éclairage naturel réaliste (pour un van, lumière douce comme un jour de pluie)
-   → Netteté maximale sur les panneaux DICA
-   → Rendu hyperréaliste type publicité luxe
-
-═══════════════════════════════════════════════════════════════════
-🎯 EXEMPLES CONCRETS PAR TYPE D'ESPACE
-═══════════════════════════════════════════════════════════════════
-
-SI C'EST UN VAN:
-- Intérieur d'un fourgon aménagé / camping-car
-- Avec banquettes, rangements, mini-cuisine
-- Espace cosy et compact
-- Lumière naturelle venant des fenêtres latérales
-- Panneaux DICA sur les murs intérieurs, placards, comptoir
-
-SI C'EST UNE CUISINE:
-- Espace cuisine avec îlot ou plan de travail
-- Meubles hauts et bas
-- Crédence derrière la zone de cuisson
-- Panneaux DICA sur les façades de meubles ou la crédence
-
-SI C'EST UN ASCENSEUR:
-- Cabine d'ascenseur avec portes métalliques
-- Parois verticales
-- Rampes de maintien
-- Panneaux DICA sur les murs de la cabine
+SPACE TYPE: ${detectedSpace.toUpperCase()}
 
 ${imageDescription}
 
-═══════════════════════════════════════════════════════════════════
-📦 CATALOGUE PANNEAUX DICA DISPONIBLES
-═══════════════════════════════════════════════════════════════════
-${decorContext}
-
-⚠️ IMPORTANT: Les "contextes d'usage" listés (ascenseur, van, terrasse) 
-sont des EXEMPLES, pas des LIMITATIONS. Tous les décors peuvent être 
-utilisés dans N'IMPORTE QUEL espace selon la demande du client.
+${decorDescriptions}
 
 ═══════════════════════════════════════════════════════════════════
-🎨 RÈGLES D'APPLICATION DES PANNEAUX PAR CATÉGORIE
+📋 ORCHESTRATED PROMPT (VALIDATED BY DICA ORCHESTRATOR)
 ═══════════════════════════════════════════════════════════════════
 
-MÉTAL (Inox brossé, Aluminium, etc.):
-- Surface brillante avec reflets directionnels
-- Effet brossé visible
-- Lumière se reflétant de manière réaliste
-
-UNIS (Couleurs unies mates):
-- Surface parfaitement lisse et mate
-- Couleur uniforme sans variations
-- Pas de reflets métalliques
-
-BOIS (Chêne, Noyer, etc.):
-- Veinage naturel visible et réaliste
-- Texture bois authentique
-- Tons chauds naturels
-
-MARBRE (Carrare, Noir, etc.):
-- Veines minérales naturelles
-- Surface légèrement brillante
-- Motifs uniques et élégants
+${orchestrationResult.finalPromptForImageModel}
 
 ═══════════════════════════════════════════════════════════════════
-🚨 RÈGLES IMPÉRATIVES DE FIDÉLITÉ TEXTURE
+🎨 TECHNICAL RENDERING REQUIREMENTS
 ═══════════════════════════════════════════════════════════════════
 
-1. TEXTURE SOURCE EXCLUSIVE
-   → Le décor provient UNIQUEMENT des panneaux DICA du catalogue
-   → JAMAIS inventer, modifier ou recolorer un décor
+1. QUALITY STANDARDS:
+   - Professional catalog photography quality
+   - Photorealistic rendering
+   - Sharp focus on DICA panels
+   - Natural, realistic lighting
 
-2. FIDÉLITÉ ABSOLUE DES PANNEAUX DICA
-   → Teinte exacte (pas de shift colorimétrique)
-   → Motif intact (pas de déformation)
-   → Grain précis (direction, densité, échelle)
-   → Reflets naturels selon le matériau
+2. DICA PANEL APPLICATION:
+   - Panels must be clearly visible (minimum 40% of image)
+   - Apply exact texture and colors from DICA catalog
+   - Respect material properties (metal reflections, wood grain, marble veins, etc.)
+   - No color shifts or texture modifications
 
-3. ALIGNEMENT DU GRAIN OBLIGATOIRE
-   → Bois: veinage cohérent avec la direction naturelle
-   → Métal brossé: lignes de brossage correctement orientées
-   → Marbre: veines continues et réalistes
+3. SPACE FIDELITY:
+   - Create exactly: ${detectedSpace.toUpperCase()}
+   - Never change space type from user request
+   - Maintain realistic proportions and perspective
+   - Preserve existing lighting and shadows
 
-4. SI IMAGE SOURCE FOURNIE
-   → Analyser l'espace AVANT de générer
-   → Respecter la structure et les proportions
-   → Appliquer les panneaux sur surfaces compatibles uniquement
-
-═══════════════════════════════════════════════════════════════════
-🚫 INTERDICTIONS ABSOLUES
-═══════════════════════════════════════════════════════════════════
-- ❌ PAS de scène urbaine/rue si non demandé
-- ❌ PAS de personnages sauf si demandé
-- ❌ PAS d'environnement différent de la demande
-- ❌ PAS d'image sans panneaux DICA visibles
-- ❌ PAS de qualité médiocre ou floue
-- ❌ PAS d'invention ou d'interprétation libre
-- ❌ NE CHANGE JAMAIS LE TYPE D'ESPACE (van ≠ ascenseur ≠ cuisine)
-- ❌ PAS de modification des couleurs/teintes des panneaux DICA
-- ❌ PAS de texture inventée ou extrapolée
-
-═══════════════════════════════════════════════════════════════════
-✅ CHECKLIST FINALE AVANT GÉNÉRATION
-═══════════════════════════════════════════════════════════════════
-Avant de générer l'image, VÉRIFIE:
-□ L'espace créé est bien un ${detectedSpace.toUpperCase()}
-□ L'image correspondra à la demande: "${userRequest}"
-□ Les panneaux DICA sont clairement visibles (40%+ de l'image)
-□ La qualité est professionnelle et réaliste
-□ Tu n'as PAS créé un ascenseur si la demande était un van
-□ Tu n'as PAS créé un autre type d'espace que celui demandé
-
-═══════════════════════════════════════════════════════════════════
-✨ RÉSULTAT ATTENDU
-═══════════════════════════════════════════════════════════════════
-Une image de ${detectedSpace} aménagé(e) avec des panneaux DICA,
-de qualité catalogue professionnel, où les panneaux sont mis en
-valeur et clairement visibles. Le client doit pouvoir se projeter
-immédiatement dans son futur projet.
-
-EFFET WOW OBLIGATOIRE - Le client doit être impressionné dès la première image.
-═══════════════════════════════════════════════════════════════════
+4. COMPOSITION:
+   - Professional composition showcasing DICA panels
+   - Clear visibility of texture and quality
+   - Premium aesthetic suitable for client presentations
+    - High-end, sophisticated visual result
 
 ${showReferences ? `
 ═══════════════════════════════════════════════════════════════════
-🏷️ ANNOTATIONS RÉFÉRENCES DICA - OBLIGATOIRE
+🏷️ REFERENCE ANNOTATIONS - REQUIRED
 ═══════════════════════════════════════════════════════════════════
 
-Tu DOIS ajouter sur l'image les références des décors DICA utilisés.
+You MUST add DICA decor references on the image.
 
-FORMAT D'ANNOTATION (style catalogue professionnel):
-• Police: sans-serif élégante et moderne
-• Fond: semi-transparent (noir ou blanc selon contraste)
-• Position: en bas de l'image ou près des surfaces décorées
-• Taille: lisible mais pas dominante
+ANNOTATION FORMAT (professional catalog style):
+• Font: elegant modern sans-serif
+• Background: semi-transparent (black or white depending on contrast)
+• Position: bottom of image or near decorated surfaces
+• Size: readable but not dominant
 
-STRUCTURE DES ANNOTATIONS:
+ANNOTATION STRUCTURE:
 ┌─────────────────────────────┐
-│  Nom du décor               │
-│  (Réf: CODE_REFERENCE)      │
+│  Decor Name                 │
+│  (Ref: REFERENCE_CODE)      │
 └─────────────────────────────┘
 
-EXEMPLES:
+EXAMPLES:
 • "Inox Brossé 3020BN"
-• "Uni Olive FC (Réf: 3179_SPA_FC)"
+• "Uni Olive FC (Ref: 3179_SPA_FC)"
 • "Marble décor - Laiton Brossé 3012 FC"
 
-Si plusieurs décors sont visibles, annote CHACUN d'eux.
-Les annotations doivent être professionnelles et intégrées harmonieusement.
+If multiple decors are visible, annotate EACH of them.
+Annotations must be professional and harmoniously integrated.
 ═══════════════════════════════════════════════════════════════════
-` : ''}`;
+` : ''}
 
-      console.log("Full image prompt length:", basePrompt.length, "characters");
+✨ EXPECTED RESULT: ${detectedSpace} space with DICA panels, professional catalog quality, panels clearly visible and showcased. Client must be able to immediately envision their future project.
+═══════════════════════════════════════════════════════════════════`;
+
+      console.log("Full orchestrated prompt length:", basePrompt.length, "characters");
       console.log("Show references:", showReferences);
+      console.log("Orchestrated decor references:", orchestrationResult.decorReferences);
 
       // Build request parts
       const requestParts: any[] = [{ text: basePrompt }];
