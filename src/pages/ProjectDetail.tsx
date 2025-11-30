@@ -18,6 +18,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { compressImage, formatFileSize } from "@/lib/image-compression";
 import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 import { PlaquetteExportButton } from "@/components/ui/plaquette-export-button";
+import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
 
 interface Project {
@@ -493,56 +494,96 @@ const ProjectDetail = () => {
             
             {/* Plaquette Premium Export */}
             {project && (Object.values(renders).flat().length > 0 || creativeImports.length > 0) && (
-              <PlaquetteExportButton
-                project={{
-                  id: project.id,
-                  name: project.title,
-                  type: (project.use_case as any) || 'autre',
-                  clientName: project.client_reference || undefined,
-                  createdAt: new Date(),
-                }}
-                decors={decors.map(d => ({
-                  id: d.id,
-                  name: d.name,
-                  referenceCode: d.reference_code,
-                  category: d.category,
-                }))}
-                images={[
-                  // Créations IA
-                  ...creativeImports.map(creative => ({
-                    id: creative.id,
-                    url: creative.result_image_url,
-                    originalUrl: photos.find(p => p.id === creative.photoId)?.original_image_url,
-                    decorId: 'creative',
-                    decorName: 'Création Assistant IA',
-                    decorCode: 'CREATIVE-AI',
-                    createdAt: new Date(creative.created_at),
-                    isHighResolution: true,
-                  })),
-                  // Rendus décors classiques
-                  ...Object.entries(renders).flatMap(([photoId, photoRenders]) => {
-                    const photo = photos.find(p => p.id === photoId);
-                    return photoRenders.map(render => {
-                      const decor = decors.find(d => d.id === render.decor_id);
-                      return {
-                        id: render.id,
-                        url: render.result_image_url,
-                        originalUrl: photo?.original_image_url,
-                        decorId: render.decor_id || '',
-                        decorName: decor?.name || '',
-                        decorCode: decor?.reference_code || '',
-                        createdAt: new Date(render.created_at),
-                        isHighResolution: true,
-                      };
-                    });
-                  }),
-                ]}
-                originalImage={photos[0]?.original_image_url}
-                appSettings={{ ...DEFAULT_APP_SETTINGS, resellerBrandingEnabled: false }}
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-foreground"
-              />
+              <>
+                <PlaquetteExportButton
+                  project={{
+                    id: project.id,
+                    name: project.title,
+                    type: (project.use_case as any) || 'autre',
+                    clientName: project.client_reference || undefined,
+                    createdAt: new Date(),
+                  }}
+                  decors={decors.map(d => ({
+                    id: d.id,
+                    name: d.name,
+                    referenceCode: d.reference_code,
+                    category: d.category,
+                  }))}
+                  images={[
+                    // Créations IA
+                    ...creativeImports.map(creative => ({
+                      id: creative.id,
+                      url: creative.result_image_url,
+                      originalUrl: photos.find(p => p.id === creative.photoId)?.original_image_url,
+                      decorId: 'creative',
+                      decorName: 'Création Assistant IA',
+                      decorCode: 'CREATIVE-AI',
+                      createdAt: new Date(creative.created_at),
+                      isHighResolution: true,
+                    })),
+                    // Rendus décors classiques
+                    ...Object.entries(renders).flatMap(([photoId, photoRenders]) => {
+                      const photo = photos.find(p => p.id === photoId);
+                      return photoRenders.map(render => {
+                        const decor = decors.find(d => d.id === render.decor_id);
+                        return {
+                          id: render.id,
+                          url: render.result_image_url,
+                          originalUrl: photo?.original_image_url,
+                          decorId: render.decor_id || '',
+                          decorName: decor?.name || '',
+                          decorCode: decor?.reference_code || '',
+                          createdAt: new Date(render.created_at),
+                          isHighResolution: true,
+                        };
+                      });
+                    }),
+                  ]}
+                  originalImage={photos[0]?.original_image_url}
+                  appSettings={{ ...DEFAULT_APP_SETTINGS, resellerBrandingEnabled: false }}
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground"
+                />
+                
+                {/* Magazine DECO Export */}
+                {Object.values(renders).flat().length > 0 && decors.length > 0 && (
+                  <MagazineDecoExportButton
+                    project={{
+                      id: project.id,
+                      name: project.title,
+                      type: (project.use_case as any) || 'autre',
+                      clientName: project.client_reference || undefined,
+                      createdAt: new Date(),
+                    }}
+                    decor={decors.map(d => ({
+                      id: d.id,
+                      name: d.name,
+                      referenceCode: d.reference_code,
+                      category: d.category,
+                    }))[0]}
+                    images={Object.entries(renders).flatMap(([photoId, photoRenders]) => {
+                      const photo = photos.find(p => p.id === photoId);
+                      return photoRenders.map(render => {
+                        const decor = decors.find(d => d.id === render.decor_id);
+                        return {
+                          id: render.id,
+                          url: render.result_image_url,
+                          originalUrl: photo?.original_image_url,
+                          decorId: render.decor_id || '',
+                          decorName: decor?.name || '',
+                          decorCode: decor?.reference_code || '',
+                          createdAt: new Date(render.created_at),
+                          isHighResolution: true,
+                        };
+                      });
+                    })}
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                  />
+                )}
+              </>
             )}
             
             
