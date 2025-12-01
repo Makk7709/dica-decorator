@@ -18,9 +18,11 @@ import type {
 } from '@/types/magazine-deco.types';
 import { MAGAZINE_DECO_CONFIG } from '@/types/magazine-deco.types';
 
-// Extended options with reseller branding
+// Extended options with reseller branding and client customization
 export interface ResellerBrochureOptions extends MagazineDecoOptions {
   resellerBranding?: ResellerBranding | null;
+  /** Nom du client pour personnaliser la brochure (ex: "Hôtel Le Palace") */
+  clientName?: string;
 }
 
 export class ResellerBrochurePdfService {
@@ -118,6 +120,7 @@ export class ResellerBrochurePdfService {
   async generateResellerBrochurePDF(options: ResellerBrochureOptions): Promise<MagazineDecoResult> {
     console.log("📖 Brochure Revendeur - Starting PDF generation");
     console.log("🏢 Reseller branding:", options.resellerBranding?.companyName || 'DICA (default)');
+    console.log("👤 Client name:", options.clientName || '(none)');
     
     try {
       // Validate inputs
@@ -192,7 +195,8 @@ export class ResellerBrochurePdfService {
       console.log("✅ Brochure Revendeur PDF generated:", {
         filename,
         pageCount: pdf.getNumberOfPages(),
-        resellerName: options.resellerBranding?.companyName || 'DICA'
+        resellerName: options.resellerBranding?.companyName || 'DICA',
+        clientName: options.clientName || '(none)'
       });
 
       return {
@@ -281,6 +285,33 @@ export class ResellerBrochurePdfService {
     pdf.text("DÉCOR  MAGAZINE", 10.4, 52.4);
     pdf.setTextColor(255, 250, 240);
     pdf.text("DÉCOR  MAGAZINE", 10, 52);
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // NOM DU CLIENT (si fourni)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    if (options.clientName?.trim()) {
+      const clientLabel = `Projet pour ${options.clientName.trim()}`;
+      
+      // Style élégant pour le nom du client
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(14);
+      
+      // Fond semi-transparent pour le nom client
+      const textWidth = pdf.getTextWidth(clientLabel);
+      pdf.setFillColor(0, 0, 0);
+      pdf.setGState(pdf.GState({ opacity: 0.4 }));
+      pdf.roundedRect(8, 57, textWidth + 10, 10, 2, 2, 'F');
+      pdf.setGState(pdf.GState({ opacity: 1.0 }));
+      
+      // Ombre
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(clientLabel, 13.5, 64.5);
+      
+      // Texte principal - couleur dorée élégante
+      pdf.setTextColor(255, 215, 150);
+      pdf.text(clientLabel, 13, 64);
+    }
     
     // ═══════════════════════════════════════════════════════════════════
     // INFOS REVENDEUR (si branding actif)

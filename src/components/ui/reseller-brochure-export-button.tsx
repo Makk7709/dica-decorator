@@ -9,7 +9,7 @@
  */
 
 import { useState } from 'react';
-import { BookOpen, Download, Loader2, Sparkles, Check, X, Building2 } from 'lucide-react';
+import { BookOpen, Download, Loader2, Sparkles, Check, X, Building2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { resellerBrochurePdfService } from '@/services/reseller-brochure-pdf.service';
 import type { ResellerBranding } from '@/types/plaquette.types';
@@ -59,6 +61,7 @@ export function ResellerBrochureExportButton({
   const [progress, setProgress] = useState(0);
   const [coverImageId, setCoverImageId] = useState<string>('');
   const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
+  const [clientName, setClientName] = useState<string>('');
   
   const { toast } = useToast();
 
@@ -128,6 +131,7 @@ export function ResellerBrochureExportButton({
         decor,
         images: orderedImages,
         resellerBranding,
+        clientName: clientName.trim() || undefined,
         generateAICaptions: true
       });
 
@@ -216,6 +220,34 @@ export function ResellerBrochureExportButton({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Personnalisation client */}
+          <div className="rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <User className="h-4 w-4 text-blue-600" />
+              <span className="font-semibold text-blue-700 dark:text-blue-400">
+                Personnalisation client
+              </span>
+              <Badge variant="outline" className="text-xs border-blue-300 text-blue-600">
+                Optionnel
+              </Badge>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="client-name" className="text-sm text-blue-700 dark:text-blue-300">
+                Nom du client (apparaîtra sur la couverture)
+              </Label>
+              <Input
+                id="client-name"
+                placeholder="Ex: Société Martin, Hôtel Le Palace, M. Dupont..."
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="bg-white dark:bg-gray-900 border-blue-200 dark:border-blue-700 focus-visible:ring-blue-500"
+              />
+              <p className="text-xs text-blue-500 dark:text-blue-400">
+                💡 Le nom apparaîtra comme sous-titre : "Projet pour [Nom du client]"
+              </p>
+            </div>
+          </div>
+
           {/* Infos revendeur si mode revendeur */}
           {isResellerMode && resellerBranding && (
             <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800 p-4">
@@ -344,6 +376,12 @@ export function ResellerBrochureExportButton({
                     <Sparkles className="h-3 w-3 text-primary" />
                     <span className="text-muted-foreground">Titre couverture : <strong>{brandName}</strong></span>
                   </div>
+                  {clientName.trim() && (
+                    <div className="flex items-center gap-2">
+                      <User className="h-3 w-3 text-blue-500" />
+                      <span className="text-muted-foreground">Client : <strong className="text-blue-600">{clientName.trim()}</strong></span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-3 w-3 text-primary" />
                     <span className="text-muted-foreground">Caption éditoriale IA</span>
