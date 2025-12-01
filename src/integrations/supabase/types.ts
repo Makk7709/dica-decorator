@@ -118,28 +118,73 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accent_color_hex: string | null
+          addressline1: string | null
+          addressline2: string | null
+          city: string | null
+          cobranding_enabled: boolean | null
+          company_name: string | null
+          contact_name: string | null
+          country: string | null
           created_at: string
+          email: string | null
           first_name: string | null
           id: string
           is_active: boolean
           last_name: string | null
+          logo_url: string | null
+          phone: string | null
+          postal_code: string | null
+          siret: string | null
+          tagline: string | null
           updated_at: string
+          website: string | null
         }
         Insert: {
+          accent_color_hex?: string | null
+          addressline1?: string | null
+          addressline2?: string | null
+          city?: string | null
+          cobranding_enabled?: boolean | null
+          company_name?: string | null
+          contact_name?: string | null
+          country?: string | null
           created_at?: string
+          email?: string | null
           first_name?: string | null
           id: string
           is_active?: boolean
           last_name?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          siret?: string | null
+          tagline?: string | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
+          accent_color_hex?: string | null
+          addressline1?: string | null
+          addressline2?: string | null
+          city?: string | null
+          cobranding_enabled?: boolean | null
+          company_name?: string | null
+          contact_name?: string | null
+          country?: string | null
           created_at?: string
+          email?: string | null
           first_name?: string | null
           id?: string
           is_active?: boolean
           last_name?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          siret?: string | null
+          tagline?: string | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
