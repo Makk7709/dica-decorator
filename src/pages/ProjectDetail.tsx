@@ -787,7 +787,7 @@ const ProjectDetail = () => {
                           filename={`dica-ia-${creative.id}`}
                           variant="secondary"
                           size="sm"
-                          className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
+                          className="h-8 px-3 bg-white hover:bg-gray-100 shadow-md text-xs text-gray-800 border border-gray-200"
                         />
                       </div>
                     </div>

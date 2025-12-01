@@ -87,12 +87,12 @@ export function ImageExportDropdown({
           disabled={isExporting}
         >
           {isExporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin text-current" />
           ) : (
-            <Download className="h-4 w-4" />
+            <Download className="h-4 w-4 text-current" />
           )}
           {showLabel && (
-            <span className="ml-2">
+            <span className="ml-2 text-current font-medium">
               {isExporting ? 'Export...' : 'Télécharger'}
             </span>
           )}
