@@ -6,7 +6,7 @@
 
 **Application de Visualisation de Décors par Intelligence Artificielle**
 
-[![Tests](https://img.shields.io/badge/tests-634%20passed-brightgreen)](#tests)
+[![Tests](https://img.shields.io/badge/tests-663%20passed-brightgreen)](#tests)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](#technologies)
 [![React](https://img.shields.io/badge/React-18.x-61dafb)](#technologies)
 [![Supabase](https://img.shields.io/badge/Supabase-Backend-3ecf8e)](#technologies)
@@ -22,20 +22,47 @@
 
 **DICA Decorator** est une application web professionnelle développée par **KOREV AI** pour **DICA France** permettant de visualiser instantanément les décors du catalogue sur des photos réelles grâce à l'intelligence artificielle Google Gemini.
 
-### Fonctionnalités principales
+### ✨ Bénéfices clés
 
-- 🖼️ **Visualisation IA** - Application de décors sur photos en quelques secondes
-- 🎨 **Assistant Créatif** - Génération de mood boards et plaquettes commerciales
-- 📁 **Gestion de Projets** - Organisation par clients avec historique complet
-- 🏢 **Multi-Organisations** - Support revendeurs avec quotas personnalisés
-- 🏷️ **Références DICA** - Annotations automatiques des codes décors sur les images
-- 🌙 **Mode Nuit** - Interface adaptable jour/nuit
-- 📷 **Multi-Images** - Combinez jusqu'à 5 images pour créer des scènes
-- 🎬 **Landing Vidéo** - Page d'accueil immersive avec effet halo lumineux
-- 👥 **Gestion Utilisateurs** - Administration des quotas et comptes (admin)
-- 🔍 **Zoom Images** - Visualisation plein écran des rendus
-- 📄 **Plaquette PDF Premium** - Export PDF avec co-branding et commentaires IA
-- ⚖️ **Comparaison Avant/Après** - Visualisation côte-à-côte avec ratios préservés
+| Bénéfice | Impact |
+|----------|--------|
+| ⚡ **Rapidité** | Visualisation en secondes au lieu de semaines de maquettes |
+| 🎯 **Fiabilité** | Rendus cohérents et professionnels à chaque fois |
+| 🤖 **Automatisation** | Zéro manipulation manuelle, l'IA fait tout |
+| 💰 **Économies** | Réduction des coûts de prototypage de 80% |
+
+---
+
+## 🚀 Fonctionnalités
+
+### Core Features
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| 🖼️ **Visualisation IA** | Application de décors sur photos en quelques secondes |
+| 🎨 **Assistant Créatif** | Génération de mood boards et plaquettes commerciales |
+| 📁 **Gestion de Projets** | Organisation par clients avec historique complet |
+| ❤️ **Système de Favoris** | Marquez et retrouvez vos meilleurs rendus |
+| 🏷️ **Références DICA** | Annotations automatiques des codes décors |
+
+### Exports & Partage
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| 📄 **Plaquette PDF Premium** | Export avec co-branding et commentaires IA |
+| 📊 **Magazine DÉCO** | Export éditorial style AD Magazine |
+| 📈 **Analytics Excel/PDF/JSON** | Rapports statistiques multi-formats |
+| 🔗 **Partage par Lien** | Partage sécurisé avec expiration |
+| ⚖️ **Comparaison Avant/Après** | Slider interactif |
+
+### Administration
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| 👥 **Multi-Organisations** | Support revendeurs avec quotas |
+| 📊 **Dashboard Analytics** | Métriques et tendances en temps réel |
+| 🎬 **Mode Présentation** | Fullscreen pour démos commerciales |
+| 🌙 **Mode Nuit** | Interface adaptable jour/nuit |
 
 ### Cas d'usage supportés
 
@@ -45,6 +72,44 @@
 | 🚐 Van | Aménagement véhicules |
 | 🏡 Terrasse | Espaces extérieurs |
 | 🪑 Autre | Mobilier, surfaces |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        FRONTEND (React)                          │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   Pages     │  │ Components  │  │  Services   │              │
+│  │  (Router)   │  │ (shadcn/ui) │  │   (TDD)     │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ HTTPS/REST
+┌────────────────────────────┴────────────────────────────────────┐
+│                      SUPABASE (Backend)                          │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │    Auth     │  │  Database   │  │   Storage   │              │
+│  │   (JWT)     │  │ (PostgreSQL)│  │  (Images)   │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│                                                                  │
+│  ┌──────────────────────────────────────────────┐               │
+│  │            Edge Functions (Deno)              │               │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐    │               │
+│  │  │apply-decor│  │creative  │  │analytics │    │               │
+│  │  │          │  │  -chat   │  │          │    │               │
+│  │  └──────────┘  └──────────┘  └──────────┘    │               │
+│  └──────────────────────────────────────────────┘               │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ API
+┌────────────────────────────┴────────────────────────────────────┐
+│                    GOOGLE AI (Gemini)                            │
+│  ┌─────────────────────┐  ┌─────────────────────┐               │
+│  │ Gemini 3 Pro Image  │  │ Gemini 2.5 Flash    │               │
+│  │ (Génération images) │  │ (Chat créatif)      │               │
+│  └─────────────────────┘  └─────────────────────┘               │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -104,6 +169,7 @@ npm run lint         # Linter ESLint
 | **shadcn/ui** | Composants UI |
 | **React Router** | Routing |
 | **TanStack Query** | État serveur |
+| **jsPDF** | Génération PDF |
 
 ### Backend
 
@@ -139,6 +205,9 @@ dica-decorator/
 │   └── images/              # Assets statiques
 ├── src/
 │   ├── components/          # Composants React
+│   │   ├── ui/              # Composants shadcn/ui
+│   │   ├── analytics/       # Composants analytics
+│   │   └── onboarding/      # Composants onboarding
 │   ├── contexts/            # Contextes React
 │   ├── integrations/        # Intégrations (Supabase)
 │   ├── lib/                 # Utilitaires
@@ -165,6 +234,7 @@ npm run test:run
 # Résultat attendu
 ✓ src/services/__tests__/gemini-image.service.test.ts (46 tests)
 ✓ src/services/__tests__/analytics.service.test.ts (49 tests)
+✓ src/services/__tests__/analytics-export.service.test.ts (29 tests)
 ✓ src/services/__tests__/share-link.service.test.ts (58 tests)
 ✓ src/services/__tests__/url-validator.service.test.ts (71 tests)
 ✓ src/services/__tests__/image-comparison.service.test.ts (67 tests)
@@ -176,8 +246,8 @@ npm run test:run
 ✓ src/services/__tests__/rate-limiter.service.test.ts (30 tests)
 ✓ src/services/__tests__/quota.service.test.ts (21 tests)
 
-Test Files  12 passed (12)
-     Tests  634 passed (634)
+Test Files  13 passed (13)
+     Tests  663 passed (663)
 ```
 
 ### Services testés
@@ -185,14 +255,15 @@ Test Files  12 passed (12)
 | Service | Tests | Couverture |
 |---------|-------|------------|
 | PlaquettePdfService | 138 | Export PDF Premium + Co-branding |
+| UrlValidatorService | 71 | Protection anti-SSRF |
 | PresentationService | 67 | Mode présentation plein écran |
 | ImageComparisonService | 67 | Comparaison Avant/Après |
 | ShareLinkService | 58 | Partage de projets sécurisé |
 | AnalyticsService | 49 | Dashboard analytics admin |
 | GeminiImageService | 46 | Intégration Gemini 3 Pro |
-| UrlValidatorService | 71 | Protection anti-SSRF |
 | AuthGuardService | 31 | Validation rôles & permissions |
 | RateLimiterService | 30 | Limites quotidiennes/mensuelles |
+| AnalyticsExportService | 29 | Export JSON/Excel/PDF |
 | ImageStorageService | 29 | Migration base64 → Storage |
 | OrganizationService | 27 | Multi-tenant |
 | QuotaService | 21 | Gestion quotas revendeurs |
@@ -228,12 +299,12 @@ Une documentation complète est disponible dans le dossier `/docs` :
 
 ## 🚢 Déploiement
 
-### Vercel (recommandé)
+### Lovable (Production)
 
-```bash
-npm install -g vercel
-vercel --prod
-```
+L'application est déployée via **Lovable** qui gère :
+- Supabase (Backend)
+- Edge Functions
+- Storage
 
 ### Build manuel
 
@@ -243,6 +314,18 @@ npm run build
 ```
 
 Voir le [Guide de Déploiement](./docs/GUIDE_DEPLOIEMENT.md) pour plus de détails.
+
+---
+
+## 📊 Changelog récent
+
+### Version 2.1.0 (Décembre 2025)
+
+- ✨ **Export Analytics multi-formats** : JSON, Excel (CSV), PDF
+- ❤️ **Bouton favoris visible** sur chaque rendu (plus dans le menu)
+- 🎨 **Icônes corrigées** pour dark mode
+- 📊 **Dashboard Analytics** amélioré avec graphiques
+- 📄 **Magazine DÉCO** style AD Magazine
 
 ---
 
@@ -261,7 +344,7 @@ Application propriétaire développée pour **DICA France**.
 
 <div align="center">
 
-**DICA Decorator v2.0.0**
+**DICA Decorator v2.1.0**
 
 *Transformez votre catalogue en expérience visuelle*
 
