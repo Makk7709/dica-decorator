@@ -19,6 +19,7 @@ import { compressImage, formatFileSize } from "@/lib/image-compression";
 import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 import { ResellerBrochureExportButton } from "@/components/ui/reseller-brochure-export-button";
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
+import { MagazineDICAExportButton } from "@/components/ui/magazine-dica-export-button";
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
 
@@ -779,6 +780,35 @@ const ProjectDetail = () => {
                         return 0;
                       })
                     }
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground"
+                  />
+                )}
+
+                {/* Magazine DICA Generator */}
+                {(Object.values(renders).flat().length > 0 || creativeImports.length > 0) && (
+                  <MagazineDICAExportButton
+                    renders={[
+                      // Renders de décors
+                      ...Object.entries(renders)
+                        .flatMap(([photoId, photoRenders]) => {
+                          const photo = photos.find(p => p.id === photoId);
+                          return photoRenders.map(render => {
+                            const decor = decors.find(d => d.id === render.decor_id);
+                            return {
+                              id: render.id,
+                              url: render.result_image_url,
+                              decorId: render.decor_id || '',
+                              decorName: decor?.name || 'Décor DICA',
+                              decorCode: decor?.reference_code || 'DICA',
+                              usage: project.use_case as any,
+                              ambiances: decor ? [decor.category] : ['contemporain'],
+                            };
+                          });
+                        }),
+                      // Créations assistant IA (optionnel pour le magazine)
+                    ]}
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-foreground"
