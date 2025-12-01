@@ -959,8 +959,26 @@ const ProjectDetail = () => {
                               </button>
                             </div>
                             
-                            {/* Menu contextuel en haut à droite */}
-                            <div className="absolute top-2 right-2 z-20">
+                            {/* Boutons en haut à droite : Favoris + Menu */}
+                            <div className="absolute top-2 right-2 z-20 flex gap-1.5">
+                              {/* Bouton Favoris */}
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-8 w-8 bg-white/95 hover:bg-white shadow-md backdrop-blur-sm"
+                                onClick={() => toggleFavorite(render.id)}
+                                title={favoriteRenderIds.has(render.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
+                              >
+                                <Heart 
+                                  className={`h-4 w-4 ${
+                                    favoriteRenderIds.has(render.id) 
+                                      ? "fill-red-500 text-red-500" 
+                                      : "text-gray-700"
+                                  }`} 
+                                />
+                              </Button>
+                              
+                              {/* Menu contextuel */}
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                 <Button
