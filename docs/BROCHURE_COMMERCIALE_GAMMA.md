@@ -384,6 +384,55 @@ Contrairement aux outils IA génériques :
 
 ---
 
+# SLIDE 11B — TARIFICATION & COMPARAISON MARCHÉ
+
+## Positionnement prix vs alternatives
+
+### 💸 Coût des alternatives (prix publics vérifiables)
+
+| Solution | Prix/mois | Ce qu'elle fait | Limitations |
+|----------|-----------|-----------------|-------------|
+| **Adobe Photoshop** | ~26€/mois* | Retouche manuelle | Expertise requise, temps élevé |
+| **Adobe Creative Cloud** | ~67€/mois* | Suite complète | Formation longue, complexe |
+| **Midjourney** | $10-60/mois** | Génération IA | Pas de catalogue métier, résultats aléatoires |
+| **DALL-E 3** | Pay-per-use** | Génération IA | Même problème, pas de décors DICA |
+| **Canva Pro** | ~13€/mois* | Design graphique | Pas de projection photo-réaliste |
+| **Agence graphique** | 50-150€/image | Maquettes pro | Délais, aller-retours, coût cumulé |
+
+*Sources : sites officiels Adobe.com, Canva.com — Décembre 2024*
+**Source : midjourney.com, openai.com — tarifs US convertis*
+
+### 🎯 Estimation valeur DICA Decorator
+
+| Formule | Prix estimé | Inclus |
+|---------|-------------|--------|
+| **Starter** (1 user) | **49-79€/mois** | 100 générations, projets illimités |
+| **Pro** (5 users) | **199-299€/mois** | 500 générations, analytics, PDF premium |
+| **Enterprise** | **Sur devis** | Volume, API, support dédié |
+
+### 📊 Comparaison coût/bénéfice
+
+| Critère | Photoshop | Midjourney | DICA Decorator |
+|---------|-----------|------------|----------------|
+| **Temps/rendu** | 2-4h | 2 min | **30 sec** |
+| **Formation** | Plusieurs mois | Quelques jours | **0** (autonome) |
+| **Décors DICA** | Manuel | ❌ Non | ✅ **Intégré** |
+| **Références** | Manuel | ❌ Non | ✅ **Auto** |
+| **Export PDF pro** | Manuel | ❌ Non | ✅ **1 clic** |
+| **Historique projets** | ❌ Non | ❌ Non | ✅ **Oui** |
+
+### 💡 Calcul ROI simplifié
+
+> **Hypothèse** : 20 maquettes/mois avec une agence à 80€/maquette = **1 600€/mois**
+> 
+> **Avec DICA Decorator** : Abonnement Pro = **~249€/mois**
+> 
+> **Économie potentielle** : **~1 350€/mois** (84%)
+
+*Note : Ces estimations sont indicatives. Le prix final sera défini par KOREV AI selon les besoins client.*
+
+---
+
 # SLIDE 12 — PASSEZ À L'ACTION
 
 ## Prêt à transformer votre expérience client ?
@@ -398,14 +447,22 @@ Contrairement aux outils IA génériques :
 
 ### 🚀 Prochaines étapes
 
-1. **Démo personnalisée** (30 min)
-2. **Essai pilote** (2 semaines)
-3. **Déploiement** (1 semaine)
-4. **Formation équipes** (incluse)
+1. **Démo personnalisée** (30 min) — Gratuit, sans engagement
+2. **Essai pilote** (14 jours) — Fonctionnalités complètes
+3. **Choix de formule** — Starter, Pro ou Enterprise
+4. **Déploiement** (1 semaine) — Formation incluse
+
+### 💰 Formules disponibles
+
+| Formule | Idéal pour | Prix indicatif |
+|---------|------------|----------------|
+| **Starter** | Indépendants, petites équipes | 49-79€/mois |
+| **Pro** | PME, équipes commerciales | 199-299€/mois |
+| **Enterprise** | Grands comptes, volume | Sur devis |
 
 ### 💡 Offre de lancement
 
-> **Essai gratuit 14 jours** — Aucune carte bancaire requise
+> **Essai gratuit 14 jours** — Toutes fonctionnalités, aucune carte bancaire
 
 ---
 
