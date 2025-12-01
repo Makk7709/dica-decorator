@@ -35,6 +35,7 @@ export interface MagazineDICAExportButtonProps {
     decorId: string;
     decorName: string;
     decorCode: string;
+    decorTextureUrl?: string; // URL de la texture du décor pour les miniatures
     usage?: string;
     ambiances?: string[];
   }>;
@@ -107,6 +108,7 @@ export function MagazineDICAExportButton({
           code: render.decorCode,
           famille: extractFamilyFromCategory(render.decorCode),
           effet: 'brossé', // Default, could be enhanced
+          texture_image_url: render.decorTextureUrl,
         }];
 
         return {
@@ -174,10 +176,24 @@ export function MagazineDICAExportButton({
 
         setProgress(70);
 
-        // Générer le PDF
+        // Créer le mapping des URLs de textures des décors
+        // Utiliser les IDs des décors et leurs codes comme clés pour le mapping
+        const decorTextureUrls: Record<string, string> = {};
+        if (result.magazine.decors_utilises_total) {
+          result.magazine.decors_utilises_total.forEach(decor => {
+            if (decor.texture_image_url) {
+              // Utiliser l'ID et le code comme clés pour faciliter la recherche
+              decorTextureUrls[decor.id] = decor.texture_image_url;
+              decorTextureUrls[decor.code] = decor.texture_image_url;
+            }
+          });
+        }
+
+        // Générer le PDF avec les textures
         const pdfResult = await magazineDICAPdfService.generateMagazinePDF(
           result.magazine,
-          imageUrls
+          imageUrls,
+          decorTextureUrls
         );
 
         setProgress(90);

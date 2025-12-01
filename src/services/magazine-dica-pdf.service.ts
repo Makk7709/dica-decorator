@@ -50,7 +50,8 @@ export class MagazineDICAPdfService {
    */
   async generateMagazinePDF(
     magazine: MagazineDICA,
-    imageUrls: Record<string, string>
+    imageUrls: Record<string, string>,
+    decorTextureUrls?: Record<string, string> // Mapping decor_id -> texture_image_url
   ): Promise<MagazineDICAPdfResult> {
     console.log("📖 Magazine DICA PDF - Starting generation");
     console.log("📄 Pages:", magazine.pages.length);
@@ -76,7 +77,7 @@ export class MagazineDICAPdfService {
       // Générer chaque page
       for (let i = 0; i < magazine.pages.length; i++) {
         const page = magazine.pages[i];
-        await this.renderPage(pdf, page, imageUrls, pageWidth, pageHeight);
+        await this.renderPage(pdf, page, imageUrls, pageWidth, pageHeight, decorTextureUrls);
         
         // Ajouter une nouvelle page sauf pour la dernière
         if (i < magazine.pages.length - 1) {
@@ -117,20 +118,21 @@ export class MagazineDICAPdfService {
     page: MagazinePage,
     imageUrls: Record<string, string>,
     pageWidth: number,
-    pageHeight: number
+    pageHeight: number,
+    decorTextureUrls?: Record<string, string>
   ): Promise<void> {
     switch (page.type_page) {
       case 'cover':
-        await this.renderCoverPage(pdf, page as CoverPage, imageUrls, pageWidth, pageHeight);
+        await this.renderCoverPage(pdf, page as CoverPage, imageUrls, pageWidth, pageHeight, decorTextureUrls);
         break;
       case 'editorial_intro':
-        await this.renderEditorialIntroPage(pdf, page as EditorialIntroPage, imageUrls, pageWidth, pageHeight);
+        await this.renderEditorialIntroPage(pdf, page as EditorialIntroPage, imageUrls, pageWidth, pageHeight, decorTextureUrls);
         break;
       case 'zoom_product':
-        await this.renderZoomProductPage(pdf, page as ZoomProductPage, imageUrls, pageWidth, pageHeight);
+        await this.renderZoomProductPage(pdf, page as ZoomProductPage, imageUrls, pageWidth, pageHeight, decorTextureUrls);
         break;
       case 'closing':
-        await this.renderClosingPage(pdf, page as ClosingPage, pageWidth, pageHeight);
+        await this.renderClosingPage(pdf, page as ClosingPage, pageWidth, pageHeight, decorTextureUrls);
         break;
       default:
         console.warn(`Page type ${(page as any).type_page} not implemented`);
@@ -145,7 +147,8 @@ export class MagazineDICAPdfService {
     page: CoverPage,
     imageUrls: Record<string, string>,
     pageWidth: number,
-    pageHeight: number
+    pageHeight: number,
+    decorTextureUrls?: Record<string, string>
   ): Promise<void> {
     // Image de couverture si disponible
     if (page.id_image_principale && imageUrls[page.id_image_principale]) {
@@ -206,7 +209,7 @@ export class MagazineDICAPdfService {
     }
 
     // Blocs décors et échantillons en bas
-    await this.renderDecorsAndEchantillons(pdf, page, pageWidth, pageHeight);
+    await this.renderDecorsAndEchantillons(pdf, page, pageWidth, pageHeight, undefined, decorTextureUrls);
   }
 
   /**
@@ -217,7 +220,8 @@ export class MagazineDICAPdfService {
     page: EditorialIntroPage,
     imageUrls: Record<string, string>,
     pageWidth: number,
-    pageHeight: number
+    pageHeight: number,
+    decorTextureUrls?: Record<string, string>
   ): Promise<void> {
     const marginX = 25;
     const marginY = 30;
@@ -282,7 +286,8 @@ export class MagazineDICAPdfService {
     page: ZoomProductPage,
     imageUrls: Record<string, string>,
     pageWidth: number,
-    pageHeight: number
+    pageHeight: number,
+    decorTextureUrls?: Record<string, string>
   ): Promise<void> {
     // Image en PLEINE PAGE
     if (page.id_image_principale && imageUrls[page.id_image_principale]) {
@@ -326,7 +331,7 @@ export class MagazineDICAPdfService {
     pdf.text(phraseLines, pageWidth / 2, phraseY, { align: 'center' });
 
     // Blocs décors et échantillons (en bas, sur fond semi-transparent)
-    await this.renderDecorsAndEchantillons(pdf, page, pageWidth, pageHeight);
+    await this.renderDecorsAndEchantillons(pdf, page, pageWidth, pageHeight, undefined, decorTextureUrls);
   }
 
   /**
@@ -336,7 +341,8 @@ export class MagazineDICAPdfService {
     pdf: jsPDF,
     page: ClosingPage,
     pageWidth: number,
-    pageHeight: number
+    pageHeight: number,
+    decorTextureUrls?: Record<string, string>
   ): Promise<void> {
     const marginX = 25;
     let currentY = 40;
@@ -373,17 +379,19 @@ export class MagazineDICAPdfService {
 
   /**
    * Rend les blocs décors et échantillons (OBLIGATOIRE sur toutes les pages)
+   * Avec miniatures des textures des décors
    */
   private async renderDecorsAndEchantillons(
     pdf: jsPDF,
     page: MagazinePage,
     pageWidth: number,
     pageHeight: number,
-    startY?: number
+    startY?: number,
+    decorTextureUrls?: Record<string, string>
   ): Promise<void> {
     const marginX = 25;
-    const blockY = startY || pageHeight - 80;
-    const blockHeight = 70;
+    const blockY = startY || pageHeight - 100; // Hauteur augmentée pour les miniatures
+    const blockHeight = 90; // Hauteur augmentée pour accommoder les miniatures
 
     // Fond pour les blocs
     pdf.setFillColor(250, 250, 250);
@@ -401,20 +409,71 @@ export class MagazineDICAPdfService {
     pdf.setFontSize(10);
     pdf.setTextColor(0, 0, 0);
     pdf.text(page.decors_utilises.titre, marginX + 5, currentY);
-    currentY += 8;
+    currentY += 10;
 
-    // Liste des décors
-    pdf.setFont('Times', 'normal');
-    pdf.setFontSize(8);
-    pdf.setTextColor(60, 60, 60);
+    // Liste des décors avec miniatures
+    const thumbnailSize = 10; // Taille des miniatures en mm
+    const thumbnailSpacing = 4; // Espacement entre miniature et texte
+    const lineHeight = thumbnailSize + 4; // Hauteur de ligne avec miniature
+    
+    for (let i = 0; i < page.decors_utilises.decors.length; i++) {
+      if (currentY > blockY + blockHeight - 25) break; // Éviter le débordement
 
-    page.decors_utilises.decors.forEach((decor, index) => {
-      if (currentY > blockY + blockHeight - 20) return; // Éviter le débordement
+      const decor = page.decors_utilises.decors[i];
+      const echantillon = page.echantillons.echantillons.find(e => e.decor_code === decor.code);
+      
+      // Trouver l'ID ou le code du décor pour récupérer la texture
+      const decorId = echantillon?.decor_id;
+      const textureUrl = decorTextureUrls?.[decorId || ''] || decorTextureUrls?.[decor.code];
+      
+      let currentX = marginX + 5;
+      
+      // Afficher la miniature si disponible
+      if (textureUrl) {
+        try {
+          const textureImage = await this.loadImageWithBase64(textureUrl);
+          const thumbRatio = textureImage.width / textureImage.height;
+          let thumbWidth = thumbnailSize;
+          let thumbHeight = thumbnailSize / thumbRatio;
+          
+          if (thumbHeight > thumbnailSize) {
+            thumbHeight = thumbnailSize;
+            thumbWidth = thumbHeight * thumbRatio;
+          }
 
-      const decorText = `${decor.nom} • ${decor.code} • ${decor.famille}${decor.effet ? ` • ${decor.effet}` : ''}`;
-      pdf.text(decorText, marginX + 5, currentY);
-      currentY += 5;
-    });
+          // Bordure autour de la miniature
+          pdf.setDrawColor(200, 200, 200);
+          pdf.setLineWidth(0.3);
+          pdf.rect(currentX, currentY - thumbHeight, thumbWidth + 0.5, thumbHeight + 0.5, 'D');
+          
+          pdf.addImage(
+            textureImage.base64,
+            'JPEG',
+            currentX + 0.25,
+            currentY - thumbHeight + 0.25,
+            thumbWidth,
+            thumbHeight,
+            undefined,
+            'FAST'
+          );
+          
+          currentX += thumbWidth + thumbnailSpacing;
+        } catch (error) {
+          console.warn(`Could not load texture image for decor ${decorId || decor.code}:`, error);
+        }
+      }
+
+      // Texte du décor à côté de la miniature
+      pdf.setFont('Times', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(60, 60, 60);
+      
+      const decorText = `${decor.nom} • ${decor.code}${decor.effet ? ` • ${decor.effet}` : ''}`;
+      pdf.text(decorText, currentX, currentY - 2);
+
+      // Ligne suivante
+      currentY += lineHeight;
+    }
 
     // Séparateur
     currentY += 3;
@@ -423,25 +482,27 @@ export class MagazineDICAPdfService {
     pdf.line(marginX + 5, currentY, pageWidth - marginX - 5, currentY);
     currentY += 5;
 
-    // Titre "Échantillons"
-    pdf.setFont('Times', 'bold');
-    pdf.setFontSize(9);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('Échantillons', marginX + 5, currentY);
-    currentY += 6;
+    // Titre "Échantillons" (si espace disponible)
+    if (currentY < blockY + blockHeight - 15) {
+      pdf.setFont('Times', 'bold');
+      pdf.setFontSize(8);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('Échantillons', marginX + 5, currentY);
+      currentY += 5;
 
-    // Descriptions échantillons
-    pdf.setFont('Times', 'italic');
-    pdf.setFontSize(7);
-    pdf.setTextColor(80, 80, 80);
+      // Descriptions échantillons (version courte si espace limité)
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(6);
+      pdf.setTextColor(80, 80, 80);
 
-    page.echantillons.echantillons.forEach((echantillon) => {
-      if (currentY > blockY + blockHeight - 5) return;
+      page.echantillons.echantillons.slice(0, 2).forEach((echantillon) => {
+        if (currentY > blockY + blockHeight - 5) return;
 
-      const echantillonText = `${echantillon.decor_nom} (${echantillon.decor_code}): ${echantillon.description_courte}`;
-      pdf.text(echantillonText, marginX + 5, currentY);
-      currentY += 4;
-    });
+        const echantillonText = `${echantillon.decor_code}: ${echantillon.description_courte}`;
+        pdf.text(echantillonText, marginX + 5, currentY);
+        currentY += 3.5;
+      });
+    }
   }
 
   /**

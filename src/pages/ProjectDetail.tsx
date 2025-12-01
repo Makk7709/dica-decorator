@@ -802,6 +802,7 @@ const ProjectDetail = () => {
                               decorId: render.decor_id || '',
                               decorName: decor?.name || 'Décor DICA',
                               decorCode: decor?.reference_code || 'DICA',
+                              decorTextureUrl: decor?.texture_image_url,
                               usage: project.use_case as any,
                               ambiances: decor ? [decor.category] : ['contemporain'],
                             };
