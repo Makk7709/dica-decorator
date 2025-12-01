@@ -53,7 +53,7 @@ describe('ResellerBrochurePdfService', () => {
         contactName: 'Jean Dupont',
         email: 'contact@revendeur.fr',
         phone: '01 23 45 67 89',
-        address: '123 Rue du Commerce',
+        addressLine1: '123 Rue du Commerce',
         city: 'Paris',
         postalCode: '75001',
         website: 'www.revendeur.fr',
@@ -64,7 +64,7 @@ describe('ResellerBrochurePdfService', () => {
       expect(branding.companyName).toBe('Ma Société Revendeur');
       expect(branding.email).toBe('contact@revendeur.fr');
       expect(branding.phone).toBe('01 23 45 67 89');
-      expect(branding.address).toBe('123 Rue du Commerce');
+      expect(branding.addressLine1).toBe('123 Rue du Commerce');
       expect(branding.tagline).toBe('Votre spécialiste décoration');
     });
   });
@@ -77,7 +77,7 @@ describe('ResellerBrochurePdfService', () => {
         contactName: '',
         email: '',
         phone: '',
-        address: '',
+        addressLine1: '',
         city: '',
         postalCode: '',
       };
@@ -107,7 +107,7 @@ describe('ResellerBrochurePdfService', () => {
         contactName: '',
         email: '',
         phone: '',
-        address: '',
+        addressLine1: '',
         city: '',
         postalCode: '',
       };
@@ -126,7 +126,7 @@ describe('ResellerBrochurePdfService', () => {
         contactName: '',
         email: '',
         phone: '',
-        address: '',
+        addressLine1: '',
         city: '',
         postalCode: '',
       };
@@ -147,13 +147,13 @@ describe('ResellerBrochurePdfService', () => {
         contactName: '',
         email: '',
         phone: '',
-        address: '10 Avenue des Champs',
+        addressLine1: '10 Avenue des Champs',
         city: 'Lyon',
         postalCode: '69001',
       };
       
       const fullAddress = [
-        branding.address,
+        branding.addressLine1,
         `${branding.postalCode} ${branding.city}`.trim()
       ].filter(Boolean).join(', ');
       
@@ -167,13 +167,13 @@ describe('ResellerBrochurePdfService', () => {
         contactName: '',
         email: '',
         phone: '',
-        address: '',
+        addressLine1: '',
         city: 'Lyon',
         postalCode: '',
       };
       
       const fullAddress = [
-        branding.address,
+        branding.addressLine1,
         `${branding.postalCode} ${branding.city}`.trim()
       ].filter(part => part && part.trim()).join(', ');
       
@@ -187,7 +187,7 @@ describe('ResellerBrochurePdfService', () => {
         contactName: '',
         email: 'contact@test.fr',
         phone: '04 78 00 00 00',
-        address: '',
+        addressLine1: '',
         city: '',
         postalCode: '',
       };
@@ -207,7 +207,7 @@ describe('ResellerBrochurePdfService', () => {
         contactName: '',
         email: '',
         phone: '04 78 00 00 00',
-        address: '',
+        addressLine1: '',
         city: '',
         postalCode: '',
       };
@@ -229,7 +229,7 @@ describe('ResellerBrochurePdfService', () => {
         contactName: '',
         email: '',
         phone: '',
-        address: '',
+        addressLine1: '',
         city: '',
         postalCode: '',
       };
@@ -247,7 +247,7 @@ describe('ResellerBrochurePdfService', () => {
         contactName: '',
         email: '',
         phone: '',
-        address: '',
+        addressLine1: '',
         city: '',
         postalCode: '',
         tagline: 'Experts en aménagement depuis 1990',
@@ -307,7 +307,7 @@ describe('ResellerBrochurePdfService', () => {
           contactName: 'Pierre Dupont',
           email: 'contact@ascenseurs-dupont.fr',
           phone: '01 23 45 67 89',
-          address: '25 Rue de l\'Industrie',
+          addressLine1: '25 Rue de l\'Industrie',
           city: 'Marseille',
           postalCode: '13001',
           website: 'www.ascenseurs-dupont.fr',

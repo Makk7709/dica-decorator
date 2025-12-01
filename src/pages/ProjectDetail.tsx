@@ -92,7 +92,8 @@ const ProjectDetail = () => {
     contactName?: string;
     email?: string;
     phone?: string;
-    address?: string;
+    addressLine1?: string;
+    addressLine2?: string;
     city?: string;
     postalCode?: string;
     website?: string;
@@ -114,7 +115,7 @@ const ProjectDetail = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("cobranding_enabled, company_name, contact_name, email, phone, address, city, postal_code, website, tagline")
+        .select("cobranding_enabled, company_name, contact_name, email, phone, addressline1, addressline2, city, postal_code, website, tagline")
         .eq("id", user.id)
         .single();
 
@@ -130,7 +131,8 @@ const ProjectDetail = () => {
             contactName: data.contact_name || undefined,
             email: data.email || undefined,
             phone: data.phone || undefined,
-            address: data.address || undefined,
+            addressLine1: data.addressline1 || undefined,
+            addressLine2: data.addressline2 || undefined,
             city: data.city || undefined,
             postalCode: data.postal_code || undefined,
             website: data.website || undefined,
