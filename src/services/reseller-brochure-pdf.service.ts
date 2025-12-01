@@ -97,7 +97,8 @@ export class ResellerBrochurePdfService {
    */
   private formatFullAddress(branding: ResellerBranding): string {
     const parts = [
-      branding.address,
+      branding.addressLine1,
+      branding.addressLine2,
       `${branding.postalCode || ''} ${branding.city || ''}`.trim()
     ].filter(part => part && part.trim());
     return parts.join(', ');

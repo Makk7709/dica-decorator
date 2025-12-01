@@ -161,7 +161,7 @@ const AdminAnalytics: React.FC = () => {
           totalRenders: data.metrics.totalRenders,
           totalUsers: data.metrics.totalUsers,
           totalDecors: data.metrics.totalDecors,
-          averageRendersPerProject: data.metrics.averageRendersPerProject || 0,
+          averageRendersPerProject: data.metrics.avgRendersPerProject || 0,
           engagementRate: data.metrics.engagementRate || 0,
         },
         trends: {

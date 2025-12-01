@@ -222,12 +222,12 @@ export class MagazineDecoPdfService {
     // DICA BRANDING - Logo magazine élégant ivoire
     // ═══════════════════════════════════════════════════════════════════
     
-    // Titre "DICA" - Grand, ivoire avec ombre grise
+    // Titre "DICA" - Grand, ivoire avec ombre noire
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(90); // Très grand pour impact maximum
     
-    // Ombre grise (plusieurs couches pour profondeur)
-    pdf.setTextColor(80, 80, 80); // Gris foncé
+    // Ombre NOIRE (plusieurs couches pour profondeur)
+    pdf.setTextColor(0, 0, 0); // Noir
     for (let dx = 1.5; dx <= 3; dx += 0.5) {
       for (let dy = 1.5; dy <= 3; dy += 0.5) {
         pdf.text("DICA", 10 + dx, 42 + dy);
@@ -238,12 +238,10 @@ export class MagazineDecoPdfService {
     pdf.setTextColor(255, 250, 240); // Ivoire / Floral White
     pdf.text("DICA", 10, 42);
     
-    // Sous-titre élégant en ivoire
+    // Sous-titre élégant en ivoire (SANS ombre)
     pdf.setFont('Times', 'italic');
     pdf.setFontSize(10);
-    pdf.setTextColor(80, 80, 80); // Ombre
-    pdf.text("DÉCOR  MAGAZINE", 10.4, 52.4);
-    pdf.setTextColor(255, 250, 240); // Ivoire
+    pdf.setTextColor(255, 250, 240); // Ivoire direct, sans ombre
     pdf.text("DÉCOR  MAGAZINE", 10, 52);
     
     // OVERLAY TEXT ON IMAGE (style AD)
@@ -251,7 +249,7 @@ export class MagazineDecoPdfService {
     const subheadline = aiCaptions?.subheadline || "Découvrez une nouvelle dimension de l'élégance intérieure avec les finitions DICA.";
     
     // ═══════════════════════════════════════════════════════════════════
-    // TITRE PRINCIPAL - IVOIRE, GRAND, TYPO MAGAZINE DÉCO
+    // TITRE PRINCIPAL - IVOIRE, GRAND, TYPO MAGAZINE DÉCO (SANS ombre)
     // ═══════════════════════════════════════════════════════════════════
     
     pdf.setFont('Times', 'italic');
@@ -263,15 +261,7 @@ export class MagazineDecoPdfService {
     
     const headlineLines = pdf.splitTextToSize(headline, maxWidth);
     
-    // Ombre grise subtile pour profondeur
-    pdf.setTextColor(60, 60, 60);
-    for (let dx = 1; dx <= 2.5; dx += 0.5) {
-      for (let dy = 1; dy <= 2.5; dy += 0.5) {
-        pdf.text(headlineLines, headlineX + dx, headlineY + dy);
-      }
-    }
-    
-    // Texte principal en IVOIRE (255, 250, 240)
+    // Texte principal en IVOIRE (255, 250, 240) SANS ombre
     pdf.setTextColor(255, 250, 240);
     pdf.text(headlineLines, headlineX, headlineY);
     
