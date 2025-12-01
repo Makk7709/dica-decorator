@@ -127,16 +127,16 @@
     --primary: 356 75% 58%;
     --primary-foreground: 0 0% 100%;
     --primary-hover: 356 80% 65%;
-    --secondary: 220 12% 22%;
-    --secondary-foreground: 220 10% 90%;
+    --secondary: 220 12% 25%;
+    --secondary-foreground: 220 10% 92%;
     --muted: 220 15% 14%;
-    --muted-foreground: 220 10% 55%;
+    --muted-foreground: 220 10% 70%; /* Increased from 55% to 70% for better contrast */
     --accent: 220 15% 16%;
-    --accent-foreground: 220 10% 90%;
+    --accent-foreground: 220 10% 92%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 15% 16%;
-    --input: 220 15% 14%;
+    --border: 220 15% 20%; /* Slightly lighter for visibility */
+    --input: 220 15% 16%;
     --ring: 356 75% 58%;
     --surface-elevated: 220 18% 12%;
     --surface-sunken: 220 20% 5%;
@@ -348,6 +348,20 @@
   .section-subtitle {
     @apply text-foreground font-normal;
     letter-spacing: -0.01em;
+  }
+
+  /* Gradient overlays for premium layout */
+  .light-gradient {
+    background: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,255,255,0.8) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(245,240,235,0.5) 0%, transparent 50%);
+  }
+
+  .dark .light-gradient,
+  .dark-gradient {
+    background: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(30,33,40,0.6) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(20,23,28,0.4) 0%, transparent 50%);
   }
 }
 

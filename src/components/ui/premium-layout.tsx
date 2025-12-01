@@ -45,13 +45,7 @@ export function PremiumLayout({
       {/* Gradient overlay pour adoucir (seulement si pas d'image) */}
       {!backgroundImage && (
         <div 
-          className="absolute inset-0 pointer-events-none z-[1]"
-          style={{
-            background: `
-              radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255,255,255,0.8) 0%, transparent 60%),
-              radial-gradient(ellipse 60% 40% at 100% 100%, rgba(245,240,235,0.5) 0%, transparent 50%)
-            `
-          }}
+          className="absolute inset-0 pointer-events-none z-[1] light-gradient dark:dark-gradient"
           aria-hidden="true"
         />
       )}
