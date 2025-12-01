@@ -1272,7 +1272,7 @@ const ProjectDetail = () => {
                     imageUrl={zoomedImage!}
                     filename={`dica-render-${Date.now()}`}
                     variant="secondary"
-                    className="h-10 px-4 bg-white hover:bg-white/90 shadow-lg text-black"
+                    className="h-10 px-4 bg-white hover:bg-gray-100 shadow-lg text-gray-800 border border-gray-200"
                   />
                 </div>
               </>
@@ -1332,7 +1332,7 @@ const ProjectDetail = () => {
                     imageUrl={comparisonMode.after}
                     filename={`dica-comparison-${Date.now()}`}
                     variant="secondary"
-                    className="h-10 px-4 bg-white hover:bg-white shadow-lg"
+                    className="h-10 px-4 bg-white hover:bg-gray-100 shadow-lg text-gray-800 border border-gray-200"
                   />
                 )}
               </div>
