@@ -192,40 +192,48 @@ const ProjectDetail = () => {
       if (photosError) throw photosError;
       setPhotos(photosData || []);
 
-      // Load renders for each photo and separate creative imports
-      const rendersByPhoto: { [photoId: string]: RenderResult[] } = {};
-      const allCreativeImports: CreativeImport[] = [];
+      // Optimized: Load ALL renders in ONE query instead of N queries
+      const photoIds = (photosData || []).map(p => p.id);
       
-      for (const photo of photosData || []) {
-        const { data: rendersData } = await supabase
+      if (photoIds.length > 0) {
+        const { data: allRendersData } = await supabase
           .from("render_results")
           .select("*")
-          .eq("project_photo_id", photo.id)
+          .in("project_photo_id", photoIds)
           .order("created_at", { ascending: false });
-        
+
         // Séparer les créations IA (sans decor_id) des rendus décors
-        const decorRenders: RenderResult[] = [];
+        const rendersByPhoto: { [photoId: string]: RenderResult[] } = {};
+        const allCreativeImports: CreativeImport[] = [];
         
-        for (const render of rendersData || []) {
+        // Initialize empty arrays for all photos
+        photoIds.forEach(photoId => {
+          rendersByPhoto[photoId] = [];
+        });
+        
+        for (const render of allRendersData || []) {
           if (render.decor_id === null) {
             // C'est une création de l'assistant IA
             allCreativeImports.push({
               id: render.id,
               result_image_url: render.result_image_url,
               created_at: render.created_at,
-              photoId: photo.id,
+              photoId: render.project_photo_id,
             });
           } else {
             // C'est un rendu décor classique
-            decorRenders.push(render);
+            if (rendersByPhoto[render.project_photo_id]) {
+              rendersByPhoto[render.project_photo_id].push(render);
+            }
           }
         }
         
-        rendersByPhoto[photo.id] = decorRenders;
+        setRenders(rendersByPhoto);
+        setCreativeImports(allCreativeImports);
+      } else {
+        setRenders({});
+        setCreativeImports([]);
       }
-      
-      setRenders(rendersByPhoto);
-      setCreativeImports(allCreativeImports);
     } catch (error: any) {
       toast.error("Erreur lors du chargement du projet");
       navigate("/dashboard");
@@ -339,7 +347,10 @@ const ProjectDetail = () => {
       setShowDecorDialog(false);
       setSelectedPhoto(null);
       setSelectedDecor(null);
-      loadProject();
+      
+      // Small delay to ensure database has propagated the new render
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await loadProject();
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la génération du rendu");
     } finally {
@@ -392,7 +403,10 @@ const ProjectDetail = () => {
       if (error) throw error;
 
       toast.success("Variante régénérée avec succès !");
-      loadProject();
+      
+      // Small delay to ensure database has propagated the new render
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await loadProject();
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la régénération");
     } finally {
@@ -1215,15 +1229,20 @@ const ProjectDetail = () => {
                 <div className="absolute bottom-4 right-4 z-10">
                   <Button
                     variant="secondary"
-                    className="h-10 px-4 bg-white hover:bg-white shadow-lg"
-                    asChild
+                    className="h-10 px-4 bg-white hover:bg-white/90 shadow-lg text-black"
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = zoomedImage;
+                      link.download = `dica-render-${Date.now()}.png`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
                   >
-                    <a href={zoomedImage} download className="flex items-center gap-2">
-                      <Download className="h-4 w-4" />
-                      <span>Télécharger</span>
-                    </a>
+                    <Download className="h-4 w-4 mr-2" />
+                    Télécharger
                   </Button>
-      </div>
+                </div>
               </>
             )}
     </div>
