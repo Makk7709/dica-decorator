@@ -435,32 +435,75 @@ const ProjectDetail = () => {
   };
 
   const handleDeleteRender = async (renderId: string, photoId: string) => {
+    // 🚀 OPTIMISTIC UPDATE : Mise à jour immédiate de l'UI
+    
+    // Sauvegarder l'état pour rollback en cas d'erreur
+    const previousCreativeImports = [...creativeImports];
+    const previousRenders = { ...renders };
+    const previousFavorites = new Set(favoriteRenderIds);
+    
+    // Déterminer si c'est une création IA ou un render décor
+    const isCreativeImport = creativeImports.some(c => c.id === renderId);
+    
+    // Mise à jour IMMÉDIATE de l'UI
+    if (isCreativeImport) {
+      setCreativeImports(prev => prev.filter(c => c.id !== renderId));
+    } else {
+      setRenders(prev => ({
+        ...prev,
+        [photoId]: (prev[photoId] || []).filter(r => r.id !== renderId)
+      }));
+    }
+    
+    // Retirer des favoris localement
+    setFavoriteRenderIds(prev => {
+      const next = new Set(prev);
+      next.delete(renderId);
+      return next;
+    });
+    
+    // Retirer de la sélection si sélectionné
+    setSelectedRenderIds(prev => {
+      const next = new Set(prev);
+      next.delete(renderId);
+      return next;
+    });
+    
+    toast.success("Supprimé !");
+    
     try {
-      // First, remove from favorites if it exists
-      await supabase
-        .from("render_favorites")
-        .delete()
-        .eq("render_result_id", renderId)
-        .eq("user_id", user?.id);
-
-      // Delete the render
-      const { error } = await supabase
-        .from("render_results")
-        .delete()
-        .eq("id", renderId);
-
-      if (error) {
-        console.error("Erreur suppression render:", error);
-        throw error;
-      }
-
-      toast.success("Rendu supprimé avec succès");
+      // Suppression en arrière-plan (parallèle pour vitesse)
+      const deletePromises = [
+        supabase
+          .from("render_favorites")
+          .delete()
+          .eq("render_result_id", renderId)
+          .eq("user_id", user?.id),
+        supabase
+          .from("render_results")
+          .delete()
+          .eq("id", renderId)
+      ];
       
-      // Reload project to refresh all data
-      await loadProject();
+      const results = await Promise.all(deletePromises);
+      
+      // Vérifier les erreurs
+      const deleteError = results[1].error;
+      if (deleteError) {
+        throw deleteError;
+      }
+      
+      console.log(`[Delete] Render ${renderId} supprimé avec succès`);
+      
     } catch (error: any) {
-      console.error("Erreur complète:", error);
-      toast.error(`Impossible de supprimer: ${error.message}`);
+      // 🔄 ROLLBACK : Restaurer l'état précédent en cas d'erreur
+      console.error("Erreur suppression, rollback:", error);
+      
+      setCreativeImports(previousCreativeImports);
+      setRenders(previousRenders);
+      setFavoriteRenderIds(previousFavorites);
+      
+      toast.error(`Échec de la suppression: ${error.message}`);
     }
   };
 
