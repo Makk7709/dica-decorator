@@ -74,6 +74,17 @@ export class MagazineDICAPdfService {
       const pageWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
 
+      // Extraire les URLs de textures depuis decors_utilises_total si non fournies
+      if (!decorTextureUrls && magazine.decors_utilises_total) {
+        decorTextureUrls = {};
+        magazine.decors_utilises_total.forEach(decor => {
+          if (decor.texture_image_url) {
+            decorTextureUrls![decor.id] = decor.texture_image_url;
+            decorTextureUrls![decor.code] = decor.texture_image_url;
+          }
+        });
+      }
+
       // Générer chaque page
       for (let i = 0; i < magazine.pages.length; i++) {
         const page = magazine.pages[i];
@@ -378,8 +389,8 @@ export class MagazineDICAPdfService {
   }
 
   /**
-   * Rend les blocs décors et échantillons (OBLIGATOIRE sur toutes les pages)
-   * Avec miniatures des textures des décors
+   * Rend les blocs décors et échantillons avec carrés élégants type RAL
+   * Décors affichés en grille de carrés colorés avec codes
    */
   private async renderDecorsAndEchantillons(
     pdf: jsPDF,
@@ -390,119 +401,127 @@ export class MagazineDICAPdfService {
     decorTextureUrls?: Record<string, string>
   ): Promise<void> {
     const marginX = 25;
-    const blockY = startY || pageHeight - 100; // Hauteur augmentée pour les miniatures
-    const blockHeight = 90; // Hauteur augmentée pour accommoder les miniatures
+    const blockY = startY || pageHeight - 80;
+    const blockHeight = 70;
 
-    // Fond pour les blocs
-    pdf.setFillColor(250, 250, 250);
+    // Fond pour les blocs (fond très clair, presque blanc)
+    pdf.setFillColor(255, 255, 255);
     pdf.roundedRect(marginX, blockY, pageWidth - 50, blockHeight, 3, 3, 'F');
 
-    // Bordure
-    pdf.setDrawColor(200, 200, 200);
-    pdf.setLineWidth(0.5);
+    // Bordure fine et élégante
+    pdf.setDrawColor(220, 220, 220);
+    pdf.setLineWidth(0.3);
     pdf.roundedRect(marginX, blockY, pageWidth - 50, blockHeight, 3, 3, 'D');
 
     let currentY = blockY + 10;
 
-    // Titre "Décors DICA utilisés"
+    // Titre "Palette DICA" ou "Décors DICA utilisés"
     pdf.setFont('Times', 'bold');
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setTextColor(0, 0, 0);
-    pdf.text(page.decors_utilises.titre, marginX + 5, currentY);
-    currentY += 10;
+    const title = page.decors_utilises.titre === 'Palette DICA' ? 'Palette DICA' : page.decors_utilises.titre;
+    pdf.text(title, marginX + 5, currentY);
+    currentY += 12;
 
-    // Liste des décors avec miniatures
-    const thumbnailSize = 10; // Taille des miniatures en mm
-    const thumbnailSpacing = 4; // Espacement entre miniature et texte
-    const lineHeight = thumbnailSize + 4; // Hauteur de ligne avec miniature
-    
-    for (let i = 0; i < page.decors_utilises.decors.length; i++) {
-      if (currentY > blockY + blockHeight - 25) break; // Éviter le débordement
+    // Grille de carrés RAL élégants
+    const squareSize = 12; // Taille des carrés en mm
+    const squareSpacing = 8; // Espacement entre carrés
+    const squaresPerRow = Math.floor((pageWidth - 50 - 10) / (squareSize + squareSpacing));
+    let currentX = marginX + 5;
+    let rowStartY = currentY;
 
-      const decor = page.decors_utilises.decors[i];
+    const decors = page.decors_utilises.decors;
+    const displayedDecors = decors.slice(0, squaresPerRow * 2); // Max 2 lignes pour ne pas déborder
+
+    for (let i = 0; i < displayedDecors.length; i++) {
+      const decor = displayedDecors[i];
       const echantillon = page.echantillons.echantillons.find(e => e.decor_code === decor.code);
       
-      // Trouver l'ID ou le code du décor pour récupérer la texture
+      // Nouvelle ligne si nécessaire
+      if (i > 0 && i % squaresPerRow === 0) {
+        currentX = marginX + 5;
+        currentY += squareSize + squareSpacing + 8; // Espace pour le texte sous le carré
+      }
+
+      // Carré coloré type RAL
+      const colorHex = decor.color_hex || echantillon?.color_hex || '#CCCCCC';
+      const rgb = this.hexToRgb(colorHex);
+      
+      // Carré principal avec couleur
+      pdf.setFillColor(rgb.r, rgb.g, rgb.b);
+      pdf.setDrawColor(180, 180, 180);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(currentX, currentY, squareSize, squareSize, 1, 1, 'FD'); // Fill and Draw
+
+      // Bordure intérieure fine pour élégance
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.2);
+      pdf.roundedRect(currentX + 0.5, currentY + 0.5, squareSize - 1, squareSize - 1, 1, 1, 'D');
+
+      // Code du décor en petit sous le carré
+      pdf.setFont('Times', 'normal');
+      pdf.setFontSize(5);
+      pdf.setTextColor(80, 80, 80);
+      const codeText = decor.code.length > 12 ? decor.code.substring(0, 12) + '...' : decor.code;
+      pdf.text(codeText, currentX, currentY + squareSize + 2.5, { 
+        maxWidth: squareSize,
+        align: 'center'
+      });
+
+      // Miniature texture si disponible (superposée en petit coin)
       const decorId = echantillon?.decor_id;
       const textureUrl = decorTextureUrls?.[decorId || ''] || decorTextureUrls?.[decor.code];
-      
-      let currentX = marginX + 5;
-      
-      // Afficher la miniature si disponible
       if (textureUrl) {
         try {
           const textureImage = await this.loadImageWithBase64(textureUrl);
-          const thumbRatio = textureImage.width / textureImage.height;
-          let thumbWidth = thumbnailSize;
-          let thumbHeight = thumbnailSize / thumbRatio;
-          
-          if (thumbHeight > thumbnailSize) {
-            thumbHeight = thumbnailSize;
-            thumbWidth = thumbHeight * thumbRatio;
-          }
-
-          // Bordure autour de la miniature
-          pdf.setDrawColor(200, 200, 200);
-          pdf.setLineWidth(0.3);
-          pdf.rect(currentX, currentY - thumbHeight, thumbWidth + 0.5, thumbHeight + 0.5, 'D');
+          const smallSize = squareSize * 0.7;
+          const smallOffset = (squareSize - smallSize) / 2;
           
           pdf.addImage(
             textureImage.base64,
             'JPEG',
-            currentX + 0.25,
-            currentY - thumbHeight + 0.25,
-            thumbWidth,
-            thumbHeight,
+            currentX + smallOffset,
+            currentY + smallOffset,
+            smallSize,
+            smallSize,
             undefined,
             'FAST'
           );
-          
-          currentX += thumbWidth + thumbnailSpacing;
         } catch (error) {
-          console.warn(`Could not load texture image for decor ${decorId || decor.code}:`, error);
+          // Ignorer les erreurs de chargement de texture
         }
       }
 
-      // Texte du décor à côté de la miniature
-      pdf.setFont('Times', 'normal');
-      pdf.setFontSize(7);
-      pdf.setTextColor(60, 60, 60);
-      
-      const decorText = `${decor.nom} • ${decor.code}${decor.effet ? ` • ${decor.effet}` : ''}`;
-      pdf.text(decorText, currentX, currentY - 2);
-
-      // Ligne suivante
-      currentY += lineHeight;
+      currentX += squareSize + squareSpacing;
     }
 
-    // Séparateur
-    currentY += 3;
-    pdf.setDrawColor(220, 220, 220);
-    pdf.setLineWidth(0.3);
-    pdf.line(marginX + 5, currentY, pageWidth - marginX - 5, currentY);
-    currentY += 5;
+    // Ajuster la position Y pour la suite
+    currentY += squareSize + 12;
 
-    // Titre "Échantillons" (si espace disponible)
-    if (currentY < blockY + blockHeight - 15) {
-      pdf.setFont('Times', 'bold');
-      pdf.setFontSize(8);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text('Échantillons', marginX + 5, currentY);
+    // Légende des échantillons (si espace disponible)
+    if (currentY < blockY + blockHeight - 15 && displayedDecors.length > 0) {
+      pdf.setDrawColor(240, 240, 240);
+      pdf.setLineWidth(0.2);
+      pdf.line(marginX + 5, currentY, pageWidth - marginX - 5, currentY);
       currentY += 5;
 
-      // Descriptions échantillons (version courte si espace limité)
       pdf.setFont('Times', 'italic');
       pdf.setFontSize(6);
-      pdf.setTextColor(80, 80, 80);
-
-      page.echantillons.echantillons.slice(0, 2).forEach((echantillon) => {
-        if (currentY > blockY + blockHeight - 5) return;
-
-        const echantillonText = `${echantillon.decor_code}: ${echantillon.description_courte}`;
-        pdf.text(echantillonText, marginX + 5, currentY);
-        currentY += 3.5;
-      });
+      pdf.setTextColor(120, 120, 120);
+      pdf.text('Échantillons de la palette DICA utilisée dans ce numéro', marginX + 5, currentY);
     }
+  }
+
+  /**
+   * Convertit une couleur hex en RGB
+   */
+  private hexToRgb(hex: string): { r: number; g: number; b: number } {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : { r: 204, g: 204, b: 204 }; // Gris par défaut
   }
 
   /**
