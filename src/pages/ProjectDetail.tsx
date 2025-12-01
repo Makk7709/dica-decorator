@@ -85,6 +85,42 @@ const ProjectDetail = () => {
   } | null>(null);
   const [selectedRenderIds, setSelectedRenderIds] = useState<Set<string>>(new Set());
   const [userCoBrandingEnabled, setUserCoBrandingEnabled] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
+
+  // Fonction de téléchargement robuste pour images cross-origin
+  const handleDownloadImage = async (imageUrl: string, filename?: string) => {
+    try {
+      setIsDownloading(imageUrl);
+      
+      // Récupérer l'image en blob pour contourner les restrictions cross-origin
+      const response = await fetch(imageUrl);
+      if (!response.ok) throw new Error('Erreur de téléchargement');
+      
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      // Créer un lien temporaire et déclencher le téléchargement
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename || `dica-render-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Nettoyer l'URL blob
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+      
+      toast.success("Image téléchargée !");
+    } catch (error: any) {
+      console.error("Download error:", error);
+      toast.error("Erreur lors du téléchargement");
+      
+      // Fallback : ouvrir dans un nouvel onglet
+      window.open(imageUrl, '_blank');
+    } finally {
+      setIsDownloading(null);
+    }
+  };
 
   useEffect(() => {
     loadProject();
@@ -785,12 +821,15 @@ const ProjectDetail = () => {
                           variant="secondary"
                           size="sm"
                           className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
-                          asChild
+                          onClick={() => handleDownloadImage(creative.result_image_url, `dica-ia-${creative.id}.png`)}
+                          disabled={isDownloading === creative.result_image_url}
                         >
-                          <a href={creative.result_image_url} download className="flex items-center gap-1.5">
+                          {isDownloading === creative.result_image_url ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-700" />
+                          ) : (
                             <Download className="h-3.5 w-3.5 text-gray-700" />
-                            <span className="text-gray-700">Télécharger</span>
-                          </a>
+                          )}
+                          <span className="text-gray-700 ml-1.5">Télécharger</span>
                         </Button>
                       </div>
                     </div>
@@ -1014,13 +1053,16 @@ const ProjectDetail = () => {
                                     Comparer avant/après
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
-                                  asChild
                                     className="cursor-pointer"
+                                    onClick={() => handleDownloadImage(render.result_image_url, `dica-render-${render.id}.png`)}
+                                    disabled={isDownloading === render.result_image_url}
                                 >
-                                    <a href={render.result_image_url} download className="flex items-center">
-                                    <Download className="mr-2 h-4 w-4" />
-                                      Télécharger
-                                    </a>
+                                    {isDownloading === render.result_image_url ? (
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Download className="mr-2 h-4 w-4" />
+                                    )}
+                                    Télécharger
                                   </DropdownMenuItem>
                                   {render.decor_id && (
                                     <DropdownMenuItem
@@ -1263,20 +1305,26 @@ const ProjectDetail = () => {
                   alt="Rendu agrandi"
                   className="max-w-full max-h-[90vh] object-contain"
                 />
-                <div className="absolute bottom-4 right-4 z-10">
+                <div className="absolute bottom-4 left-4 right-4 z-10 flex justify-between items-center">
+                  <Button
+                    variant="secondary"
+                    className="h-10 px-4 bg-white/90 hover:bg-white shadow-lg text-black"
+                    onClick={() => setZoomedImage(null)}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Fermer
+                  </Button>
                   <Button
                     variant="secondary"
                     className="h-10 px-4 bg-white hover:bg-white/90 shadow-lg text-black"
-                    onClick={() => {
-                      const link = document.createElement('a');
-                      link.href = zoomedImage;
-                      link.download = `dica-render-${Date.now()}.png`;
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
+                    onClick={() => handleDownloadImage(zoomedImage!, `dica-render-${Date.now()}.png`)}
+                    disabled={isDownloading === zoomedImage}
                   >
-                    <Download className="h-4 w-4 mr-2" />
+                    {isDownloading === zoomedImage ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
                     Télécharger
                   </Button>
                 </div>
@@ -1335,12 +1383,15 @@ const ProjectDetail = () => {
                 <Button
                   variant="secondary"
                   className="h-10 px-4 bg-white hover:bg-white shadow-lg"
-                  asChild
+                  onClick={() => comparisonMode?.after && handleDownloadImage(comparisonMode.after, `dica-comparison-${Date.now()}.png`)}
+                  disabled={isDownloading === comparisonMode?.after}
                 >
-                  <a href={comparisonMode?.after} download className="flex items-center gap-2">
+                  {isDownloading === comparisonMode?.after ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
                     <Download className="h-4 w-4" />
-                    <span>Télécharger le rendu</span>
-                  </a>
+                  )}
+                  <span className="ml-2">Télécharger le rendu</span>
                 </Button>
               </div>
             </div>
