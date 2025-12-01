@@ -119,31 +119,42 @@ const ProjectDetail = () => {
         .eq("id", user.id)
         .single();
 
+      console.log("[Branding] Profile data loaded:", { data, error, userId: user.id });
+
       if (!error && data) {
         const coBrandingEnabled = data.cobranding_enabled ?? false;
         setUserCoBrandingEnabled(coBrandingEnabled);
         
+        console.log("[Branding] Co-branding enabled:", coBrandingEnabled);
+        console.log("[Branding] Company name:", data.company_name);
+        
         // Construire l'objet branding si co-branding activé et nom de société fourni
-        if (coBrandingEnabled && data.company_name) {
-          setResellerBranding({
+        if (coBrandingEnabled && data.company_name?.trim()) {
+          const branding = {
             enabled: true,
-            companyName: data.company_name,
-            contactName: data.contact_name || undefined,
-            email: data.email || undefined,
-            phone: data.phone || undefined,
-            addressLine1: data.addressline1 || undefined,
-            addressLine2: data.addressline2 || undefined,
-            city: data.city || undefined,
-            postalCode: data.postal_code || undefined,
-            website: data.website || undefined,
-            tagline: data.tagline || undefined,
-          });
+            companyName: data.company_name.trim(),
+            contactName: data.contact_name?.trim() || undefined,
+            email: data.email?.trim() || undefined,
+            phone: data.phone?.trim() || undefined,
+            addressLine1: data.addressline1?.trim() || undefined,
+            addressLine2: data.addressline2?.trim() || undefined,
+            city: data.city?.trim() || undefined,
+            postalCode: data.postal_code?.trim() || undefined,
+            website: data.website?.trim() || undefined,
+            tagline: data.tagline?.trim() || undefined,
+          };
+          
+          console.log("[Branding] Setting reseller branding:", branding);
+          setResellerBranding(branding);
         } else {
+          console.log("[Branding] No branding set - enabled:", coBrandingEnabled, "companyName:", data.company_name);
           setResellerBranding(null);
         }
+      } else {
+        console.error("[Branding] Error loading profile:", error);
       }
     } catch (error: any) {
-      console.error("Error loading user profile:", error);
+      console.error("[Branding] Error loading user profile:", error);
     }
   };
 

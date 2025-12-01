@@ -53,7 +53,7 @@ interface UserData {
 
 const Admin = () => {
   const navigate = useNavigate();
-  const { userRole, signOut } = useAuth();
+  const { userRole, signOut, user } = useAuth();
   const [decors, setDecors] = useState<Decor[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [users, setUsers] = useState<UserData[]>([]);
@@ -98,7 +98,49 @@ const Admin = () => {
     loadDecors();
     loadCategories();
     loadUsers();
-  }, [userRole, navigate]);
+    loadUserBranding();
+  }, [userRole, navigate, user]);
+
+  const loadUserBranding = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("cobranding_enabled, company_name, contact_name, email, phone, addressline1, addressline2, city, postal_code, website, tagline, logo_url, accent_color_hex, siret, country")
+        .eq("id", user.id)
+        .single();
+
+      if (!error && data) {
+        const coBrandingEnabled = data.cobranding_enabled ?? false;
+        setIsCoBrandingEnabled(coBrandingEnabled);
+        
+        if (coBrandingEnabled && data.company_name) {
+          setResellerBranding({
+            enabled: true,
+            companyName: data.company_name,
+            contactName: data.contact_name || undefined,
+            email: data.email || undefined,
+            phone: data.phone || undefined,
+            addressLine1: data.addressline1 || undefined,
+            addressLine2: data.addressline2 || undefined,
+            city: data.city || undefined,
+            postalCode: data.postal_code || undefined,
+            website: data.website || undefined,
+            tagline: data.tagline || undefined,
+            logoUrl: data.logo_url || undefined,
+            accentColorHex: data.accent_color_hex || undefined,
+            siret: data.siret || undefined,
+            country: data.country || 'France',
+          });
+        } else {
+          setResellerBranding(null);
+        }
+      }
+    } catch (error: any) {
+      console.error("[Admin] Error loading user branding:", error);
+    }
+  };
 
   const loadDecors = async () => {
     try {
@@ -928,10 +970,48 @@ const Admin = () => {
                 toast.success(enabled ? "Co-branding activé" : "Co-branding désactivé");
               }}
               onSaveBranding={async (branding) => {
-                // Simulate saving to database
-                setResellerBranding(branding);
-                // In production, save to Supabase:
-                // await supabase.from('app_settings').upsert({ key: 'reseller_branding', value: branding })
+                if (!user) {
+                  toast.error("Vous devez être connecté pour sauvegarder");
+                  return;
+                }
+
+                try {
+                  // Sauvegarder dans la table profiles pour l'utilisateur connecté
+                  const { error } = await supabase
+                    .from('profiles')
+                    .update({
+                      cobranding_enabled: branding.enabled,
+                      company_name: branding.companyName || null,
+                      contact_name: branding.contactName || null,
+                      email: branding.email || null,
+                      phone: branding.phone || null,
+                      addressline1: branding.addressLine1 || null,
+                      addressline2: branding.addressLine2 || null,
+                      city: branding.city || null,
+                      postal_code: branding.postalCode || null,
+                      country: branding.country || 'France',
+                      website: branding.website || null,
+                      tagline: branding.tagline || null,
+                      logo_url: branding.logoUrl || null,
+                      accent_color_hex: branding.accentColorHex || null,
+                      siret: branding.siret || null,
+                    })
+                    .eq('id', user.id);
+
+                  if (error) {
+                    console.error("[Admin] Error saving branding:", error);
+                    toast.error(`Erreur lors de la sauvegarde: ${error.message}`);
+                    throw error;
+                  }
+
+                  setResellerBranding(branding);
+                  toast.success("Configuration du co-branding sauvegardée avec succès");
+                  
+                  console.log("[Admin] Branding saved successfully for user:", user.id, branding);
+                } catch (error: any) {
+                  console.error("[Admin] Error saving branding:", error);
+                  toast.error(`Erreur: ${error.message || "Impossible de sauvegarder"}`);
+                }
               }}
             />
           </TabsContent>

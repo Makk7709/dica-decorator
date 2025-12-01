@@ -126,6 +126,14 @@ export function ResellerBrochureExportButton({
       const otherImages = selectedImages.filter(img => img.id !== coverImageId);
       const orderedImages = coverImage ? [coverImage, ...otherImages] : selectedImages;
       
+      console.log("[ResellerBrochureExport] Generating PDF with:", {
+        projectName: project.name,
+        decorName: decor.name,
+        imagesCount: orderedImages.length,
+        resellerBranding: resellerBranding ? JSON.stringify(resellerBranding, null, 2) : 'NULL',
+        clientName: clientName.trim() || undefined,
+      });
+
       const result = await resellerBrochurePdfService.generateResellerBrochurePDF({
         project,
         decor,
@@ -133,6 +141,12 @@ export function ResellerBrochureExportButton({
         resellerBranding,
         clientName: clientName.trim() || undefined,
         generateAICaptions: true
+      });
+
+      console.log("[ResellerBrochureExport] PDF generation result:", {
+        success: result.success,
+        filename: result.filename,
+        pageCount: result.pageCount,
       });
 
       setProgress(90);
