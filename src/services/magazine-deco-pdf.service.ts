@@ -89,6 +89,10 @@ export class MagazineDecoPdfService {
           i + 2
         );
       }
+      
+      // PAGE FINALE - Certifications & Contact DICA
+      pdf.addPage();
+      await this.renderClosingPage(pdf, pageWidth, pageHeight);
 
       // Generate blob
       const blob = pdf.output('blob');
@@ -844,6 +848,210 @@ export class MagazineDecoPdfService {
       img.onerror = reject;
       img.src = url;
     });
+  }
+
+  /**
+   * PAGE FINALE - Certifications, Solutions et Contact DICA
+   */
+  private async renderClosingPage(
+    pdf: jsPDF,
+    pageWidth: number,
+    pageHeight: number
+  ) {
+    // Fond blanc élégant
+    pdf.setFillColor(252, 252, 250);
+    pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+    
+    // Bordure décorative fine
+    pdf.setDrawColor(220, 38, 38); // Rouge DICA
+    pdf.setLineWidth(0.5);
+    pdf.rect(10, 10, pageWidth - 20, pageHeight - 20);
+    
+    let currentY = 30;
+    const marginX = 20;
+    const contentWidth = pageWidth - 40;
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // LOGOS CERTIFICATIONS (PEFC & FSC) - Représentation stylisée
+    // ═══════════════════════════════════════════════════════════════════
+    
+    // Logo PEFC stylisé (cercle vert avec arbre)
+    const logoY = currentY;
+    const logoSize = 20;
+    
+    // PEFC
+    pdf.setFillColor(34, 139, 34); // Forest green
+    pdf.circle(50, logoY + logoSize/2, logoSize/2, 'F');
+    pdf.setFontSize(7);
+    pdf.setFont('Helvetica', 'bold');
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('PEFC', 50, logoY + logoSize/2 + 1, { align: 'center' });
+    pdf.setFontSize(5);
+    pdf.text('CERTIFIED', 50, logoY + logoSize/2 + 4, { align: 'center' });
+    
+    // FSC
+    pdf.setFillColor(46, 125, 50); // Green
+    pdf.circle(80, logoY + logoSize/2, logoSize/2, 'F');
+    pdf.setFontSize(7);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('FSC', 80, logoY + logoSize/2 + 1, { align: 'center' });
+    pdf.setFontSize(5);
+    pdf.text('CERTIFIED', 80, logoY + logoSize/2 + 4, { align: 'center' });
+    
+    // EN 438 badge
+    pdf.setFillColor(30, 64, 175); // Bleu norme
+    pdf.roundedRect(100, logoY, 30, 20, 2, 2, 'F');
+    pdf.setFontSize(8);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('EN 438', 115, logoY + 9, { align: 'center' });
+    pdf.setFontSize(6);
+    pdf.text('CERTIFIED', 115, logoY + 14, { align: 'center' });
+    
+    // M1 badge (classement feu)
+    pdf.setFillColor(220, 38, 38); // Rouge DICA
+    pdf.roundedRect(135, logoY, 25, 20, 2, 2, 'F');
+    pdf.setFontSize(12);
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('Helvetica', 'bold');
+    pdf.text('M1', 147.5, logoY + 10, { align: 'center' });
+    pdf.setFontSize(5);
+    pdf.text('CLASSEMENT FEU', 147.5, logoY + 15, { align: 'center' });
+    
+    currentY = logoY + logoSize + 15;
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // TITRE SECTION ENGAGEMENT
+    // ═══════════════════════════════════════════════════════════════════
+    
+    pdf.setFont('Times', 'normal');
+    pdf.setFontSize(16);
+    pdf.setTextColor(30, 30, 30);
+    pdf.text('Engagement et certifications', marginX, currentY);
+    
+    // Ligne sous le titre
+    pdf.setDrawColor(220, 38, 38);
+    pdf.setLineWidth(0.8);
+    pdf.line(marginX, currentY + 2, marginX + 60, currentY + 2);
+    
+    currentY += 12;
+    
+    // Texte engagement
+    pdf.setFont('Helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(60, 60, 60);
+    
+    const engagementText = `Dica France inscrit son développement dans une démarche responsable, adossée à des filières certifiées PEFC et FSC garantissant une gestion durable des forêts et une traçabilité maîtrisée des matériaux. Les stratifiés et compacts proposés répondent aux principales exigences du marché, notamment la norme EN 438 et le classement feu M1, pour des applications sûres et pérennes en environnement exigeant.`;
+    
+    const engagementLines = pdf.splitTextToSize(engagementText, contentWidth);
+    pdf.text(engagementLines, marginX, currentY);
+    
+    currentY += engagementLines.length * 4.5 + 15;
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // TITRE SECTION SOLUTIONS
+    // ═══════════════════════════════════════════════════════════════════
+    
+    pdf.setFont('Times', 'normal');
+    pdf.setFontSize(16);
+    pdf.setTextColor(30, 30, 30);
+    pdf.text("Solutions par domaines d'application", marginX, currentY);
+    
+    pdf.setDrawColor(220, 38, 38);
+    pdf.setLineWidth(0.8);
+    pdf.line(marginX, currentY + 2, marginX + 80, currentY + 2);
+    
+    currentY += 12;
+    
+    // Intro solutions
+    pdf.setFont('Helvetica', 'italic');
+    pdf.setFontSize(9);
+    pdf.setTextColor(80, 80, 80);
+    pdf.text("Interlocuteur privilégié des industriels et agenceurs, Dica France structure son offre par univers métiers.", marginX, currentY);
+    
+    currentY += 12;
+    
+    // Liste des solutions avec puces
+    pdf.setFont('Helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(60, 60, 60);
+    
+    const solutions = [
+      "Panneaux stratifiés décoratifs HPL, compacts et postformables pour mobilier, habillages muraux et plans de travail.",
+      "Programmes dédiés aux cabines d'ascenseurs (parois, plafonds, sols) en stratifié compact prêt à poser.",
+      "Contreplaqués replaqués légers pour l'agencement, le véhicule de loisirs et les aménagements mobiles."
+    ];
+    
+    for (const solution of solutions) {
+      // Puce rouge
+      pdf.setFillColor(220, 38, 38);
+      pdf.circle(marginX + 2, currentY - 1.5, 1.5, 'F');
+      
+      const solutionLines = pdf.splitTextToSize(solution, contentWidth - 10);
+      pdf.text(solutionLines, marginX + 8, currentY);
+      currentY += solutionLines.length * 4.5 + 6;
+    }
+    
+    currentY += 10;
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // BLOC CONTACT DICA
+    // ═══════════════════════════════════════════════════════════════════
+    
+    // Fond du bloc contact
+    const contactBlockY = currentY;
+    const contactBlockHeight = 55;
+    
+    pdf.setFillColor(245, 245, 245);
+    pdf.roundedRect(marginX, contactBlockY, contentWidth, contactBlockHeight, 3, 3, 'F');
+    
+    // Bordure gauche rouge
+    pdf.setFillColor(220, 38, 38);
+    pdf.rect(marginX, contactBlockY, 4, contactBlockHeight, 'F');
+    
+    currentY = contactBlockY + 12;
+    
+    // Logo DICA texte
+    pdf.setFont('Times', 'bold');
+    pdf.setFontSize(24);
+    pdf.setTextColor(220, 38, 38);
+    pdf.text('DICA', marginX + 15, currentY);
+    
+    pdf.setFont('Times', 'normal');
+    pdf.setFontSize(12);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text('France', marginX + 50, currentY);
+    
+    currentY += 12;
+    
+    // Coordonnées
+    pdf.setFont('Helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(60, 60, 60);
+    
+    pdf.text("13, rue Marcel Chabloz – 38400 Saint-Martin-d'Hères", marginX + 15, currentY);
+    currentY += 6;
+    
+    pdf.text("Tél. : 04 76 25 82 83 – Fax : 04 76 15 23 55", marginX + 15, currentY);
+    currentY += 6;
+    
+    // Email et site web en couleur
+    pdf.setTextColor(30, 64, 175);
+    pdf.text("info@dica-france.fr", marginX + 15, currentY);
+    pdf.text("www.dica-france.fr", marginX + 70, currentY);
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // FOOTER
+    // ═══════════════════════════════════════════════════════════════════
+    
+    pdf.setFont('Helvetica', 'italic');
+    pdf.setFontSize(7);
+    pdf.setTextColor(150, 150, 150);
+    pdf.text(
+      "© DICA France - Document généré automatiquement par DICA Decorator",
+      pageWidth / 2,
+      pageHeight - 15,
+      { align: 'center' }
+    );
   }
 
   /**
