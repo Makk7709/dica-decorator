@@ -11,8 +11,17 @@ import {
 } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WelcomeModal, useOnboarding } from "@/components/onboarding";
-import { Plus, LogOut, Settings, FolderOpen, Sparkles, ChevronRight, Calendar, HelpCircle } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen, Sparkles, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { projectDeletionService } from "@/services/project-deletion.service";
 
 interface Project {
   id: string;
@@ -27,6 +36,10 @@ const Dashboard = () => {
   const { user, userRole, signOut } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [deletionStats, setDeletionStats] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Onboarding
   const { showWelcome, completeWelcome } = useOnboarding();
@@ -83,6 +96,67 @@ const Dashboard = () => {
       "autre": "Autre"
     };
     return labels[useCase] || useCase;
+  };
+
+  const handleDeleteClick = async (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation(); // Empêcher la navigation vers le projet
+    
+    setProjectToDelete(project);
+    
+    try {
+      // Charger les statistiques de suppression
+      const stats = await projectDeletionService.getProjectDeletionStats(project.id);
+      setDeletionStats(stats);
+      setDeleteDialogOpen(true);
+    } catch (error: any) {
+      toast.error("Erreur lors du chargement des informations de suppression");
+      console.error("Delete stats error:", error);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      const result = await projectDeletionService.deleteProject(projectToDelete.id);
+      
+      if (result.success) {
+        toast.success(`Projet "${projectToDelete.title}" supprimé avec succès`);
+        
+        // Retirer le projet de la liste localement
+        setProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
+        
+        // Fermer le dialog
+        setDeleteDialogOpen(false);
+        setProjectToDelete(null);
+        setDeletionStats(null);
+      } else {
+        const errorMessage = result.error?.message || "Erreur lors de la suppression";
+        
+        if (result.error?.code === 'UNAUTHORIZED') {
+          toast.error("Vous n'êtes pas autorisé à supprimer ce projet");
+        } else if (result.error?.code === 'NOT_FOUND') {
+          toast.error("Ce projet n'existe plus");
+          // Recharger la liste
+          loadProjects();
+        } else {
+          toast.error(errorMessage);
+        }
+      }
+    } catch (error: any) {
+      toast.error(`Erreur: ${error.message}`);
+      console.error("Delete error:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setProjectToDelete(null);
+    setDeletionStats(null);
   };
 
   return (
@@ -245,7 +319,18 @@ const Dashboard = () => {
                   <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
                     <FolderOpen className="h-5 w-5 text-primary" />
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleDeleteClick(project, e)}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Supprimer le projet"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </div>
                 </div>
 
                 {/* Content */}
@@ -278,6 +363,81 @@ const Dashboard = () => {
           </div>
         )}
       </ContentContainer>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Confirmer la suppression
+            </DialogTitle>
+            <DialogDescription>
+              Cette action est <strong>irréversible</strong>. Toutes les données associées seront définitivement supprimées.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {projectToDelete && (
+            <div className="space-y-4 py-4">
+              <div className="rounded-lg border border-border bg-muted/50 p-4">
+                <h4 className="font-semibold mb-2">{projectToDelete.title}</h4>
+                <p className="text-sm text-muted-foreground">
+                  Type: {getUseCaseLabel(projectToDelete.use_case)}
+                </p>
+                {projectToDelete.client_reference && (
+                  <p className="text-sm text-muted-foreground">
+                    Référence: {projectToDelete.client_reference}
+                  </p>
+                )}
+              </div>
+
+              {deletionStats && deletionStats.totalItemsToDelete > 0 && (
+                <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-4">
+                  <p className="text-sm font-medium mb-2">Éléments qui seront supprimés :</p>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    {deletionStats.photosCount > 0 && (
+                      <li>• {deletionStats.photosCount} photo{deletionStats.photosCount > 1 ? 's' : ''}</li>
+                    )}
+                    {deletionStats.rendersCount > 0 && (
+                      <li>• {deletionStats.rendersCount} rendu{deletionStats.rendersCount > 1 ? 's' : ''} IA</li>
+                    )}
+                    {deletionStats.shareLinksCount > 0 && (
+                      <li>• {deletionStats.shareLinksCount} lien{deletionStats.shareLinksCount > 1 ? 's' : ''} de partage</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelDelete}
+              disabled={isDeleting}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Supprimer définitivement
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PremiumLayout>
   );
 };
