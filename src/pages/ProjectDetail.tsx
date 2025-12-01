@@ -130,20 +130,32 @@ const ProjectDetail = () => {
   };
 
   const toggleFavorite = async (renderId: string) => {
-    if (!user) return;
+    if (!user) {
+      toast.error("Vous devez être connecté");
+      return;
+    }
 
     const isFavorite = favoriteRenderIds.has(renderId);
+    console.log(`[Favorites] Toggle: ${renderId}, isFavorite: ${isFavorite}, userId: ${user.id}`);
 
     try {
       if (isFavorite) {
-        const { error } = await supabase
+        // Supprimer des favoris
+        const { data, error, count } = await supabase
           .from("render_favorites")
           .delete()
           .eq("user_id", user.id)
-          .eq("render_result_id", renderId);
+          .eq("render_result_id", renderId)
+          .select();
 
-        if (error) throw error;
+        console.log(`[Favorites] Delete result:`, { data, error, count });
+
+        if (error) {
+          console.error("[Favorites] Delete error:", error);
+          throw error;
+        }
         
+        // Mise à jour locale
         setFavoriteRenderIds(prev => {
           const next = new Set(prev);
           next.delete(renderId);
@@ -151,21 +163,28 @@ const ProjectDetail = () => {
         });
         toast.success("Retiré des favoris");
       } else {
-        const { error } = await supabase
+        // Ajouter aux favoris
+        const { data, error } = await supabase
           .from("render_favorites")
           .insert({
             user_id: user.id,
             render_result_id: renderId
-          });
+          })
+          .select();
 
-        if (error) throw error;
+        console.log(`[Favorites] Insert result:`, { data, error });
+
+        if (error) {
+          console.error("[Favorites] Insert error:", error);
+          throw error;
+        }
         
         setFavoriteRenderIds(prev => new Set(prev).add(renderId));
         toast.success("Ajouté aux favoris");
       }
     } catch (error: any) {
-      console.error("Error toggling favorite:", error);
-      toast.error("Erreur lors de la mise à jour des favoris");
+      console.error("[Favorites] Error toggling favorite:", error);
+      toast.error(`Erreur: ${error.message || "Mise à jour des favoris"}`);
     }
   };
 
