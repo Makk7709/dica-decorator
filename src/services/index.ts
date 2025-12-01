@@ -171,8 +171,8 @@ export {
   type TransitionClasses,
 } from './presentation.service';
 
-// Plaquette PDF Service - Phase 6.0 (Plaquette Premium + Co-branding)
+// Reseller Brochure PDF Service - Clone Magazine DECO avec couverture revendeur
 export {
-  PlaquettePdfService,
-} from './plaquette-pdf.service';
+  ResellerBrochurePdfService,
+} from './reseller-brochure-pdf.service';
 

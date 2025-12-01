@@ -42,7 +42,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { ResellerBranding, ResellerBrandingValidation } from '@/types/plaquette.types';
-import { PlaquettePdfService } from '@/services/plaquette-pdf.service';
+import { ResellerBrochurePdfService } from '@/services/reseller-brochure-pdf.service';
 
 // ============================================================================
 // Types
@@ -73,7 +73,7 @@ export function ResellerBrandingSettings({
   readOnly = false,
 }: ResellerBrandingSettingsProps) {
   const { toast } = useToast();
-  const service = new PlaquettePdfService();
+  const service = ResellerBrochurePdfService.getInstance();
 
   // État du formulaire
   const [formData, setFormData] = useState<ResellerBranding>({

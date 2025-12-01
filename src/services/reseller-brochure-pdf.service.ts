@@ -36,6 +36,49 @@ export class ResellerBrochurePdfService {
   }
 
   /**
+   * Valide les informations de branding revendeur
+   * Retourne un objet avec la validité et les champs manquants
+   */
+  validateResellerBranding(branding: ResellerBranding): {
+    isValid: boolean;
+    isComplete: boolean;
+    missingFields: string[];
+    warnings: string[];
+  } {
+    const missingFields: string[] = [];
+    const warnings: string[] = [];
+    
+    // Champs obligatoires
+    if (!branding.companyName?.trim()) {
+      missingFields.push('companyName');
+    }
+    
+    // Champs recommandés (warnings)
+    if (!branding.email?.trim()) {
+      warnings.push('Email non renseigné');
+    }
+    if (!branding.phone?.trim()) {
+      warnings.push('Téléphone non renseigné');
+    }
+    if (!branding.addressLine1?.trim()) {
+      warnings.push('Adresse non renseignée');
+    }
+    if (!branding.city?.trim()) {
+      warnings.push('Ville non renseignée');
+    }
+    
+    const isValid = missingFields.length === 0 && branding.enabled;
+    const isComplete = isValid && warnings.length === 0;
+    
+    return {
+      isValid,
+      isComplete,
+      missingFields,
+      warnings,
+    };
+  }
+
+  /**
    * Détermine le titre de couverture
    * - Si revendeur actif → Nom du revendeur
    * - Sinon → DICA
