@@ -17,7 +17,7 @@ import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { compressImage, formatFileSize } from "@/lib/image-compression";
 import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
-import { PlaquetteExportButton } from "@/components/ui/plaquette-export-button";
+import { ResellerBrochureExportButton } from "@/components/ui/reseller-brochure-export-button";
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
@@ -86,6 +86,18 @@ const ProjectDetail = () => {
   } | null>(null);
   const [selectedRenderIds, setSelectedRenderIds] = useState<Set<string>>(new Set());
   const [userCoBrandingEnabled, setUserCoBrandingEnabled] = useState<boolean>(false);
+  const [resellerBranding, setResellerBranding] = useState<{
+    enabled: boolean;
+    companyName: string;
+    contactName?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    postalCode?: string;
+    website?: string;
+    tagline?: string;
+  } | null>(null);
   const [isLoadingRenders, setIsLoadingRenders] = useState(true); // État de chargement des renders
 
   useEffect(() => {
@@ -102,12 +114,31 @@ const ProjectDetail = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("cobranding_enabled")
+        .select("cobranding_enabled, company_name, contact_name, email, phone, address, city, postal_code, website, tagline")
         .eq("id", user.id)
         .single();
 
       if (!error && data) {
-        setUserCoBrandingEnabled(data.cobranding_enabled ?? false);
+        const coBrandingEnabled = data.cobranding_enabled ?? false;
+        setUserCoBrandingEnabled(coBrandingEnabled);
+        
+        // Construire l'objet branding si co-branding activé et nom de société fourni
+        if (coBrandingEnabled && data.company_name) {
+          setResellerBranding({
+            enabled: true,
+            companyName: data.company_name,
+            contactName: data.contact_name || undefined,
+            email: data.email || undefined,
+            phone: data.phone || undefined,
+            address: data.address || undefined,
+            city: data.city || undefined,
+            postalCode: data.postal_code || undefined,
+            website: data.website || undefined,
+            tagline: data.tagline || undefined,
+          });
+        } else {
+          setResellerBranding(null);
+        }
       }
     } catch (error: any) {
       console.error("Error loading user profile:", error);
@@ -622,7 +653,7 @@ const ProjectDetail = () => {
                   </div>
                 )}
                 
-                <PlaquetteExportButton
+                <ResellerBrochureExportButton
                   project={{
                     id: project.id,
                     name: project.title,
@@ -630,25 +661,19 @@ const ProjectDetail = () => {
                     clientName: project.client_reference || undefined,
                     createdAt: new Date(),
                   }}
-                  decors={decors.map(d => ({
-                    id: d.id,
-                    name: d.name,
-                    referenceCode: d.reference_code,
-                    category: d.category,
-                  }))}
+                  decor={decors.length > 0 ? {
+                    id: decors[0].id,
+                    name: decors[0].name,
+                    referenceCode: decors[0].reference_code,
+                    category: decors[0].category,
+                  } : {
+                    id: 'default',
+                    name: 'Décor DICA',
+                    referenceCode: 'DICA',
+                    category: 'autre',
+                  }}
                   images={[
-                    // Créations IA
-                    ...creativeImports.map(creative => ({
-                      id: creative.id,
-                      url: creative.result_image_url,
-                      originalUrl: photos.find(p => p.id === creative.photoId)?.original_image_url,
-                      decorId: 'creative',
-                      decorName: 'Création Assistant IA',
-                      decorCode: 'CREATIVE-AI',
-                      createdAt: new Date(creative.created_at),
-                      isHighResolution: true,
-                    })),
-                    // Rendus décors classiques
+                    // Rendus décors classiques d'abord (priorité)
                     ...Object.entries(renders).flatMap(([photoId, photoRenders]) => {
                       const photo = photos.find(p => p.id === photoId);
                       return photoRenders.map(render => {
@@ -665,9 +690,19 @@ const ProjectDetail = () => {
                         };
                       });
                     }),
+                    // Créations IA ensuite
+                    ...creativeImports.map(creative => ({
+                      id: creative.id,
+                      url: creative.result_image_url,
+                      originalUrl: photos.find(p => p.id === creative.photoId)?.original_image_url,
+                      decorId: 'creative',
+                      decorName: 'Création Assistant IA',
+                      decorCode: 'CREATIVE-AI',
+                      createdAt: new Date(creative.created_at),
+                      isHighResolution: true,
+                    })),
                   ]}
-                  originalImage={photos[0]?.original_image_url}
-                  appSettings={{ ...DEFAULT_APP_SETTINGS, resellerBrandingEnabled: userCoBrandingEnabled }}
+                  resellerBranding={resellerBranding}
                   variant="ghost"
                   size="sm"
                   className="text-muted-foreground hover:text-foreground"
