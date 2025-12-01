@@ -509,15 +509,18 @@ export class ResellerBrochurePdfService {
         ctx.drawImage(img, offsetX, offsetY, finalW, finalH);
       };
       
-      ctx.font = 'bold 48px Inter, Arial, sans-serif';
+      // Police élégante serif italique (style magazine)
+      ctx.font = 'italic 52px "Times New Roman", Georgia, serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       
-      ctx.fillStyle = '#666666';
-      ctx.fillText('AVANT', singleWidth / 2, 20);
+      // AVANT - gris élégant
+      ctx.fillStyle = '#4A4A4A';
+      ctx.fillText('Avant', singleWidth / 2, 18);
       
+      // APRÈS - rouge DICA
       ctx.fillStyle = '#DC2626';
-      ctx.fillText('APRÈS', singleWidth + gap + singleWidth / 2, 20);
+      ctx.fillText('Après', singleWidth + gap + singleWidth / 2, 18);
       
       drawImageFit(originalImg, 0, singleWidth);
       drawImageFit(renderedImg, singleWidth + gap, singleWidth);

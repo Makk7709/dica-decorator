@@ -586,18 +586,18 @@ export class MagazineDecoPdfService {
         ctx.drawImage(img, offsetX, offsetY, finalW, finalH);
       };
       
-      // Labels en haut
-      ctx.font = 'bold 48px Inter, Arial, sans-serif';
+      // Labels en haut - Police élégante serif italique (style magazine)
+      ctx.font = 'italic 52px "Times New Roman", Georgia, serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       
-      // Label AVANT (gauche, gris)
-      ctx.fillStyle = '#666666';
-      ctx.fillText('AVANT', singleWidth / 2, 20);
+      // Label AVANT (gauche, gris élégant)
+      ctx.fillStyle = '#4A4A4A';
+      ctx.fillText('Avant', singleWidth / 2, 18);
       
       // Label APRÈS (droite, rouge DICA)
       ctx.fillStyle = '#DC2626';
-      ctx.fillText('APRÈS', singleWidth + gap + singleWidth / 2, 20);
+      ctx.fillText('Après', singleWidth + gap + singleWidth / 2, 18);
       
       // Dessiner les images
       drawImageFit(originalImg, 0, singleWidth);
