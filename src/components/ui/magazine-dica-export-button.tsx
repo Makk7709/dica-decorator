@@ -21,6 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { magazineGeneratorService } from '@/services/magazine-generator.service';
+import { magazineDICAPdfService } from '@/services/magazine-dica-pdf.service';
 import type { RenderMetadata } from '@/types/magazine-generator.types';
 import type { 
   PlaquetteProject, 
@@ -57,6 +58,7 @@ export function MagazineDICAExportButton({
   const [progress, setProgress] = useState(0);
   const [selectedRenderIds, setSelectedRenderIds] = useState<Set<string>>(new Set());
   const [generatedMagazine, setGeneratedMagazine] = useState<any>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   
   const { toast } = useToast();
 
@@ -156,16 +158,54 @@ export function MagazineDICAExportButton({
 
       if (result.success && result.magazine) {
         setGeneratedMagazine(result.magazine);
-        setProgress(100);
+        setProgress(50);
         
-        toast({
-          title: 'Magazine généré avec succès',
-          description: `Structure éditoriale créée avec ${result.magazine.pages.length} pages.`,
-          variant: 'default',
+        // Générer directement le PDF
+        setIsGeneratingPdf(true);
+        setProgress(60);
+
+        // Créer le mapping des URLs d'images
+        const imageUrls: Record<string, string> = {};
+        renders.forEach(render => {
+          if (selectedRenderIds.has(render.id)) {
+            imageUrls[render.id] = render.url;
+          }
         });
 
-        if (onExportComplete) {
-          onExportComplete(result.magazine);
+        setProgress(70);
+
+        // Générer le PDF
+        const pdfResult = await magazineDICAPdfService.generateMagazinePDF(
+          result.magazine,
+          imageUrls
+        );
+
+        setProgress(90);
+
+        if (pdfResult.success && pdfResult.blob && pdfResult.filename) {
+          // Télécharger le PDF directement
+          const url = URL.createObjectURL(pdfResult.blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = pdfResult.filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+
+          setProgress(100);
+          
+          toast({
+            title: 'Magazine PDF généré avec succès',
+            description: `PDF créé avec ${pdfResult.pageCount} pages.`,
+            variant: 'default',
+          });
+
+          if (onExportComplete) {
+            onExportComplete(result.magazine);
+          }
+        } else {
+          throw new Error(pdfResult.error || 'Erreur lors de la génération du PDF');
         }
       } else {
         throw new Error(result.error || 'Erreur lors de la génération');
@@ -183,6 +223,7 @@ export function MagazineDICAExportButton({
       }
     } finally {
       setIsGenerating(false);
+      setIsGeneratingPdf(false);
       setProgress(0);
     }
   };
@@ -231,7 +272,71 @@ export function MagazineDICAExportButton({
           </DialogDescription>
         </DialogHeader>
 
-        {!generatedMagazine ? (
+        {isGenerating || isGeneratingPdf ? (
+          // Affichage pendant génération
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Progress value={progress} />
+              <p className="text-sm text-muted-foreground text-center">
+                {isGeneratingPdf ? 'Génération du PDF en cours...' : 'Génération de la structure...'}
+              </p>
+            </div>
+          </div>
+        ) : generatedMagazine ? (
+          <>
+            {/* Results */}
+            <div className="space-y-4 py-4">
+              <div className="rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <h3 className="font-semibold text-green-900 dark:text-green-100">
+                    Magazine PDF généré avec succès
+                  </h3>
+                </div>
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  PDF créé avec <strong>{generatedMagazine.pages.length} pages</strong>
+                </p>
+                <div className="mt-3 space-y-1 text-sm text-green-700 dark:text-green-300">
+                  <p>• {generatedMagazine.pages.filter((p: any) => p.type_page === 'zoom_product').length} pages Zoom Produit</p>
+                  <p>• {generatedMagazine.decors_utilises_total?.length || 0} décors utilisés</p>
+                </div>
+              </div>
+
+              {/* Preview structure */}
+              <div className="space-y-2">
+                <Label>Aperçu de la structure</Label>
+                <div className="rounded-lg border bg-muted/50 p-4 max-h-[300px] overflow-y-auto">
+                  <div className="space-y-2 text-sm">
+                    {generatedMagazine.pages.map((page: any, index: number) => (
+                      <div key={index} className="flex items-center gap-2 p-2 rounded bg-background">
+                        <Badge variant="outline">{page.type_page}</Badge>
+                        <span className="text-muted-foreground">
+                          Page {index + 1}
+                          {page.titre && ` - ${page.titre}`}
+                          {page.phrase_calligraphie && `: "${page.phrase_calligraphie.substring(0, 40)}..."`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setGeneratedMagazine(null);
+                setProgress(0);
+                setIsOpen(false);
+              }}>
+                Fermer
+              </Button>
+              <Button onClick={handleDownloadStructure} variant="outline">
+                <FileText className="mr-2 h-4 w-4" />
+                Télécharger la structure (JSON)
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
           <>
             {/* Selection */}
             <div className="space-y-4 py-4">
@@ -294,85 +399,22 @@ export function MagazineDICAExportButton({
               )}
             </div>
 
-            {/* Progress */}
-            {isGenerating && (
-              <div className="space-y-2">
-                <Progress value={progress} />
-                <p className="text-sm text-muted-foreground text-center">
-                  Génération de la structure éditoriale...
-                </p>
-              </div>
-            )}
-
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isGenerating}>
                 Annuler
               </Button>
               <Button onClick={handleGenerate} disabled={!canGenerate}>
-                {isGenerating ? (
+                {isGenerating || isGeneratingPdf ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Génération...
+                    {isGeneratingPdf ? 'Génération PDF...' : 'Génération structure...'}
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Générer le magazine
+                    Générer le PDF
                   </>
                 )}
-              </Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            {/* Results */}
-            <div className="space-y-4 py-4">
-              <div className="rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  <h3 className="font-semibold text-green-900 dark:text-green-100">
-                    Magazine généré avec succès
-                  </h3>
-                </div>
-                <p className="text-sm text-green-800 dark:text-green-200">
-                  Structure éditoriale créée : <strong>{generatedMagazine.pages.length} pages</strong>
-                </p>
-                <div className="mt-3 space-y-1 text-sm text-green-700 dark:text-green-300">
-                  <p>• {generatedMagazine.pages.filter((p: any) => p.type_page === 'zoom_product').length} pages Zoom Produit</p>
-                  <p>• {generatedMagazine.decors_utilises_total?.length || 0} décors utilisés</p>
-                </div>
-              </div>
-
-              {/* Preview structure */}
-              <div className="space-y-2">
-                <Label>Aperçu de la structure</Label>
-                <div className="rounded-lg border bg-muted/50 p-4 max-h-[300px] overflow-y-auto">
-                  <div className="space-y-2 text-sm">
-                    {generatedMagazine.pages.map((page: any, index: number) => (
-                      <div key={index} className="flex items-center gap-2 p-2 rounded bg-background">
-                        <Badge variant="outline">{page.type_page}</Badge>
-                        <span className="text-muted-foreground">
-                          Page {index + 1}
-                          {page.titre && ` - ${page.titre}`}
-                          {page.phrase_calligraphie && `: "${page.phrase_calligraphie.substring(0, 40)}..."`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => {
-                setGeneratedMagazine(null);
-                setProgress(0);
-              }}>
-                Nouveau magazine
-              </Button>
-              <Button onClick={handleDownloadStructure}>
-                <FileText className="mr-2 h-4 w-4" />
-                Télécharger la structure (JSON)
               </Button>
             </DialogFooter>
           </>
