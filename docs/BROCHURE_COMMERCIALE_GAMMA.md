@@ -161,6 +161,17 @@ Notre deuxième algorithme propriétaire qui :
 | **Optimisation** | Enrichit automatiquement les prompts vagues |
 | **Contraintes matériaux** | Applique les règles visuelles par type de décor |
 | **Fallback intelligent** | Propose des alternatives si demande impossible |
+| **Spécifications techniques** | Traduit les épaisseurs de chants (edge banding) en instructions visuelles |
+
+### 📏 Compréhension technique des chants
+
+L'orchestrateur traduit les demandes techniques en instructions visuelles :
+
+| Terme utilisateur | Traduction IA |
+|-------------------|---------------|
+| "Chant 2mm noir" | "Thin visible black edge banding with clean precise edge lines" |
+| "Chant alu épais" | "Pronounced aluminum edge trim (3-5mm) with metallic border" |
+| "Chant ABS" | "Seamless plastic edge band, color-matched to panel" |
 
 ### Résultat
 

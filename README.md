@@ -49,11 +49,12 @@
 
 | Fonctionnalité | Description |
 |----------------|-------------|
-| 📄 **Plaquette PDF Premium** | Export avec co-branding et commentaires IA |
-| 📊 **Magazine DÉCO** | Export éditorial style AD Magazine |
+| 📄 **Brochure Revendeur** | Export Magazine DÉCO avec couverture personnalisable revendeur |
+| 📊 **Magazine DÉCO** | Export éditorial style AD Magazine avec typographie élégante |
 | 📈 **Analytics Excel/PDF/JSON** | Rapports statistiques multi-formats |
 | 🔗 **Partage par Lien** | Partage sécurisé avec expiration |
-| ⚖️ **Comparaison Avant/Après** | Slider interactif |
+| ⚖️ **Comparaison Avant/Après** | Slider interactif avec labels *Avant/Après* en serif italique |
+| 🖼️ **Multi-formats images** | Export PNG, JPEG, WebP avec qualité configurable |
 
 ### Administration
 
@@ -254,13 +255,15 @@ Test Files  13 passed (13)
 
 | Service | Tests | Couverture |
 |---------|-------|------------|
-| PlaquettePdfService | 138 | Export PDF Premium + Co-branding |
+| MagazineDecoPdfService | 120+ | Export Magazine DÉCO style AD |
+| ResellerBrochurePdfService | 16 | Brochure revendeur personnalisable |
 | UrlValidatorService | 71 | Protection anti-SSRF |
 | PresentationService | 67 | Mode présentation plein écran |
 | ImageComparisonService | 67 | Comparaison Avant/Après |
 | ShareLinkService | 58 | Partage de projets sécurisé |
 | AnalyticsService | 49 | Dashboard analytics admin |
 | GeminiImageService | 46 | Intégration Gemini 3 Pro |
+| ImageExportService | 32 | Export multi-formats (PNG/JPEG/WebP) |
 | AuthGuardService | 31 | Validation rôles & permissions |
 | RateLimiterService | 30 | Limites quotidiennes/mensuelles |
 | AnalyticsExportService | 29 | Export JSON/Excel/PDF |
@@ -318,6 +321,15 @@ Voir le [Guide de Déploiement](./docs/GUIDE_DEPLOIEMENT.md) pour plus de détai
 ---
 
 ## 📊 Changelog récent
+
+### Version 2.2.0 (Décembre 2025)
+
+- 📄 **Brochure Revendeur** : Magazine DÉCO avec couverture personnalisable (nom revendeur en titre)
+- 🎨 **Typographie élégante** : Labels *Avant/Après* en serif italique (Times New Roman)
+- 🖼️ **Export multi-formats** : PNG, JPEG, WebP avec qualité configurable
+- 📏 **Spécifications chants** : L'IA comprend les épaisseurs de chants (0.5mm → 5mm+)
+- ⚡ **Optimisation latence** : Chargement parallèle + mises à jour optimistes
+- 🦴 **Skeletons loaders** : Feedback visuel instantané pendant le chargement
 
 ### Version 2.1.0 (Décembre 2025)
 
