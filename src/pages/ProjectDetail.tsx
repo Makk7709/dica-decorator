@@ -756,7 +756,7 @@ const ProjectDetail = () => {
                         onClick={() => setZoomedImage(creative.result_image_url)}
                         title="Agrandir"
                       >
-                        <Maximize2 className="h-3.5 w-3.5 text-foreground" />
+                        <Maximize2 className="h-3.5 w-3.5 text-gray-700" />
                       </Button>
                     </div>
                     {/* Overlay actions au survol */}
@@ -769,8 +769,8 @@ const ProjectDetail = () => {
                           asChild
                         >
                           <a href={creative.result_image_url} download className="flex items-center gap-1.5">
-                            <Download className="h-3.5 w-3.5 text-foreground" />
-                            <span className="text-foreground">Télécharger</span>
+                            <Download className="h-3.5 w-3.5 text-gray-700" />
+                            <span className="text-gray-700">Télécharger</span>
                           </a>
                         </Button>
                       </div>
@@ -925,10 +925,10 @@ const ProjectDetail = () => {
                                     return next;
                                   });
                                 }}
-                                className={`h-6 w-6 rounded-md border-2 flex items-center justify-center transition-all ${
+                                className={`h-6 w-6 rounded-md border-2 flex items-center justify-center transition-all shadow-md ${
                                   selectedRenderIds.has(render.id)
-                                    ? 'bg-primary border-primary text-primary-foreground'
-                                    : 'bg-white/95 border-white hover:bg-primary/10'
+                                    ? 'bg-primary border-primary text-white'
+                                    : 'bg-white/95 border-gray-300 hover:border-primary hover:bg-primary/10'
                                 }`}
                                 title="Sélectionner pour Magazine DECO"
                               >
@@ -949,7 +949,7 @@ const ProjectDetail = () => {
                                     size="icon"
                                     className="h-8 w-8 bg-white/95 hover:bg-white shadow-md backdrop-blur-sm"
                                   >
-                                    <MoreVertical className="h-4 w-4 text-foreground" />
+                                    <MoreVertical className="h-4 w-4 text-gray-700" />
                                 </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
