@@ -276,14 +276,19 @@ export class MagazineDecoPdfService {
     // Sub-headline box with red accent (AD style)
     const subY = headlineY + (headlineLines.length * 16) + 15;
     
-    // Red "LUMIÈRE!" style accent
-    pdf.setFillColor(colors.dicaRed);
-    pdf.rect(headlineX - 2, subY - 8, 4, 20, 'F'); // Vertical red bar
-    
+    // Badge "NOUVEAU" avec fond rouge DICA et texte blanc pour lisibilité
+    const nouveauText = "NOUVEAU";
     pdf.setFont('Inter', 'bold');
-    pdf.setFontSize(11);
-    pdf.setTextColor(colors.dicaRed);
-    pdf.text("NOUVEAU", headlineX + 8, subY - 2);
+    pdf.setFontSize(10);
+    const nouveauWidth = pdf.getTextWidth(nouveauText);
+    
+    // Fond rouge arrondi
+    pdf.setFillColor(colors.dicaRed);
+    pdf.roundedRect(headlineX + 5, subY - 8, nouveauWidth + 10, 12, 2, 2, 'F');
+    
+    // Texte blanc
+    pdf.setTextColor(255, 255, 255);
+    pdf.text(nouveauText, headlineX + 10, subY - 1);
     
     // Sub description (black italic)
     pdf.setFont('Times', 'italic');
