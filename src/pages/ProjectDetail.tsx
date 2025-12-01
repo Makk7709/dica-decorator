@@ -86,8 +86,10 @@ const ProjectDetail = () => {
   } | null>(null);
   const [selectedRenderIds, setSelectedRenderIds] = useState<Set<string>>(new Set());
   const [userCoBrandingEnabled, setUserCoBrandingEnabled] = useState<boolean>(false);
+  const [isLoadingRenders, setIsLoadingRenders] = useState(true); // État de chargement des renders
 
   useEffect(() => {
+    setIsLoadingRenders(true);
     loadProject();
     loadDecors();
     loadFavorites();
@@ -193,68 +195,82 @@ const ProjectDetail = () => {
     if (!user || !id) return;
 
     try {
-      const { data: projectData, error: projectError } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .single();
+      // 🚀 ÉTAPE 1 : Charger projet ET photos EN PARALLÈLE
+      const [projectResult, photosResult] = await Promise.all([
+        supabase
+          .from("projects")
+          .select("*")
+          .eq("id", id)
+          .eq("user_id", user.id)
+          .single(),
+        supabase
+          .from("project_photos")
+          .select("*")
+          .eq("project_id", id)
+          .order("created_at", { ascending: false })
+      ]);
 
-      if (projectError) throw projectError;
-      setProject(projectData);
+      if (projectResult.error) throw projectResult.error;
+      if (photosResult.error) throw photosResult.error;
 
-      const { data: photosData, error: photosError } = await supabase
-        .from("project_photos")
-        .select("*")
-        .eq("project_id", id)
-        .order("created_at", { ascending: false });
+      // ✅ Afficher projet et photos IMMÉDIATEMENT
+      setProject(projectResult.data);
+      setPhotos(photosResult.data || []);
 
-      if (photosError) throw photosError;
-      setPhotos(photosData || []);
-
-      // Optimized: Load ALL renders in ONE query instead of N queries
-      const photoIds = (photosData || []).map(p => p.id);
+      // 🚀 ÉTAPE 2 : Charger les renders en parallèle (non bloquant pour l'UI)
+      const photoIds = (photosResult.data || []).map(p => p.id);
       
       if (photoIds.length > 0) {
+        // Lancer la requête des renders
         const { data: allRendersData } = await supabase
           .from("render_results")
           .select("*")
           .in("project_photo_id", photoIds)
           .order("created_at", { ascending: false });
 
-        // Séparer les créations IA (sans decor_id) des rendus décors
+        // Traitement rapide avec Map pour O(n) au lieu de O(n²)
         const rendersByPhoto: { [photoId: string]: RenderResult[] } = {};
         const allCreativeImports: CreativeImport[] = [];
         
-        // Initialize empty arrays for all photos
+        // Pré-initialiser avec Map pour performance
+        const photoIdSet = new Set(photoIds);
         photoIds.forEach(photoId => {
           rendersByPhoto[photoId] = [];
         });
         
-        for (const render of allRendersData || []) {
-          if (render.decor_id === null) {
-            // C'est une création de l'assistant IA
-            allCreativeImports.push({
-              id: render.id,
-              result_image_url: render.result_image_url,
-              created_at: render.created_at,
-              photoId: render.project_photo_id,
-            });
-          } else {
-            // C'est un rendu décor classique
-            if (rendersByPhoto[render.project_photo_id]) {
+        // Traitement en une seule passe
+        if (allRendersData) {
+          for (let i = 0; i < allRendersData.length; i++) {
+            const render = allRendersData[i];
+            if (render.decor_id === null) {
+              // Création de l'assistant IA
+              allCreativeImports.push({
+                id: render.id,
+                result_image_url: render.result_image_url,
+                created_at: render.created_at,
+                photoId: render.project_photo_id,
+              });
+            } else if (photoIdSet.has(render.project_photo_id)) {
+              // Rendu décor classique
               rendersByPhoto[render.project_photo_id].push(render);
             }
           }
         }
         
-        setRenders(rendersByPhoto);
+        // ✅ Afficher créations IA et renders
         setCreativeImports(allCreativeImports);
+        setRenders(rendersByPhoto);
+        setIsLoadingRenders(false);
+        
+        console.log(`[Load] ${allCreativeImports.length} créations IA, ${Object.values(rendersByPhoto).flat().length} renders chargés`);
       } else {
         setRenders({});
         setCreativeImports([]);
+        setIsLoadingRenders(false);
       }
     } catch (error: any) {
+      console.error("[Load] Erreur:", error);
+      setIsLoadingRenders(false);
       toast.error("Erreur lors du chargement du projet");
       navigate("/dashboard");
     }
@@ -774,18 +790,42 @@ const ProjectDetail = () => {
         </div>
 
         {/* Section Créations Assistant IA */}
-        {creativeImports.length > 0 && (
+        {(creativeImports.length > 0 || isLoadingRenders) && (
           <div className="card-premium p-5 md:p-6 mb-6 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-purple-500" />
                 <h3 className="font-semibold">Créations Assistant IA</h3>
-                <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-0.5 rounded-full">
-                  {creativeImports.length}
-                </span>
+                {isLoadingRenders ? (
+                  <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Chargement...
+                  </span>
+                ) : (
+                  <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                    {creativeImports.length}
+                  </span>
+                )}
               </div>
             </div>
             
+            {/* Skeleton pendant le chargement */}
+            {isLoadingRenders && creativeImports.length === 0 && (
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="rounded-xl border border-purple-200 dark:border-purple-800/50 overflow-hidden bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-background animate-pulse">
+                    <div className="aspect-square bg-purple-100 dark:bg-purple-900/30" />
+                    <div className="p-2 space-y-2">
+                      <div className="h-4 bg-purple-100 dark:bg-purple-900/30 rounded w-3/4" />
+                      <div className="h-3 bg-purple-100 dark:bg-purple-900/30 rounded w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Liste des créations IA */}
+            {creativeImports.length > 0 && (
             <div className={`grid gap-4 ${
               creativeImports.length === 1 
                 ? "grid-cols-1 max-w-md" 
@@ -872,11 +912,12 @@ const ProjectDetail = () => {
                 </div>
               ))}
             </div>
+            )}
           </div>
         )}
 
         {/* Photos Grid */}
-        {photos.length === 0 && creativeImports.length === 0 ? (
+        {photos.length === 0 && creativeImports.length === 0 && !isLoadingRenders ? (
           <div className="card-premium p-12 md:p-16 text-center animate-fade-in">
             <div className="max-w-sm mx-auto">
               <div className="mb-6 mx-auto w-20 h-20 rounded-2xl bg-muted flex items-center justify-center">
@@ -1389,3 +1430,4 @@ const ProjectDetail = () => {
 };
 
 export default ProjectDetail;
+
