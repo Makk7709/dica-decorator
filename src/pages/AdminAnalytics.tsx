@@ -16,6 +16,9 @@ import {
   Download,
   RefreshCw,
   Calendar,
+  FileJson,
+  FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { PremiumLayout, ContentContainer, SectionTitle } from '@/components/ui/premium-layout';
@@ -38,6 +47,11 @@ import {
   TrendData,
   TopItem,
 } from '@/services/analytics.service';
+import {
+  AnalyticsExportService,
+  AnalyticsExportData,
+  ExportFormat,
+} from '@/services/analytics-export.service';
 
 // ============================================================================
 // Types
@@ -92,8 +106,10 @@ const AdminAnalytics: React.FC = () => {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodPreset>('30d');
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [service] = useState(() => new AnalyticsService());
+  const [exportService] = useState(() => new AnalyticsExportService());
 
   // Load data
   useEffect(() => {
@@ -131,21 +147,68 @@ const AdminAnalytics: React.FC = () => {
     }));
   }, [data]);
 
-  const handleExport = () => {
+  const handleExport = async (format: ExportFormat) => {
     if (!data) return;
     
-    const report = service.generateReport(period);
-    const json = service.formatReportForExport(report, 'json');
-    
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dica-analytics-${period}-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    toast.success('Rapport exporté');
+    setIsExporting(true);
+    try {
+      // Prepare export data
+      const exportData: AnalyticsExportData = {
+        period,
+        generatedAt: new Date().toISOString(),
+        metrics: {
+          totalProjects: data.metrics.totalProjects,
+          totalRenders: data.metrics.totalRenders,
+          totalUsers: data.metrics.totalUsers,
+          totalDecors: data.metrics.totalDecors,
+          averageRendersPerProject: data.metrics.averageRendersPerProject || 0,
+          engagementRate: data.metrics.engagementRate || 0,
+        },
+        trends: {
+          renders: data.trends.renders.data || [],
+          projects: data.trends.projects.data || [],
+        },
+        topDecors: data.topDecors || [],
+        topUsers: data.topUsers || [],
+      };
+
+      let blob: Blob;
+      const filename = exportService.generateFilename(format, period);
+
+      switch (format) {
+        case 'json':
+          blob = exportService.createBlob(exportData, 'json');
+          break;
+        case 'excel':
+          blob = exportService.createBlob(exportData, 'excel');
+          break;
+        case 'pdf':
+          blob = await exportService.exportToPDF(exportData);
+          break;
+        default:
+          throw new Error(`Format non supporté: ${format}`);
+      }
+
+      // Download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      const formatLabels: Record<ExportFormat, string> = {
+        json: 'JSON',
+        excel: 'Excel',
+        pdf: 'PDF',
+      };
+      toast.success(`Rapport ${formatLabels[format]} exporté`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error("Erreur lors de l'export");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleRefresh = async () => {
@@ -203,14 +266,36 @@ const AdminAnalytics: React.FC = () => {
               </SelectContent>
             </Select>
             
-            <Button variant="outline" size="icon" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4" />
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
             
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Exporter
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={isExporting || !data}>
+                  {isExporting ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  Exporter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => handleExport('json')}>
+                  <FileJson className="h-4 w-4 mr-2 text-yellow-500" />
+                  Export JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('excel')}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2 text-green-500" />
+                  Export Excel (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                  <FileText className="h-4 w-4 mr-2 text-red-500" />
+                  Export PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
