@@ -70,23 +70,32 @@
 
 ### 🖼️ Visualisation IA
 - Application de décors sur photos réelles
-- +200 décors du catalogue DICA
-- Génération en 30 secondes
+- Catalogue complet DICA (tous les décors disponibles)
+- Génération en ~30 secondes
+- Option "Références DICA" intégrées à l'image
 
 ### 🎨 Assistant Créatif
 - Mood boards automatiques
-- Combinaison multi-images
+- Combinaison multi-images (jusqu'à 5 images)
 - Suggestions design IA
+- Sauvegarde dans les projets
 
 ### 📄 Exports Professionnels
-- Plaquette PDF avec co-branding
-- Magazine DÉCO style éditorial
-- Partage par lien sécurisé
+- Plaquette PDF avec co-branding personnalisable
+- Magazine DÉCO style éditorial (AD Magazine)
+- Partage par lien sécurisé avec expiration
+- Comparaison avant/après avec slider
 
 ### 📊 Analytics (Admin)
-- Suivi des utilisations
-- Export Excel/PDF/JSON
-- Métriques de performance
+- Suivi des utilisations en temps réel
+- Export Excel, PDF et JSON
+- Métriques de performance par utilisateur
+
+### 🎬 Fonctionnalités Additionnelles
+- Mode présentation plein écran
+- Système de favoris sur les rendus (❤️)
+- Mode nuit/jour
+- Onboarding interactif pour nouveaux utilisateurs
 
 ---
 
@@ -155,9 +164,12 @@ Notre deuxième algorithme propriétaire qui :
 
 ### Résultat
 
-> **95% des rendus** sont acceptés dès la première génération grâce à ces algorithmes.
+> Rendus de **haute qualité dès la première génération** grâce à ces algorithmes spécialisés.
 
-Contrairement aux outils génériques, **DICA Decorator connaît le catalogue DICA** et applique les textures avec une fidélité professionnelle.
+Contrairement aux outils IA génériques :
+- ✅ **Connaît le catalogue DICA** (décors, références, catégories)
+- ✅ **Respecte les propriétés matériaux** (métal ≠ bois ≠ marbre)
+- ✅ **Préserve la photo source** (pas de génération inventée)
 
 ---
 
@@ -232,34 +244,34 @@ Contrairement aux outils génériques, **DICA Decorator connaît le catalogue DI
 
 ## Protection des données à tous les niveaux
 
-### 🔐 Authentification
+### 🔐 Authentification (vérifiable dans le code)
 
 | Mécanisme | Description |
 |-----------|-------------|
-| **JWT Tokens** | Authentification sécurisée |
+| **JWT Tokens** | Authentification sécurisée via Supabase |
 | **Session refresh** | Tokens renouvelés automatiquement |
-| **OAuth** | Connexion Google/Microsoft (optionnel) |
+| **Email/Password** | Connexion par identifiants |
 
-### 🛡️ Protection des données
+### 🛡️ Protection des données (vérifiable dans le code)
 
 | Couche | Protection |
 |--------|------------|
-| **Row Level Security** | Isolation des données par utilisateur |
+| **Row Level Security** | Isolation des données par utilisateur (PostgreSQL) |
 | **HTTPS everywhere** | Chiffrement en transit |
-| **Input validation** | Protection contre injections |
-| **SSRF Protection** | URLs externes validées |
+| **Input validation** | Protection côté serveur |
+| **SSRF Protection** | URLs externes validées (71 tests) |
 
-### 📊 Quotas & Rate Limiting
+### 📊 Quotas & Rate Limiting (vérifiable)
 
-- Limite quotidienne par utilisateur
+- Limite quotidienne par utilisateur (configurable)
 - Quota mensuel par organisation
-- Protection contre les abus
+- Compteurs automatiques avec reset
 
-### ✅ Conformité
+### ✅ Infrastructure
 
-- **RGPD** : Données hébergées en Europe
-- **Logs d'audit** : Traçabilité complète
-- **Suppression** : Droit à l'oubli respecté
+- **Supabase** : Hébergement cloud sécurisé
+- **PostgreSQL** : Base de données relationnelle
+- **Logs** : Traçabilité des opérations
 
 ---
 
@@ -267,33 +279,33 @@ Contrairement aux outils génériques, **DICA Decorator connaît le catalogue DI
 
 ## Une application robuste et testée
 
-### 🧪 Tests automatisés
+### 🧪 Tests automatisés (vérifiable)
 
 ```
-✅ 663 tests unitaires
-✅ 13 services testés
-✅ Approche TDD stricte
+✅ 752 tests unitaires passés
+✅ 17 fichiers de tests
+✅ Approche TDD stricte (tests écrits AVANT le code)
 ```
 
-### ⚡ Performance
+### ⚡ Performance (vérifiable)
 
 | Métrique | Valeur |
 |----------|--------|
-| **Temps de génération** | ~30 secondes |
-| **Chargement initial** | < 2 secondes |
-| **Score Lighthouse** | 95+ |
+| **Temps de génération** | ~30-60 secondes |
+| **Chargement initial** | < 3 secondes |
+| **Build production** | < 30 secondes |
 
 ### 📈 Scalabilité
 
-- Architecture serverless
-- Auto-scaling Supabase
-- CDN Cloudflare
+- Architecture serverless (Supabase Edge Functions)
+- Auto-scaling automatique
+- Hébergement Supabase (infrastructure mondiale)
 
 ### 🔄 Disponibilité
 
-- SLA 99.9%
-- Monitoring temps réel
-- Alertes automatiques
+- Dépend de Supabase et Google AI
+- Logs de monitoring intégrés
+- Gestion d'erreurs avec fallbacks
 
 ---
 
@@ -339,34 +351,36 @@ Contrairement aux outils génériques, **DICA Decorator connaît le catalogue DI
 
 ## Retour sur investissement
 
-### ⏱️ Gain de temps
+### ⏱️ Gain de temps (vérifiable)
 
-| Avant | Après |
-|-------|-------|
-| 2-3 semaines | **30 secondes** |
-| Aller-retour maquettes | **Génération instantanée** |
+| Avant (traditionnel) | Avec DICA Decorator |
+|----------------------|---------------------|
+| Maquettes : jours/semaines | **~30-60 secondes** |
+| Aller-retour client | **Génération instantanée** |
+| 1 rendu à la fois | **Jusqu'à 2 rendus simultanés** |
 
-**= 99% de temps gagné**
+### 💰 Réduction des coûts (estimé)
 
-### 💰 Réduction des coûts
+| Poste | Impact potentiel |
+|-------|------------------|
+| Temps de maquettage | Supprimé |
+| Logiciels de retouche | Non nécessaires |
+| Formation Photoshop | Non requise |
 
-| Poste | Économie |
-|-------|----------|
-| Maquettes manuelles | -100% |
-| Échantillons physiques | -80% |
-| Retours produits | -50% |
+### 📈 Bénéfices attendus
 
-### 📈 Impact commercial
+| Avantage | Description |
+|----------|-------------|
+| **Réactivité** | Présentation client en temps réel |
+| **Professionnalisme** | Exports PDF et Magazine |
+| **Autonomie** | Utilisable sans formation design |
+| **Traçabilité** | Historique des projets et favoris |
 
-| Métrique | Amélioration |
-|----------|--------------|
-| Taux de conversion | **+40%** |
-| Cycle de vente | **-60%** |
-| Satisfaction client | **+35%** |
+### 🎯 Pour qui ?
 
-### 🎯 ROI
-
-> **Rentabilisé dès le premier mois** avec 10+ projets/mois
+- Commerciaux terrain → Démos client instantanées
+- Bureaux d'études → Validation rapide des choix
+- Revendeurs DICA → Outil d'aide à la vente
 
 ---
 
