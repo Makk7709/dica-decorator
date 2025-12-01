@@ -189,9 +189,9 @@ export class ResellerBrochurePdfService {
         );
       }
       
-      // PAGE FINALE - Certifications & Contact DICA
+      // PAGE FINALE - Certifications & Contact (DICA ou Revendeur)
       pdf.addPage();
-      await this.renderClosingPage(pdf, pageWidth, pageHeight);
+      await this.renderClosingPage(pdf, pageWidth, pageHeight, options.resellerBranding);
 
       // Generate blob
       const blob = pdf.output('blob');
@@ -791,13 +791,15 @@ export class ResellerBrochurePdfService {
   }
 
   /**
-   * PAGE FINALE - Certifications, Solutions et Contact DICA
+   * PAGE FINALE - Certifications, Solutions et Contact
    * Style éditorial premium avec typographie élégante
+   * Personnalisée avec les infos revendeur si branding actif
    */
   private async renderClosingPage(
     pdf: jsPDF,
     pageWidth: number,
-    pageHeight: number
+    pageHeight: number,
+    branding?: ResellerBranding | null
   ) {
     // Fond blanc cassé élégant
     pdf.setFillColor(253, 252, 250);
@@ -841,7 +843,15 @@ export class ResellerBrochurePdfService {
     pdf.setFontSize(10);
     pdf.setTextColor(60, 60, 60);
     
-    const ecoText1 = `Dica France inscrit son développement dans une philosophie de respect et de durabilité. Nos partenariats avec les filières certifiées PEFC et FSC témoignent de notre attachement à la préservation des forêts et à une traçabilité rigoureuse de chaque matériau.`;
+    // Texte d'engagement - adapté selon branding
+    let ecoText1: string;
+    if (branding?.enabled && branding?.companyName) {
+      // Texte générique pour revendeur
+      ecoText1 = `Nos produits s'inscrivent dans une philosophie de respect et de durabilité. Nos partenariats avec les filières certifiées PEFC et FSC témoignent de notre attachement à la préservation des forêts et à une traçabilité rigoureuse de chaque matériau.`;
+    } else {
+      // Texte spécifique DICA
+      ecoText1 = `Dica France inscrit son développement dans une philosophie de respect et de durabilité. Nos partenariats avec les filières certifiées PEFC et FSC témoignent de notre attachement à la préservation des forêts et à une traçabilité rigoureuse de chaque matériau.`;
+    }
     
     const ecoLines1 = pdf.splitTextToSize(ecoText1, contentWidth);
     pdf.text(ecoLines1, marginX, currentY);
@@ -946,34 +956,69 @@ export class ResellerBrochurePdfService {
     
     currentY += 15;
     
-    // DICA France en typographie élégante
+    // Nom de l'entreprise (Revendeur ou DICA)
+    const companyName = branding?.enabled && branding?.companyName?.trim()
+      ? branding.companyName.trim()
+      : 'DICA';
+    
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(22);
     pdf.setTextColor(60, 60, 60);
-    pdf.text('DICA', marginX, currentY);
+    pdf.text(companyName, marginX, currentY);
     
-    pdf.setFont('Times', 'italic');
-    pdf.setFontSize(14);
-    pdf.setTextColor(120, 120, 120);
-    pdf.text('France', marginX + 32, currentY);
+    // Sous-titre "France" uniquement pour DICA
+    if (!branding?.enabled || !branding?.companyName) {
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(14);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text('France', marginX + 32, currentY);
+    }
     
     currentY += 12;
     
-    // Coordonnées en style magazine
+    // Coordonnées en style magazine (Revendeur ou DICA)
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(9);
     pdf.setTextColor(80, 80, 80);
     
-    pdf.text("13, rue Marcel Chabloz", marginX, currentY);
-    currentY += 5;
-    pdf.text("38400 Saint-Martin-d'Hères", marginX, currentY);
-    currentY += 8;
-    
-    pdf.setFont('Times', 'italic');
-    pdf.text("Tél. 04 76 25 82 83", marginX, currentY);
-    currentY += 5;
-    pdf.text("info@dica-france.fr", marginX, currentY);
-    pdf.text("www.dica-france.fr", marginX + 50, currentY);
+    if (branding?.enabled && branding?.companyName) {
+      // Coordonnées revendeur
+      const fullAddress = this.formatFullAddress(branding);
+      if (fullAddress) {
+        const addressLines = pdf.splitTextToSize(fullAddress, contentWidth);
+        addressLines.forEach((line: string, idx: number) => {
+          pdf.text(line, marginX, currentY + (idx * 5));
+        });
+        currentY += addressLines.length * 5;
+      }
+      currentY += 8;
+      
+      // Contact revendeur
+      pdf.setFont('Times', 'italic');
+      if (branding.phone) {
+        pdf.text(`Tél. ${branding.phone}`, marginX, currentY);
+        currentY += 5;
+      }
+      if (branding.email) {
+        pdf.text(branding.email, marginX, currentY);
+        currentY += 5;
+      }
+      if (branding.website) {
+        pdf.text(branding.website, marginX, currentY);
+      }
+    } else {
+      // Coordonnées DICA par défaut
+      pdf.text("13, rue Marcel Chabloz", marginX, currentY);
+      currentY += 5;
+      pdf.text("38400 Saint-Martin-d'Hères", marginX, currentY);
+      currentY += 8;
+      
+      pdf.setFont('Times', 'italic');
+      pdf.text("Tél. 04 76 25 82 83", marginX, currentY);
+      currentY += 5;
+      pdf.text("info@dica-france.fr", marginX, currentY);
+      pdf.text("www.dica-france.fr", marginX + 50, currentY);
+    }
     
     // ═══════════════════════════════════════════════════════════════════
     // FOOTER DISCRET
