@@ -29,6 +29,15 @@ const Index = () => {
       {/* Overlay for better text visibility */}
       <div className="absolute inset-0 bg-black/20" />
       
+      {/* Logo DICA en haut */}
+      <div className="absolute top-6 left-6 z-20">
+        <img 
+          src="/images/dica-logo.svg" 
+          alt="DICA" 
+          className="h-10 md:h-12 w-auto opacity-90"
+        />
+      </div>
+      
       {/* Content */}
       <div className="relative z-10 text-center px-4 mt-[48vh]">
         <Button

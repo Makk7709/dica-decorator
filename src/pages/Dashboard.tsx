@@ -10,7 +10,8 @@ import {
   ContentContainer 
 } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Plus, LogOut, Settings, FolderOpen, Sparkles, ChevronRight, Calendar } from "lucide-react";
+import { WelcomeModal, useOnboarding } from "@/components/onboarding";
+import { Plus, LogOut, Settings, FolderOpen, Sparkles, ChevronRight, Calendar, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface Project {
@@ -26,6 +27,9 @@ const Dashboard = () => {
   const { user, userRole, signOut } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Onboarding
+  const { showWelcome, completeWelcome } = useOnboarding();
 
   useEffect(() => {
     loadProjects();
@@ -133,6 +137,16 @@ const Dashboard = () => {
             
             <ThemeToggle className="text-muted-foreground" />
             
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/help")}
+              className="text-muted-foreground hover:text-foreground"
+              title="Aide"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </Button>
+            
             <Button 
               variant="ghost" 
               size="sm" 
@@ -145,6 +159,14 @@ const Dashboard = () => {
           </div>
         </div>
       </header>
+      
+      {/* Welcome Modal pour nouveaux utilisateurs */}
+      <WelcomeModal
+        open={showWelcome}
+        onOpenChange={() => {}}
+        onComplete={completeWelcome}
+        userName={user?.email?.split('@')[0]}
+      />
 
       {/* Main Content */}
       <ContentContainer className="pb-20">
