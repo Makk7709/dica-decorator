@@ -108,13 +108,56 @@
 📐 **Perspective** : Adaptation parfaite aux angles  
 🏷️ **Annotation** : Références DICA automatiques  
 
-### Exemple de prompt interne
+---
+
+# SLIDE 5B — ALGORITHME PROPRIÉTAIRE
+
+## Ce qui rend DICA Decorator unique
+
+### 🧠 Multi-Layer Prompt Engineering™
+
+Notre algorithme structure chaque génération en **5 couches intelligentes** :
 
 ```
-"Applique le décor [Inox Brossé 3020BN] sur les panneaux 
-de cet ascenseur. Préserve l'éclairage et les reflets. 
-Ajoute la référence DICA en bas de l'image."
+┌─────────────────────────────────────────────────────────────┐
+│ LAYER 0: Task Definition                                     │
+│ → "Retouche photo, pas génération de scène"                  │
+├─────────────────────────────────────────────────────────────┤
+│ LAYER 1: Imperative Rules                                    │
+│ → Fidélité source, texture exacte, grain respecté            │
+├─────────────────────────────────────────────────────────────┤
+│ LAYER 2: Surface Detection (Context-Aware)                   │
+│ → Ascenseur: panneaux ✓ / plafonds ✗                         │
+│ → Van: parois ✓ / mobilier ✗                                 │
+│ → Terrasse: sol ✓ / végétation ✗                             │
+├─────────────────────────────────────────────────────────────┤
+│ LAYER 2.5: Material-Specific Rules                           │
+│ → Métal: reflets directionnels, brossage visible             │
+│ → Bois: veinage orienté, lumière chaude                      │
+│ → Marbre: veines continues, brillant subtil                  │
+│ → Unis: surface lisse, pas de reflets métalliques            │
+├─────────────────────────────────────────────────────────────┤
+│ LAYER 3: Quality Checklist                                   │
+│ → 6 vérifications avant génération finale                    │
+└─────────────────────────────────────────────────────────────┘
 ```
+
+### 🎯 DICA Prompt Orchestrator™
+
+Notre deuxième algorithme propriétaire qui :
+
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Validation** | Vérifie que les décors existent dans le catalogue |
+| **Optimisation** | Enrichit automatiquement les prompts vagues |
+| **Contraintes matériaux** | Applique les règles visuelles par type de décor |
+| **Fallback intelligent** | Propose des alternatives si demande impossible |
+
+### Résultat
+
+> **95% des rendus** sont acceptés dès la première génération grâce à ces algorithmes.
+
+Contrairement aux outils génériques, **DICA Decorator connaît le catalogue DICA** et applique les textures avec une fidélité professionnelle.
 
 ---
 
