@@ -388,48 +388,49 @@ export class ResellerBrochurePdfService {
     const headline = aiCaptions?.headline || "La nouvelle décoration";
     const subheadline = aiCaptions?.subheadline || "Découvrez une nouvelle dimension de l'élégance intérieure.";
     
-    pdf.setFont('Times', 'italic');
-    pdf.setFontSize(48);
+    // ═══════════════════════════════════════════════════════════════════
+    // TITRE PRINCIPAL - IVOIRE, GRAND, TYPO MAGAZINE DÉCO
+    // ═══════════════════════════════════════════════════════════════════
     
-    pdf.setTextColor(0, 0, 0);
+    pdf.setFont('Times', 'italic');
+    pdf.setFontSize(56); // Plus grand pour effet premium
+    
     const headlineX = 25;
-    const headlineY = pageHeight * 0.42;
+    const headlineY = pageHeight * 0.40;
     const maxWidth = pageWidth - 50;
     
     const headlineLines = pdf.splitTextToSize(headline, maxWidth);
     
-    // Shadow layers
-    for (let dx = 0.4; dx <= 1.2; dx += 0.4) {
-      for (let dy = 0.4; dy <= 1.2; dy += 0.4) {
+    // Ombre grise subtile pour profondeur
+    pdf.setTextColor(60, 60, 60);
+    for (let dx = 1; dx <= 2.5; dx += 0.5) {
+      for (let dy = 1; dy <= 2.5; dy += 0.5) {
         pdf.text(headlineLines, headlineX + dx, headlineY + dy);
       }
     }
     
-    pdf.setTextColor(255, 255, 255);
+    // Texte principal en IVOIRE (255, 250, 240)
+    pdf.setTextColor(255, 250, 240);
     pdf.text(headlineLines, headlineX, headlineY);
     
-    // Sub-headline box
-    const subY = headlineY + (headlineLines.length * 16) + 15;
+    // ═══════════════════════════════════════════════════════════════════
+    // SOUS-TITRE - "À LA UNE CE MOIS-CI :" + Texte IA
+    // ═══════════════════════════════════════════════════════════════════
     
-    // Badge "NOUVEAU" avec fond rouge DICA et texte blanc pour lisibilité
-    const nouveauText = "NOUVEAU";
-    pdf.setFont('Inter', 'bold');
-    pdf.setFontSize(10);
-    const nouveauWidth = pdf.getTextWidth(nouveauText);
+    const subY = headlineY + (headlineLines.length * 18) + 20;
     
-    // Fond rouge arrondi
-    pdf.setFillColor(colors.dicaRed);
-    pdf.roundedRect(headlineX + 5, subY - 8, nouveauWidth + 10, 12, 2, 2, 'F');
-    
-    // Texte blanc
-    pdf.setTextColor(255, 255, 255);
-    pdf.text(nouveauText, headlineX + 10, subY - 1);
-    
+    // Label "À la une ce mois-ci :" en Times italic, taille moyenne
     pdf.setFont('Times', 'italic');
-    pdf.setFontSize(10);
-    pdf.setTextColor(0, 0, 0);
-    const subLines = pdf.splitTextToSize(subheadline, maxWidth - 40);
-    pdf.text(subLines, headlineX + 8, subY + 4, { lineHeightFactor: 1.3 });
+    pdf.setFontSize(12);
+    pdf.setTextColor(220, 220, 220); // Gris clair élégant
+    pdf.text("À la une ce mois-ci :", headlineX, subY);
+    
+    // Texte IA généré en Times normal, un peu plus petit
+    pdf.setFont('Times', 'normal');
+    pdf.setFontSize(11);
+    pdf.setTextColor(240, 240, 240); // Presque blanc, légèrement plus foncé que le titre
+    const subLines = pdf.splitTextToSize(subheadline, maxWidth);
+    pdf.text(subLines, headlineX, subY + 8, { lineHeightFactor: 1.4 });
     
     // Date (top-right)
     pdf.setFont('Inter', 'normal');
