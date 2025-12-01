@@ -19,6 +19,7 @@ import { compressImage, formatFileSize } from "@/lib/image-compression";
 import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 import { PlaquetteExportButton } from "@/components/ui/plaquette-export-button";
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
+import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
 
 interface Project {
@@ -85,42 +86,6 @@ const ProjectDetail = () => {
   } | null>(null);
   const [selectedRenderIds, setSelectedRenderIds] = useState<Set<string>>(new Set());
   const [userCoBrandingEnabled, setUserCoBrandingEnabled] = useState<boolean>(false);
-  const [isDownloading, setIsDownloading] = useState<string | null>(null);
-
-  // Fonction de téléchargement robuste pour images cross-origin
-  const handleDownloadImage = async (imageUrl: string, filename?: string) => {
-    try {
-      setIsDownloading(imageUrl);
-      
-      // Récupérer l'image en blob pour contourner les restrictions cross-origin
-      const response = await fetch(imageUrl);
-      if (!response.ok) throw new Error('Erreur de téléchargement');
-      
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      
-      // Créer un lien temporaire et déclencher le téléchargement
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename || `dica-render-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Nettoyer l'URL blob
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
-      
-      toast.success("Image téléchargée !");
-    } catch (error: any) {
-      console.error("Download error:", error);
-      toast.error("Erreur lors du téléchargement");
-      
-      // Fallback : ouvrir dans un nouvel onglet
-      window.open(imageUrl, '_blank');
-    } finally {
-      setIsDownloading(null);
-    }
-  };
 
   useEffect(() => {
     loadProject();
@@ -817,20 +782,13 @@ const ProjectDetail = () => {
                     {/* Overlay actions au survol */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 z-10">
                       <div className="flex gap-2">
-                        <Button
+                        <ImageExportDropdown
+                          imageUrl={creative.result_image_url}
+                          filename={`dica-ia-${creative.id}`}
                           variant="secondary"
                           size="sm"
                           className="h-8 px-3 bg-white hover:bg-white shadow-md text-xs"
-                          onClick={() => handleDownloadImage(creative.result_image_url, `dica-ia-${creative.id}.png`)}
-                          disabled={isDownloading === creative.result_image_url}
-                        >
-                          {isDownloading === creative.result_image_url ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-700" />
-                          ) : (
-                            <Download className="h-3.5 w-3.5 text-gray-700" />
-                          )}
-                          <span className="text-gray-700 ml-1.5">Télécharger</span>
-                        </Button>
+                        />
                       </div>
                     </div>
                   </div>
@@ -1052,18 +1010,14 @@ const ProjectDetail = () => {
                                     <SplitSquareHorizontal className="mr-2 h-4 w-4" />
                                     Comparer avant/après
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    className="cursor-pointer"
-                                    onClick={() => handleDownloadImage(render.result_image_url, `dica-render-${render.id}.png`)}
-                                    disabled={isDownloading === render.result_image_url}
-                                >
-                                    {isDownloading === render.result_image_url ? (
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <Download className="mr-2 h-4 w-4" />
-                                    )}
-                                    Télécharger
-                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                                    Télécharger en...
+                                  </div>
+                                  <ImageExportMenuItems
+                                    imageUrl={render.result_image_url}
+                                    filename={`dica-render-${render.id}`}
+                                  />
                                   {render.decor_id && (
                                     <DropdownMenuItem
                                   onClick={() => handleRegenerateRender(render.id, photo.id)}
@@ -1314,19 +1268,12 @@ const ProjectDetail = () => {
                     <X className="h-4 w-4 mr-2" />
                     Fermer
                   </Button>
-                  <Button
+                  <ImageExportDropdown
+                    imageUrl={zoomedImage!}
+                    filename={`dica-render-${Date.now()}`}
                     variant="secondary"
                     className="h-10 px-4 bg-white hover:bg-white/90 shadow-lg text-black"
-                    onClick={() => handleDownloadImage(zoomedImage!, `dica-render-${Date.now()}.png`)}
-                    disabled={isDownloading === zoomedImage}
-                  >
-                    {isDownloading === zoomedImage ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    Télécharger
-                  </Button>
+                  />
                 </div>
               </>
             )}
@@ -1380,19 +1327,14 @@ const ProjectDetail = () => {
             {/* Footer actions */}
             <div className="absolute bottom-0 left-0 right-0 z-20 p-4 bg-gradient-to-t from-black/60 to-transparent">
               <div className="flex justify-center gap-3">
-                <Button
-                  variant="secondary"
-                  className="h-10 px-4 bg-white hover:bg-white shadow-lg"
-                  onClick={() => comparisonMode?.after && handleDownloadImage(comparisonMode.after, `dica-comparison-${Date.now()}.png`)}
-                  disabled={isDownloading === comparisonMode?.after}
-                >
-                  {isDownloading === comparisonMode?.after ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  <span className="ml-2">Télécharger le rendu</span>
-                </Button>
+                {comparisonMode?.after && (
+                  <ImageExportDropdown
+                    imageUrl={comparisonMode.after}
+                    filename={`dica-comparison-${Date.now()}`}
+                    variant="secondary"
+                    className="h-10 px-4 bg-white hover:bg-white shadow-lg"
+                  />
+                )}
               </div>
             </div>
           </div>
