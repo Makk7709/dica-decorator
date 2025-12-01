@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WelcomeModal, useOnboarding } from "@/components/onboarding";
-import { Plus, LogOut, Settings, FolderOpen, Sparkles, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen, Sparkles, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -21,7 +21,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { projectDeletionService } from "@/services/project-deletion.service";
+import { projectRenameService } from "@/services/project-rename.service";
 
 interface Project {
   id: string;
@@ -40,6 +42,9 @@ const Dashboard = () => {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [deletionStats, setDeletionStats] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
   
   // Onboarding
   const { showWelcome, completeWelcome } = useOnboarding();
@@ -157,6 +162,78 @@ const Dashboard = () => {
     setDeleteDialogOpen(false);
     setProjectToDelete(null);
     setDeletionStats(null);
+  };
+
+  const handleStartEdit = (project: Project, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingProjectId(project.id);
+    setEditTitle(project.title);
+  };
+
+  const handleCancelEdit = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingProjectId(null);
+    setEditTitle("");
+  };
+
+  const handleSaveEdit = async (project: Project, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    
+    if (!editTitle.trim()) {
+      toast.error("Le titre ne peut pas être vide");
+      return;
+    }
+
+    if (editTitle.trim() === project.title) {
+      // Pas de changement, juste annuler
+      handleCancelEdit();
+      return;
+    }
+
+    setIsRenaming(true);
+
+    try {
+      const result = await projectRenameService.renameProject(project.id, editTitle.trim());
+
+      if (result.success && result.newTitle) {
+        toast.success(`Projet renommé en "${result.newTitle}"`);
+        
+        // Mettre à jour la liste localement
+        setProjects(prev => 
+          prev.map(p => 
+            p.id === project.id 
+              ? { ...p, title: result.newTitle! }
+              : p
+          )
+        );
+        
+        setEditingProjectId(null);
+        setEditTitle("");
+      } else {
+        const errorMessage = result.error?.message || "Erreur lors du renommage";
+        
+        if (result.error?.code === 'UNAUTHORIZED') {
+          toast.error("Vous n'êtes pas autorisé à renommer ce projet");
+        } else if (result.error?.code === 'VALIDATION_ERROR') {
+          toast.error(errorMessage);
+        } else {
+          toast.error(errorMessage);
+        }
+      }
+    } catch (error: any) {
+      toast.error(`Erreur: ${error.message}`);
+      console.error("Rename error:", error);
+    } finally {
+      setIsRenaming(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, project: Project) => {
+    if (e.key === 'Enter') {
+      handleSaveEdit(project);
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
   };
 
   return (
@@ -310,7 +387,11 @@ const Dashboard = () => {
             {projects.map((project, index) => (
               <div
                 key={project.id}
-                onClick={() => navigate(`/project/${project.id}`)}
+                onClick={() => {
+                  if (editingProjectId !== project.id) {
+                    navigate(`/project/${project.id}`);
+                  }
+                }}
                 className="card-premium p-5 cursor-pointer group animate-slide-up"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
@@ -335,9 +416,59 @@ const Dashboard = () => {
 
                 {/* Content */}
                 <div className="space-y-1.5">
-                  <h3 className="font-semibold text-lg text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                    {project.title}
-                  </h3>
+                  {editingProjectId === project.id ? (
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, project)}
+                        className="h-8 text-sm font-semibold flex-1"
+                        autoFocus
+                        disabled={isRenaming}
+                        maxLength={200}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleSaveEdit(project, e)}
+                        disabled={isRenaming || !editTitle.trim()}
+                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                      >
+                        {isRenaming ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCancelEdit}
+                        disabled={isRenaming}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 group/title">
+                      <h3 
+                        className="font-semibold text-lg text-foreground line-clamp-1 group-hover:text-primary transition-colors flex-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {project.title}
+                      </h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => handleStartEdit(project, e)}
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-primary opacity-0 group-hover/title:opacity-100 transition-opacity"
+                        title="Renommer le projet"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-muted text-xs font-medium">
