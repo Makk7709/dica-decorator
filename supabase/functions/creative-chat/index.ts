@@ -298,17 +298,39 @@ ${orchestrationResult.finalPromptForImageModel}
 🎨 TECHNICAL RENDERING REQUIREMENTS
 ═══════════════════════════════════════════════════════════════════
 
-1. QUALITY STANDARDS:
-   - Professional catalog photography quality
-   - Photorealistic rendering
-   - Sharp focus on DICA panels
-   - Natural, realistic lighting
+1. STUDIO PROFESSIONAL QUALITY STANDARDS (NON-NEGOTIABLE):
+   📸 PHOTOGRAPHY SETUP:
+   - Shot with professional full-frame camera (Phase One, Hasselblad level)
+   - 24mm architectural lens, f/8 aperture for maximum depth of field
+   - ISO 100 for absolute clean details, no noise
+   - Professional studio lighting: softbox main light (key), fill lights eliminating harsh shadows, backlight for depth
+   
+   🎨 IMAGE QUALITY:
+   - Photorealistic rendering INDISTINGUISHABLE from real professional photography
+   - Commercial catalog photography aesthetic (AD Magazine, Architectural Digest level)
+   - Color-graded for luxury commercial quality, natural color accuracy
+   - Sharp focus across ENTIRE frame, professional post-production
+   - NO artificial CGI appearance, NO fake-looking renders
+   
+   ✨ REALISM:
+   - Authentic material representation with real-world imperfections
+   - Natural lighting interaction with surfaces
+   - Depth and dimension through professional lighting techniques
+   - Result must pass as REAL professional architectural photography
 
-2. DICA PANEL APPLICATION:
-   - Panels must be clearly visible (minimum 40% of image)
-   - Apply exact texture and colors from DICA catalog
-   - Respect material properties (metal reflections, wood grain, marble veins, etc.)
-   - No color shifts or texture modifications
+2. DICA PANEL APPLICATION (ABSOLUTE ACCURACY):
+   - Panels must be clearly visible and prominent (minimum 40% of image)
+   - Apply EXACT texture and colors from DICA catalog - ZERO color shifts or modifications
+   - When user specifies a COLOR, use the EXACT DICA decor matching that color:
+     * "rouge" → 3178_SPA (DICA Red Unis)
+     * "vert olive" → 3179_SPA (DICA Olive Green Unis)  
+     * "noir" → 3020_BN (DICA Black Unis)
+     * "blanc" → 800_SATIN (DICA White Satin)
+   - Respect material properties STRICTLY (metal reflections, wood grain direction, marble veining, etc.)
+   - If edge banding (chant) is mentioned, TRANSLATE thickness and color precisely:
+     * "chant 2mm noir" → "visible 2mm BLACK edge banding strip"
+     * "chant 10mm rouge" → "very thick 10mm RED edge profile"
+   - Material authenticity is CRITICAL - textures must look like real physical materials
 
 3. SPACE FIDELITY:
    - Create exactly: ${detectedSpace.toUpperCase()}
@@ -316,11 +338,12 @@ ${orchestrationResult.finalPromptForImageModel}
    - Maintain realistic proportions and perspective
    - Preserve existing lighting and shadows
 
-4. COMPOSITION:
-   - Professional composition showcasing DICA panels
-   - Clear visibility of texture and quality
-   - Premium aesthetic suitable for client presentations
-    - High-end, sophisticated visual result
+4. COMPOSITION & PROFESSIONALISM:
+   - PREMIUM COMMERCIAL PHOTOGRAPHY composition
+   - Strategic angles showcasing DICA panels prominently and beautifully
+   - Professional architectural framing with balanced composition
+   - Result suitable for luxury client presentations and AD Magazine editorial
+   - High-end, sophisticated visual result that sells the space
 
 ${showReferences ? `
 ═══════════════════════════════════════════════════════════════════
@@ -351,7 +374,13 @@ Annotations must be professional and harmoniously integrated.
 ═══════════════════════════════════════════════════════════════════
 ` : ''}
 
-✨ EXPECTED RESULT: ${detectedSpace} space with DICA panels, professional catalog quality, panels clearly visible and showcased. Client must be able to immediately envision their future project.
+✨ EXPECTED RESULT: 
+Professional studio photography of ${detectedSpace} space featuring DICA panels. 
+Quality level: COMMERCIAL CATALOG PHOTOGRAPHY (Architectural Digest, AD Magazine editorial standard).
+CRITICAL: Image must be INDISTINGUISHABLE from real professional architectural photography shot in a real space.
+Panels must be clearly visible, prominently showcased, and applied with EXACT colors and specifications requested by user.
+If user specified edge thickness or color, it MUST be visible and accurate.
+Result must enable client to immediately and confidently envision their future project with absolute realism.
 ═══════════════════════════════════════════════════════════════════`;
 
       console.log("Full orchestrated prompt length:", basePrompt.length, "characters");
