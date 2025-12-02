@@ -415,27 +415,16 @@ export class MagazineDICAPdfService {
     decorTextureUrls?: Record<string, string>
   ): Promise<void> {
     const marginX = 25;
-    const blockY = startY || pageHeight - 100; // Hauteur augmentée pour les swatches
-    const blockHeight = 85;
-
-    // Fond pour les blocs (fond très clair, presque blanc)
-    pdf.setFillColor(255, 255, 255);
-    pdf.roundedRect(marginX, blockY, pageWidth - 50, blockHeight, 3, 3, 'F');
-
-    // Bordure fine et élégante
-    pdf.setDrawColor(220, 220, 220);
-    pdf.setLineWidth(0.3);
-    pdf.roundedRect(marginX, blockY, pageWidth - 50, blockHeight, 3, 3, 'D');
-
-    let currentY = blockY + 10;
-
-    // Titre "Palette DICA" ou "Décors DICA utilisés"
-    pdf.setFont('Times', 'bold');
-    pdf.setFontSize(9);
-    pdf.setTextColor(0, 0, 0);
-    const title = page.decors_utilises.titre === 'Palette DICA' ? 'Palette DICA' : page.decors_utilises.titre;
-    pdf.text(title, marginX + 5, currentY);
-    currentY += 12;
+    
+    // Placer les swatches en bas de page directement, sans rectangle blanc
+    // Calculer la hauteur nécessaire pour les swatches (taille x2 = 36mm + texte)
+    const swatchSize = 36; // Taille doublée : 18mm x 2 = 36mm
+    const textHeight = 12; // Hauteur pour le texte sous le swatch
+    const swatchTotalHeight = swatchSize + textHeight + 6; // Hauteur totale par ligne
+    
+    // Positionner en bas de page (en tenant compte de startY si défini pour d'autres éléments)
+    const blockY = startY || pageHeight - swatchTotalHeight - 10; // 10mm de marge du bas
+    let currentY = blockY;
 
     // Grille de swatches grands style catalogue (taille doublée, sans rectangle blanc)
     const swatchSpacing = 12; // Espacement entre swatches
