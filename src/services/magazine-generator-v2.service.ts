@@ -270,7 +270,7 @@ export class MagazineGeneratorV2Service {
   }
 
   /**
-   * Génère un texte éditorial via IA basé sur le thème (expert stratifié/storytelling)
+   * Génère un texte éditorial via IA basé sur le thème ET l'analyse des images (expert stratifié/storytelling)
    */
   private async generateAIEditorialText(
     theme: string,
@@ -280,6 +280,9 @@ export class MagazineGeneratorV2Service {
     try {
       const decorNames = decors.map(d => d.nom).join(', ');
       const usageContexts = [...new Set(zoomImages.map(img => img.usage || ''))].filter(Boolean).join(', ');
+      
+      // Utiliser la première image pour l'analyse visuelle (image de couverture ou première zoom)
+      const primaryImageUrl = zoomImages.length > 0 ? zoomImages[0].url : null;
 
       const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
         body: {
@@ -288,6 +291,8 @@ export class MagazineGeneratorV2Service {
           usageContexts,
           style: 'expert_stratified_storytelling', // Style expert stratifié/storytelling
           type: 'editorial_intro',
+          imageUrl: primaryImageUrl, // Inclure l'URL de l'image pour analyse visuelle
+          analyzeImage: true, // Demander explicitement l'analyse de l'image
         },
       });
 
@@ -317,21 +322,27 @@ export class MagazineGeneratorV2Service {
   }
 
   /**
-   * Génère une phrase calligraphiée via IA pour une page zoom
+   * Génère une phrase calligraphiée via IA pour une page zoom (avec analyse de l'image)
    */
   private async generateAICalligraphyPhrase(
     theme: string,
     image: SelectedImage
   ): Promise<string> {
     try {
+      // Inclure l'URL de l'image pour analyse visuelle
       const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
         body: {
           theme,
           usage: image.usage || 'autre',
           projectName: image.projectName,
+          decorLabel: image.decorName || '',
+          decorReference: image.decorCode || '',
+          decorCategory: image.decorId ? 'dica' : undefined,
+          imageUrl: image.url, // Inclure l'URL de l'image pour analyse visuelle
           style: 'calligraphy',
           type: 'zoom_phrase',
           maxWords: 15,
+          analyzeImage: true, // Demander explicitement l'analyse de l'image
         },
       });
 
@@ -484,7 +495,39 @@ export class MagazineGeneratorV2Service {
   }
 
   /**
-   * Génère le texte pour une page Zoom Produit
+   * Génère le texte court pour une page Zoom Produit via IA avec analyse de l'image
+   */
+  private async generateAIZoomProductText(theme: string, image: SelectedImage): Promise<string> {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
+        body: {
+          theme,
+          projectName: image.projectName || 'Projet DICA',
+          projectType: image.usage || 'autre',
+          decorLabel: image.decorName || 'Décor DICA',
+          decorReference: image.decorCode || '',
+          decorCategory: image.decorId ? 'dica' : undefined,
+          imageUrl: image.url, // URL de l'image pour analyse visuelle
+          style: 'expert_stratified_storytelling',
+          type: 'zoom_text', // Type spécifique pour texte court zoom
+          analyzeImage: true, // Demander explicitement l'analyse de l'image
+        },
+      });
+
+      if (error || !data?.text) {
+        // Fallback: texte basique
+        return this.generateZoomProductText(image, theme);
+      }
+
+      return data.text;
+    } catch (error) {
+      console.warn('Error generating AI zoom product text, using fallback:', error);
+      return this.generateZoomProductText(image, theme);
+    }
+  }
+
+  /**
+   * Génère le texte pour une page Zoom Produit (fallback)
    */
   private generateZoomProductText(image: SelectedImage, theme: string): string {
     const decorName = image.decorName || 'Décor DICA';

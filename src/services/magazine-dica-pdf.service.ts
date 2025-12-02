@@ -194,14 +194,14 @@ export class MagazineDICAPdfService {
     pdf.rect(0, 0, pageWidth, pageHeight, 'F');
     pdf.setGState(pdf.GState({ opacity: 1.0 }));
 
-    // Titre principal (remonté pour éviter superposition avec sous-titre)
+    // Titre principal (encore plus remonté sur la page de couverture)
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(72);
     pdf.setTextColor(255, 250, 240); // Ivoire
     const maxTitleWidth = pageWidth - 40; // Marges de 20mm de chaque côté
     const titleLines = pdf.splitTextToSize(page.titre, maxTitleWidth);
-    // Position Y plus haute : 0.25 au lieu de 0.3 pour éviter superposition
-    const titleY = pageHeight * 0.25;
+    // Position Y encore plus haute : 0.18 au lieu de 0.25 pour remonter davantage
+    const titleY = pageHeight * 0.18;
     pdf.text(titleLines, pageWidth / 2, titleY, { align: 'center' });
 
     // Sous-titre (avec wrapping pour éviter le débordement, positionné plus bas)
@@ -211,8 +211,8 @@ export class MagazineDICAPdfService {
       pdf.setTextColor(255, 250, 240);
       const maxSubtitleWidth = pageWidth - 40;
       const subtitleLines = pdf.splitTextToSize(page.sous_titre, maxSubtitleWidth);
-      // Position Y ajustée : 0.38 au lieu de 0.4 pour plus d'espace avec le titre
-      const subtitleY = pageHeight * 0.38 + (titleLines.length - 1) * 12; // Ajuster selon nombre de lignes du titre
+      // Position Y ajustée : 0.32 au lieu de 0.38 pour plus d'espace avec le titre remonté
+      const subtitleY = pageHeight * 0.32 + (titleLines.length - 1) * 12; // Ajuster selon nombre de lignes du titre
       pdf.text(subtitleLines, pageWidth / 2, subtitleY, { align: 'center' });
     }
 
@@ -225,8 +225,7 @@ export class MagazineDICAPdfService {
       pdf.text(phraseLines, pageWidth / 2, pageHeight * 0.7, { align: 'center' });
     }
 
-    // Blocs décors et échantillons en bas
-    await this.renderDecorsAndEchantillons(pdf, page, pageWidth, pageHeight, undefined, decorTextureUrls);
+    // PAS de blocs décors et échantillons sur la page de couverture (supprimés)
   }
 
   /**
