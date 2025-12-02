@@ -194,23 +194,25 @@ export class MagazineDICAPdfService {
     pdf.rect(0, 0, pageWidth, pageHeight, 'F');
     pdf.setGState(pdf.GState({ opacity: 1.0 }));
 
-    // Titre principal (avec wrapping pour éviter le débordement)
+    // Titre principal (remonté pour éviter superposition avec sous-titre)
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(72);
     pdf.setTextColor(255, 250, 240); // Ivoire
     const maxTitleWidth = pageWidth - 40; // Marges de 20mm de chaque côté
     const titleLines = pdf.splitTextToSize(page.titre, maxTitleWidth);
-    const titleY = pageHeight * 0.3;
+    // Position Y plus haute : 0.25 au lieu de 0.3 pour éviter superposition
+    const titleY = pageHeight * 0.25;
     pdf.text(titleLines, pageWidth / 2, titleY, { align: 'center' });
 
-    // Sous-titre (avec wrapping pour éviter le débordement)
+    // Sous-titre (avec wrapping pour éviter le débordement, positionné plus bas)
     if (page.sous_titre) {
       pdf.setFont('Times', 'italic');
       pdf.setFontSize(18);
       pdf.setTextColor(255, 250, 240);
       const maxSubtitleWidth = pageWidth - 40;
       const subtitleLines = pdf.splitTextToSize(page.sous_titre, maxSubtitleWidth);
-      const subtitleY = pageHeight * 0.4 + (titleLines.length - 1) * 12; // Ajuster selon nombre de lignes du titre
+      // Position Y ajustée : 0.38 au lieu de 0.4 pour plus d'espace avec le titre
+      const subtitleY = pageHeight * 0.38 + (titleLines.length - 1) * 12; // Ajuster selon nombre de lignes du titre
       pdf.text(subtitleLines, pageWidth / 2, subtitleY, { align: 'center' });
     }
 
@@ -335,18 +337,42 @@ export class MagazineDICAPdfService {
       }
     }
 
-    // Calculer la hauteur nécessaire pour les swatches
+    // Calculer la hauteur nécessaire pour les swatches (en bas à droite)
     const swatchSize = 36;
     const textHeight = 12;
-    const swatchTotalHeight = swatchSize + textHeight + 6 + 10; // +10 pour marge
+    const swatchTotalHeight = swatchSize + textHeight + 6;
+    const swatchBottomMargin = 5; // Marge basse à fleur
+    
+    // Si texte_court existe, l'afficher en haut de page (avec wrapping pour lisibilité)
+    if (page.texte_court) {
+      const marginX = 30;
+      const marginTop = 30;
+      const maxTextWidth = pageWidth - (marginX * 2);
+      
+      // Fond semi-transparent pour le texte (optionnel, pour lisibilité)
+      pdf.setFillColor(255, 255, 255);
+      pdf.setGState(pdf.GState({ opacity: 0.85 }));
+      pdf.roundedRect(marginX - 5, marginTop - 5, maxTextWidth + 10, 60, 3, 3, 'F');
+      pdf.setGState(pdf.GState({ opacity: 1.0 }));
+      
+      // Texte court avec wrapping pour qu'il soit lisible
+      pdf.setFont('Times', 'normal');
+      pdf.setFontSize(10);
+      pdf.setTextColor(40, 40, 40);
+      const textLines = pdf.splitTextToSize(page.texte_court, maxTextWidth);
+      pdf.text(textLines, marginX, marginTop, { 
+        lineHeightFactor: 1.5,
+        maxWidth: maxTextWidth
+      });
+    }
     
     // Fond semi-transparent pour la phrase calligraphiée (hauteur ajustable selon nombre de lignes)
     const maxPhraseWidth = pageWidth - 40; // Marges de 20mm de chaque côté
     const phraseLines = pdf.splitTextToSize(page.phrase_calligraphie, maxPhraseWidth);
     const phraseBlockHeight = 40 + (phraseLines.length - 1) * 10; // Hauteur ajustée selon nombre de lignes
     
-    // Positionner la phrase calligraphiée au-dessus des swatches
-    const phraseBlockY = pageHeight - swatchTotalHeight - phraseBlockHeight;
+    // Positionner la phrase calligraphiée au-dessus des swatches (en bas à gauche)
+    const phraseBlockY = pageHeight - swatchTotalHeight - swatchBottomMargin - phraseBlockHeight - 5;
     
     pdf.setFillColor(0, 0, 0);
     pdf.setGState(pdf.GState({ opacity: 0.4 }));
@@ -360,7 +386,7 @@ export class MagazineDICAPdfService {
     const phraseY = phraseBlockY + (phraseBlockHeight / 2) - ((phraseLines.length - 1) * 4); // Centrer verticalement
     pdf.text(phraseLines, pageWidth / 2, phraseY, { align: 'center' });
 
-    // Blocs décors et échantillons (en bas, au-dessus du texte calligraphié)
+    // Blocs décors et échantillons (en bas à DROITE, à fleur de marge)
     await this.renderDecorsAndEchantillons(pdf, page, pageWidth, pageHeight, undefined, decorTextureUrls);
   }
 
@@ -434,27 +460,33 @@ export class MagazineDICAPdfService {
     const blockY = startY || pageHeight - swatchTotalHeight - 10; // 10mm de marge du bas
     let currentY = blockY;
 
-    // Grille de swatches grands style catalogue (taille doublée, sans rectangle blanc)
+    // Grille de swatches alignés à DROITE, en bas à droite de page
     const swatchSpacing = 12; // Espacement entre swatches
-    const availableWidth = pageWidth - (marginX * 2); // Largeur disponible
-    const swatchesPerRow = Math.floor(availableWidth / (swatchSize + swatchSpacing));
+    const maxSwatchesPerRow = Math.floor((pageWidth - marginX - rightMargin) / (swatchSize + swatchSpacing));
     
     const decors = page.decors_utilises.decors;
-    let currentX = marginX;
+    // Limiter le nombre de swatches à afficher (max 4-5 pour ne pas déborder)
+    const maxSwatches = Math.min(decors.length, 5);
+    const displayedDecors = decors.slice(0, maxSwatches);
+    
+    // Calculer la position X de départ pour aligner à droite
+    const totalSwatchesWidth = (maxSwatches * swatchSize) + ((maxSwatches - 1) * swatchSpacing);
+    let currentX = pageWidth - rightMargin - totalSwatchesWidth; // Aligner à droite
+    let currentY = blockY;
     let rowCount = 0;
 
-    for (let i = 0; i < decors.length; i++) {
-      // Nouvelle ligne si nécessaire
-      if (i > 0 && i % swatchesPerRow === 0) {
-        currentX = marginX;
+    for (let i = 0; i < displayedDecors.length; i++) {
+      // Nouvelle ligne si nécessaire (limité à 1 ligne pour rester en bas)
+      if (i > 0 && i % maxSwatchesPerRow === 0) {
+        currentX = pageWidth - rightMargin - totalSwatchesWidth; // Réinitialiser position X
         currentY += swatchSize + textHeight + 8; // Hauteur swatch + texte + espacement
         rowCount++;
         
-        // Limiter à 1 ligne si pas assez de place (les swatches sont grands maintenant)
-        if (rowCount >= 1 && swatchesPerRow < decors.length) break;
+        // Limiter à 1 ligne pour rester en bas
+        if (rowCount >= 1) break;
       }
 
-      const decor = decors[i];
+      const decor = displayedDecors[i];
       const echantillon = page.echantillons.echantillons.find(e => e.decor_code === decor.code);
       const decorId = echantillon?.decor_id;
       const textureUrl = decorTextureUrls?.[decorId || ''] || decorTextureUrls?.[decor.code];
