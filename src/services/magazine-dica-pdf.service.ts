@@ -415,8 +415,8 @@ export class MagazineDICAPdfService {
     decorTextureUrls?: Record<string, string>
   ): Promise<void> {
     const marginX = 25;
-    const blockY = startY || pageHeight - 80;
-    const blockHeight = 70;
+    const blockY = startY || pageHeight - 100; // Hauteur augmentée pour les swatches
+    const blockHeight = 85;
 
     // Fond pour les blocs (fond très clair, presque blanc)
     pdf.setFillColor(255, 255, 255);
@@ -437,67 +437,67 @@ export class MagazineDICAPdfService {
     pdf.text(title, marginX + 5, currentY);
     currentY += 12;
 
-    // Grille de carrés RAL élégants
-    const squareSize = 12; // Taille des carrés en mm
-    const squareSpacing = 8; // Espacement entre carrés
-    const squaresPerRow = Math.floor((pageWidth - 50 - 10) / (squareSize + squareSpacing));
-    let currentX = marginX + 5;
-    let rowStartY = currentY;
-
+    // Grille de swatches style catalogue (comme l'exemple fourni)
+    const swatchSize = 18; // Taille des swatches (plus grand, style catalogue)
+    const swatchSpacing = 10; // Espacement entre swatches
+    const textHeight = 10; // Hauteur pour le texte sous le swatch
+    const availableWidth = pageWidth - 50 - 10; // Largeur disponible
+    const swatchesPerRow = Math.floor(availableWidth / (swatchSize + swatchSpacing));
+    
     const decors = page.decors_utilises.decors;
-    const displayedDecors = decors.slice(0, squaresPerRow * 2); // Max 2 lignes pour ne pas déborder
+    let currentX = marginX + 5;
+    let rowCount = 0;
 
-    for (let i = 0; i < displayedDecors.length; i++) {
-      const decor = displayedDecors[i];
-      const echantillon = page.echantillons.echantillons.find(e => e.decor_code === decor.code);
-      
+    for (let i = 0; i < decors.length; i++) {
       // Nouvelle ligne si nécessaire
-      if (i > 0 && i % squaresPerRow === 0) {
+      if (i > 0 && i % swatchesPerRow === 0) {
         currentX = marginX + 5;
-        currentY += squareSize + squareSpacing + 8; // Espace pour le texte sous le carré
+        currentY += swatchSize + textHeight + 6; // Hauteur swatch + texte + espacement
+        rowCount++;
+        
+        // Limiter à 2 lignes pour ne pas déborder
+        if (rowCount >= 2) break;
       }
 
-      // Carré coloré type RAL
+      const decor = decors[i];
+      const echantillon = page.echantillons.echantillons.find(e => e.decor_code === decor.code);
+      const decorId = echantillon?.decor_id;
+      const textureUrl = decorTextureUrls?.[decorId || ''] || decorTextureUrls?.[decor.code];
+      
+      // Carré swatch avec couleur de fond (style exemple)
       const colorHex = decor.color_hex || echantillon?.color_hex || '#CCCCCC';
       const rgb = this.hexToRgb(colorHex);
       
-      // Carré principal avec couleur
+      // Fond coloré du swatch (carré plein)
       pdf.setFillColor(rgb.r, rgb.g, rgb.b);
       pdf.setDrawColor(180, 180, 180);
-      pdf.setLineWidth(0.3);
-      pdf.roundedRect(currentX, currentY, squareSize, squareSize, 1, 1, 'FD'); // Fill and Draw
+      pdf.setLineWidth(0.5);
+      pdf.rect(currentX, currentY, swatchSize, swatchSize, 'FD');
 
-      // Bordure intérieure fine pour élégance
-      pdf.setDrawColor(220, 220, 220);
-      pdf.setLineWidth(0.2);
-      pdf.roundedRect(currentX + 0.5, currentY + 0.5, squareSize - 1, squareSize - 1, 1, 1, 'D');
-
-      // Code du décor en petit sous le carré
-      pdf.setFont('Times', 'normal');
-      pdf.setFontSize(5);
-      pdf.setTextColor(80, 80, 80);
-      const codeText = decor.code.length > 12 ? decor.code.substring(0, 12) + '...' : decor.code;
-      pdf.text(codeText, currentX, currentY + squareSize + 2.5, { 
-        maxWidth: squareSize,
-        align: 'center'
-      });
-
-      // Miniature texture si disponible (superposée en petit coin)
-      const decorId = echantillon?.decor_id;
-      const textureUrl = decorTextureUrls?.[decorId || ''] || decorTextureUrls?.[decor.code];
+      // Miniature texture si disponible (superposée sur le fond coloré)
       if (textureUrl) {
         try {
           const textureImage = await this.loadImageWithBase64(textureUrl);
-          const smallSize = squareSize * 0.7;
-          const smallOffset = (squareSize - smallSize) / 2;
+          const imgRatio = textureImage.width / textureImage.height;
+          let imgWidth = swatchSize - 1;
+          let imgHeight = swatchSize - 1;
+          
+          if (imgRatio > 1) {
+            imgHeight = imgWidth / imgRatio;
+          } else {
+            imgWidth = imgHeight * imgRatio;
+          }
+          
+          const imgX = currentX + (swatchSize - imgWidth) / 2;
+          const imgY = currentY + (swatchSize - imgHeight) / 2;
           
           pdf.addImage(
             textureImage.base64,
             'JPEG',
-            currentX + smallOffset,
-            currentY + smallOffset,
-            smallSize,
-            smallSize,
+            imgX,
+            imgY,
+            imgWidth,
+            imgHeight,
             undefined,
             'FAST'
           );
@@ -506,24 +506,35 @@ export class MagazineDICAPdfService {
         }
       }
 
-      currentX += squareSize + squareSpacing;
+      // Nom du décor sous le swatch (style exemple : "Chêne Calme 030")
+      const decorName = decor.nom.length > 20 ? decor.nom.substring(0, 17) + '...' : decor.nom;
+      pdf.setFont('Times', 'normal');
+      pdf.setFontSize(6);
+      pdf.setTextColor(0, 0, 0);
+      const nameLines = pdf.splitTextToSize(decorName, swatchSize);
+      pdf.text(nameLines, currentX, currentY + swatchSize + 3, { 
+        maxWidth: swatchSize,
+        align: 'left'
+      });
+
+      // Code référence sous le nom (ex: "030" ou "DICA-VSB-001")
+      const codeY = currentY + swatchSize + 3 + (nameLines.length * 3.5);
+      pdf.setFont('Times', 'bold');
+      pdf.setFontSize(6);
+      pdf.setTextColor(60, 60, 60);
+      // Extraire juste la partie numérique si code long (ex: "VSB-001" -> "001")
+      const codeDisplay = decor.code.includes('-') ? decor.code.split('-').pop() : decor.code;
+      pdf.text(codeDisplay || decor.code, currentX, codeY, { 
+        maxWidth: swatchSize,
+        align: 'left'
+      });
+
+      // Passer au swatch suivant
+      currentX += swatchSize + swatchSpacing;
     }
 
     // Ajuster la position Y pour la suite
-    currentY += squareSize + 12;
-
-    // Légende des échantillons (si espace disponible)
-    if (currentY < blockY + blockHeight - 15 && displayedDecors.length > 0) {
-      pdf.setDrawColor(240, 240, 240);
-      pdf.setLineWidth(0.2);
-      pdf.line(marginX + 5, currentY, pageWidth - marginX - 5, currentY);
-      currentY += 5;
-
-      pdf.setFont('Times', 'italic');
-      pdf.setFontSize(6);
-      pdf.setTextColor(120, 120, 120);
-      pdf.text('Échantillons de la palette DICA utilisée dans ce numéro', marginX + 5, currentY);
-    }
+    currentY += swatchSize + textHeight;
   }
 
   /**
