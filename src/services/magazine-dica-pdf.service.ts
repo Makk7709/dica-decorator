@@ -335,18 +335,21 @@ export class MagazineDICAPdfService {
       }
     }
 
-    // Fond semi-transparent pour la phrase calligraphiée
+    // Fond semi-transparent pour la phrase calligraphiée (hauteur ajustable selon nombre de lignes)
+    const maxPhraseWidth = pageWidth - 40; // Marges de 20mm de chaque côté
+    const phraseLines = pdf.splitTextToSize(page.phrase_calligraphie, maxPhraseWidth);
+    const phraseBlockHeight = 40 + (phraseLines.length - 1) * 10; // Hauteur ajustée selon nombre de lignes
+    
     pdf.setFillColor(0, 0, 0);
     pdf.setGState(pdf.GState({ opacity: 0.4 }));
-    pdf.rect(0, pageHeight - 60, pageWidth, 60, 'F');
+    pdf.rect(0, pageHeight - phraseBlockHeight, pageWidth, phraseBlockHeight, 'F');
     pdf.setGState(pdf.GState({ opacity: 1.0 }));
 
-    // Phrase calligraphiée (ivoire, grande, centrée)
+    // Phrase calligraphiée (ivoire, grande, centrée) - avec wrapping pour éviter le débordement
     pdf.setFont('Times', 'italic');
     pdf.setFontSize(28);
     pdf.setTextColor(255, 250, 240);
-    const phraseLines = pdf.splitTextToSize(page.phrase_calligraphie, pageWidth - 40);
-    const phraseY = pageHeight - 30;
+    const phraseY = pageHeight - (phraseBlockHeight / 2) - ((phraseLines.length - 1) * 4); // Centrer verticalement
     pdf.text(phraseLines, pageWidth / 2, phraseY, { align: 'center' });
 
     // Blocs décors et échantillons (en bas, sur fond semi-transparent)
