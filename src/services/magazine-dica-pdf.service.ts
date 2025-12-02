@@ -450,18 +450,20 @@ export class MagazineDICAPdfService {
   ): Promise<void> {
     const marginX = 25;
     
-    // Placer les swatches en bas de page directement, sans rectangle blanc
-    // Calculer la hauteur nécessaire pour les swatches (taille x2 = 36mm + texte)
+    // Placer les swatches en bas à DROITE, à fleur de marge basse et droite
     const swatchSize = 36; // Taille doublée : 18mm x 2 = 36mm
     const textHeight = 12; // Hauteur pour le texte sous le swatch
     const swatchTotalHeight = swatchSize + textHeight + 6; // Hauteur totale par ligne
     
-    // Positionner en bas de page (en tenant compte de startY si défini pour d'autres éléments)
-    const blockY = startY || pageHeight - swatchTotalHeight - 10; // 10mm de marge du bas
-    let currentY = blockY;
+    // Positionner en bas à droite : calculer depuis le bas et la droite
+    const rightMargin = 5; // Marge droite minimale (à fleur)
+    const bottomMargin = 5; // Marge basse minimale (à fleur)
+    
+    // Utiliser startY s'il est fourni, sinon calculer depuis le bas de page
+    const blockY = startY !== undefined ? startY : (pageHeight - swatchTotalHeight - bottomMargin);
 
     // Grille de swatches alignés à DROITE, en bas à droite de page
-    const swatchSpacing = 12; // Espacement entre swatches
+    const swatchSpacing = 10; // Espacement entre swatches
     const maxSwatchesPerRow = Math.floor((pageWidth - marginX - rightMargin) / (swatchSize + swatchSpacing));
     
     const decors = page.decors_utilises.decors;
