@@ -194,20 +194,24 @@ export class MagazineDICAPdfService {
     pdf.rect(0, 0, pageWidth, pageHeight, 'F');
     pdf.setGState(pdf.GState({ opacity: 1.0 }));
 
-    // Titre principal
+    // Titre principal (avec wrapping pour éviter le débordement)
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(72);
     pdf.setTextColor(255, 250, 240); // Ivoire
-    const titleWidth = pdf.getTextWidth(page.titre);
-    pdf.text(page.titre, (pageWidth - titleWidth) / 2, pageHeight * 0.3);
+    const maxTitleWidth = pageWidth - 40; // Marges de 20mm de chaque côté
+    const titleLines = pdf.splitTextToSize(page.titre, maxTitleWidth);
+    const titleY = pageHeight * 0.3;
+    pdf.text(titleLines, pageWidth / 2, titleY, { align: 'center' });
 
-    // Sous-titre
+    // Sous-titre (avec wrapping pour éviter le débordement)
     if (page.sous_titre) {
       pdf.setFont('Times', 'italic');
       pdf.setFontSize(18);
       pdf.setTextColor(255, 250, 240);
-      const subtitleWidth = pdf.getTextWidth(page.sous_titre);
-      pdf.text(page.sous_titre, (pageWidth - subtitleWidth) / 2, pageHeight * 0.4);
+      const maxSubtitleWidth = pageWidth - 40;
+      const subtitleLines = pdf.splitTextToSize(page.sous_titre, maxSubtitleWidth);
+      const subtitleY = pageHeight * 0.4 + (titleLines.length - 1) * 12; // Ajuster selon nombre de lignes du titre
+      pdf.text(subtitleLines, pageWidth / 2, subtitleY, { align: 'center' });
     }
 
     // Phrase calligraphiée
@@ -261,20 +265,24 @@ export class MagazineDICAPdfService {
       }
     }
 
-    // Titre
+    // Titre (avec wrapping pour éviter le débordement)
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(32);
     pdf.setTextColor(0, 0, 0);
-    pdf.text(page.titre, marginX, currentY);
-    currentY += 12;
+    const maxEditorialTitleWidth = pageWidth - marginX * 2;
+    const editorialTitleLines = pdf.splitTextToSize(page.titre, maxEditorialTitleWidth);
+    pdf.text(editorialTitleLines, marginX, currentY);
+    currentY += 12 + (editorialTitleLines.length - 1) * 10; // Espacement ajusté selon nombre de lignes
 
-    // Sous-titre
+    // Sous-titre (avec wrapping pour éviter le débordement)
     if (page.sous_titre) {
       pdf.setFont('Times', 'italic');
       pdf.setFontSize(14);
       pdf.setTextColor(80, 80, 80);
-      pdf.text(page.sous_titre, marginX, currentY);
-      currentY += 10;
+      const maxEditorialSubtitleWidth = pageWidth - marginX * 2;
+      const editorialSubtitleLines = pdf.splitTextToSize(page.sous_titre, maxEditorialSubtitleWidth);
+      pdf.text(editorialSubtitleLines, marginX, currentY);
+      currentY += 10 + (editorialSubtitleLines.length - 1) * 8;
     }
 
     // Texte éditorial
@@ -358,30 +366,33 @@ export class MagazineDICAPdfService {
     const marginX = 25;
     let currentY = 40;
 
-    // Titre
+    // Titre (avec wrapping pour éviter le débordement)
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(36);
     pdf.setTextColor(0, 0, 0);
-    const titleWidth = pdf.getTextWidth(page.titre);
-    pdf.text(page.titre, (pageWidth - titleWidth) / 2, currentY);
-    currentY += 25;
+    const maxClosingTitleWidth = pageWidth - 40; // Marges de 20mm de chaque côté
+    const closingTitleLines = pdf.splitTextToSize(page.titre, maxClosingTitleWidth);
+    pdf.text(closingTitleLines, pageWidth / 2, currentY, { align: 'center' });
+    currentY += 25 + (closingTitleLines.length - 1) * 12; // Espacement ajusté selon nombre de lignes
 
-    // Texte
+    // Texte (avec wrapping pour éviter le débordement)
     pdf.setFont('Times', 'normal');
     pdf.setFontSize(11);
     pdf.setTextColor(40, 40, 40);
-    const textLines = pdf.splitTextToSize(page.texte_court, pageWidth - 50);
-    pdf.text(textLines, marginX, currentY, { lineHeightFactor: 1.6 });
+    const maxClosingTextWidth = pageWidth - 50;
+    const textLines = pdf.splitTextToSize(page.texte_court, maxClosingTextWidth);
+    pdf.text(textLines, pageWidth / 2, currentY, { align: 'center', lineHeightFactor: 1.6 });
     currentY += textLines.length * 6 + 15;
 
-    // Call to action
+    // Call to action (avec wrapping pour éviter le débordement)
     if (page.call_to_action) {
       pdf.setFont('Times', 'italic');
       pdf.setFontSize(12);
       pdf.setTextColor(60, 60, 60);
-      const ctaWidth = pdf.getTextWidth(page.call_to_action);
-      pdf.text(page.call_to_action, (pageWidth - ctaWidth) / 2, currentY);
-      currentY += 20;
+      const maxCtaWidth = pageWidth - 40;
+      const ctaLines = pdf.splitTextToSize(page.call_to_action, maxCtaWidth);
+      pdf.text(ctaLines, pageWidth / 2, currentY, { align: 'center' });
+      currentY += 20 + (ctaLines.length - 1) * 8;
     }
 
     // Blocs décors et échantillons
