@@ -335,24 +335,32 @@ export class MagazineDICAPdfService {
       }
     }
 
+    // Calculer la hauteur nécessaire pour les swatches
+    const swatchSize = 36;
+    const textHeight = 12;
+    const swatchTotalHeight = swatchSize + textHeight + 6 + 10; // +10 pour marge
+    
     // Fond semi-transparent pour la phrase calligraphiée (hauteur ajustable selon nombre de lignes)
     const maxPhraseWidth = pageWidth - 40; // Marges de 20mm de chaque côté
     const phraseLines = pdf.splitTextToSize(page.phrase_calligraphie, maxPhraseWidth);
     const phraseBlockHeight = 40 + (phraseLines.length - 1) * 10; // Hauteur ajustée selon nombre de lignes
     
+    // Positionner la phrase calligraphiée au-dessus des swatches
+    const phraseBlockY = pageHeight - swatchTotalHeight - phraseBlockHeight;
+    
     pdf.setFillColor(0, 0, 0);
     pdf.setGState(pdf.GState({ opacity: 0.4 }));
-    pdf.rect(0, pageHeight - phraseBlockHeight, pageWidth, phraseBlockHeight, 'F');
+    pdf.rect(0, phraseBlockY, pageWidth, phraseBlockHeight, 'F');
     pdf.setGState(pdf.GState({ opacity: 1.0 }));
 
     // Phrase calligraphiée (ivoire, grande, centrée) - avec wrapping pour éviter le débordement
     pdf.setFont('Times', 'italic');
     pdf.setFontSize(28);
     pdf.setTextColor(255, 250, 240);
-    const phraseY = pageHeight - (phraseBlockHeight / 2) - ((phraseLines.length - 1) * 4); // Centrer verticalement
+    const phraseY = phraseBlockY + (phraseBlockHeight / 2) - ((phraseLines.length - 1) * 4); // Centrer verticalement
     pdf.text(phraseLines, pageWidth / 2, phraseY, { align: 'center' });
 
-    // Blocs décors et échantillons (en bas, sur fond semi-transparent)
+    // Blocs décors et échantillons (en bas, au-dessus du texte calligraphié)
     await this.renderDecorsAndEchantillons(pdf, page, pageWidth, pageHeight, undefined, decorTextureUrls);
   }
 
@@ -455,28 +463,47 @@ export class MagazineDICAPdfService {
       const colorHex = decor.color_hex || echantillon?.color_hex || '#CCCCCC';
       const rgb = this.hexToRgb(colorHex);
       
-      // Fond coloré du swatch (carré plein, sans bordure de conteneur)
+      // Fond coloré du swatch (carré plein qui remplit exactement le cadre)
       pdf.setFillColor(rgb.r, rgb.g, rgb.b);
       pdf.setDrawColor(180, 180, 180);
       pdf.setLineWidth(0.5);
+      // Utiliser rect() avec FD pour remplir et dessiner la bordure
       pdf.rect(currentX, currentY, swatchSize, swatchSize, 'FD');
 
-      // Miniature texture si disponible (superposée sur le fond coloré)
+      // Miniature texture si disponible (superposée sur le fond coloré, remplissant tout l'espace)
       if (textureUrl) {
         try {
           const textureImage = await this.loadImageWithBase64(textureUrl);
           const imgRatio = textureImage.width / textureImage.height;
-          let imgWidth = swatchSize - 2;
-          let imgHeight = swatchSize - 2;
           
+          // Faire remplir la texture dans le swatch avec un padding minimal
+          const padding = 1; // 1mm de padding pour laisser voir la bordure
+          const availableWidth = swatchSize - (padding * 2);
+          const availableHeight = swatchSize - (padding * 2);
+          
+          let imgWidth = availableWidth;
+          let imgHeight = availableHeight;
+          
+          // Ajuster selon le ratio pour remplir l'espace disponible
           if (imgRatio > 1) {
-            imgHeight = imgWidth / imgRatio;
+            // Image plus large que haute
+            imgHeight = availableWidth / imgRatio;
+            if (imgHeight > availableHeight) {
+              imgHeight = availableHeight;
+              imgWidth = imgHeight * imgRatio;
+            }
           } else {
-            imgWidth = imgHeight * imgRatio;
+            // Image plus haute que large ou carrée
+            imgWidth = availableHeight * imgRatio;
+            if (imgWidth > availableWidth) {
+              imgWidth = availableWidth;
+              imgHeight = imgWidth / imgRatio;
+            }
           }
           
-          const imgX = currentX + (swatchSize - imgWidth) / 2;
-          const imgY = currentY + (swatchSize - imgHeight) / 2;
+          // Centrer l'image dans le swatch
+          const imgX = currentX + padding + (availableWidth - imgWidth) / 2;
+          const imgY = currentY + padding + (availableHeight - imgHeight) / 2;
           
           pdf.addImage(
             textureImage.base64,
