@@ -23,7 +23,6 @@ export interface ProjectDeletionValidation {
 export interface ProjectDeletionStats {
   photosCount: number;
   rendersCount: number;
-  shareLinksCount: number;
   totalItemsToDelete: number;
 }
 
@@ -195,24 +194,12 @@ export class ProjectDeletionService {
         }
       }
 
-      // Compter les liens de partage
-      const { data: shareLinks = [], error: shareLinksError } = await supabase
-        .from('share_links')
-        .select('id')
-        .eq('project_id', projectId);
-
-      if (shareLinksError) {
-        console.warn('Error counting share links:', shareLinksError);
-      }
-
       const photosCount = photos.length;
-      const shareLinksCount = shareLinks.length;
 
       return {
         photosCount,
         rendersCount,
-        shareLinksCount,
-        totalItemsToDelete: photosCount + rendersCount + shareLinksCount,
+        totalItemsToDelete: photosCount + rendersCount,
       };
 
     } catch (error: any) {
@@ -220,7 +207,6 @@ export class ProjectDeletionService {
       return {
         photosCount: 0,
         rendersCount: 0,
-        shareLinksCount: 0,
         totalItemsToDelete: 0,
       };
     }
