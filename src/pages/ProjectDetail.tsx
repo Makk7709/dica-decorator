@@ -19,7 +19,7 @@ import { compressImage, formatFileSize } from "@/lib/image-compression";
 import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 import { ResellerBrochureExportButton } from "@/components/ui/reseller-brochure-export-button";
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
-import { MagazineDICAExportButtonV2 } from "@/components/ui/magazine-dica-export-button-v2";
+
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
 
@@ -786,53 +786,6 @@ const ProjectDetail = () => {
                   />
                 )}
 
-                {/* Magazine DICA Generator V2 */}
-                {(Object.values(renders).flat().length > 0 || creativeImports.length > 0) && decors.length > 0 && (
-                  <MagazineDICAExportButtonV2
-                    availableImages={[
-                      // Renders de décors
-                      ...Object.entries(renders)
-                        .flatMap(([photoId, photoRenders]) => {
-                          const photo = photos.find(p => p.id === photoId);
-                          return photoRenders.map(render => {
-                            const decor = decors.find(d => d.id === render.decor_id);
-                            return {
-                              id: render.id,
-                              url: render.result_image_url,
-                              type: 'render' as const,
-                              projectId: project.id,
-                              projectName: project.title,
-                              decorId: render.decor_id || undefined,
-                              decorName: decor?.name,
-                              decorCode: decor?.reference_code,
-                              decorTextureUrl: decor?.texture_image_url,
-                              usage: project.use_case,
-                            };
-                          });
-                        }),
-                      // Créations assistant IA
-                      ...creativeImports.map(creative => ({
-                        id: creative.id,
-                        url: creative.result_image_url,
-                        type: 'creative' as const,
-                        projectId: project.id,
-                        projectName: project.title,
-                        usage: project.use_case,
-                      })),
-                    ]}
-                    availableDecors={decors.map(d => ({
-                      id: d.id,
-                      name: d.name,
-                      reference_code: d.reference_code,
-                      category: d.category,
-                      texture_image_url: d.texture_image_url,
-                      color_hex: undefined, // À extraire depuis la base si disponible
-                    }))}
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-foreground"
-                  />
-                )}
               </>
             )}
             

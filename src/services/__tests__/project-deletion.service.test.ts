@@ -219,15 +219,6 @@ describe('ProjectDeletionService', () => {
         eq: mockRender2Eq,
       });
       
-      // Mock share_links
-      const mockShareLinksEq = vi.fn().mockResolvedValue({
-        data: [{ id: 'share-1' }],
-        error: null,
-      });
-      const mockShareLinksSelect = vi.fn().mockReturnValue({
-        eq: mockShareLinksEq,
-      });
-      
       mockFrom.mockImplementation((table: string) => {
         if (table === 'project_photos') {
           return {
@@ -247,11 +238,6 @@ describe('ProjectDeletionService', () => {
             },
           };
         }
-        if (table === 'share_links') {
-          return {
-            select: mockShareLinksSelect,
-          };
-        }
         return { select: vi.fn() };
       });
       
@@ -259,8 +245,7 @@ describe('ProjectDeletionService', () => {
       
       expect(stats.photosCount).toBe(2);
       expect(stats.rendersCount).toBe(2);
-      expect(stats.shareLinksCount).toBe(1);
-      expect(stats.totalItemsToDelete).toBe(5);
+      expect(stats.totalItemsToDelete).toBe(4);
     });
 
     it('should return zero counts for project with no data', async () => {
@@ -283,7 +268,6 @@ describe('ProjectDeletionService', () => {
       
       expect(stats.photosCount).toBe(0);
       expect(stats.rendersCount).toBe(0);
-      expect(stats.shareLinksCount).toBe(0);
       expect(stats.totalItemsToDelete).toBe(0);
     });
   });
@@ -619,7 +603,7 @@ describe('ProjectDeletionService', () => {
           };
         }
         // Stats
-        if (!statsDone && (table === 'project_photos' || table === 'share_links')) {
+        if (!statsDone && table === 'project_photos') {
           statsDone = true;
           return {
             select: mockStatsSelect,

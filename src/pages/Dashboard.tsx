@@ -532,9 +532,6 @@ const Dashboard = () => {
                     {deletionStats.rendersCount > 0 && (
                       <li>• {deletionStats.rendersCount} rendu{deletionStats.rendersCount > 1 ? 's' : ''} IA</li>
                     )}
-                    {deletionStats.shareLinksCount > 0 && (
-                      <li>• {deletionStats.shareLinksCount} lien{deletionStats.shareLinksCount > 1 ? 's' : ''} de partage</li>
-                    )}
                   </ul>
                 </div>
               )}
