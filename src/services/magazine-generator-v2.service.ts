@@ -473,14 +473,17 @@ export class MagazineGeneratorV2Service {
       const renderDecorsBloc = this.createDecorsBloc(renderDecors);
       const renderEchantillonsBloc = this.createEchantillonsBloc(renderDecors);
 
-      // Générer la phrase calligraphiée via IA
+      // Générer la phrase calligraphiée via IA (avec analyse de l'image)
       const phrase = await this.generateAICalligraphyPhrase(theme, image);
+      
+      // Générer le texte court via IA avec analyse de l'image
+      const texteCourt = await this.generateAIZoomProductText(theme, image);
 
       pages.push({
         type_page: 'zoom_product',
         id_image_principale: image.id,
         phrase_calligraphie: phrase,
-        texte_court: this.generateZoomProductText(image, theme),
+        texte_court: texteCourt,
         theme,
         projectInfo: image.projectId ? {
           projectId: image.projectId,
