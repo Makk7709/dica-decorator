@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { authService, type AuthState } from "@/lib/supabase";
 import type { User, Session } from "@supabase/supabase-js";
@@ -25,6 +25,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<"admin" | "client" | null>(null);
+  
+  // Cache pour éviter les appels répétés
+  const roleCache = useRef<Map<string, "admin" | "client">>(new Map());
+  const pendingRoleRequest = useRef<string | null>(null);
+
+  // Fonction optimisée pour récupérer le rôle avec cache
+  const fetchUserRole = useCallback(async (userId: string) => {
+    // Vérifier le cache d'abord
+    const cached = roleCache.current.get(userId);
+    if (cached) {
+      setUserRole(cached);
+      return;
+    }
+    
+    // Éviter les requêtes dupliquées
+    if (pendingRoleRequest.current === userId) return;
+    pendingRoleRequest.current = userId;
+    
+    try {
+      const role = await authService.getUserRole(userId);
+      if (role) {
+        roleCache.current.set(userId, role);
+        setUserRole(role);
+      }
+    } finally {
+      pendingRoleRequest.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -35,9 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Fetch user role when authenticated
         if (session?.user) {
-          setTimeout(() => {
-            authService.getUserRole(session.user.id).then(setUserRole);
-          }, 0);
+          fetchUserRole(session.user.id);
         } else {
           setUserRole(null);
         }
@@ -51,40 +77,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
       
       if (session?.user) {
-        setTimeout(() => {
-          authService.getUserRole(session.user.id).then(setUserRole);
-        }, 0);
+        fetchUserRole(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
+  }, [fetchUserRole]);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    await authService.signIn(email, password);
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    await authService.signIn(email, password);
-  };
-
-  const signUp = async (email: string, password: string) => {
+  const signUp = useCallback(async (email: string, password: string) => {
     await authService.signUp(email, password);
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await authService.signOut();
     setUserRole(null);
-  };
+    roleCache.current.clear();
+  }, []);
+
+  // Mémoïser la valeur du contexte
+  const contextValue = useMemo(() => ({
+    user,
+    session,
+    isLoading,
+    userRole,
+    signIn,
+    signUp,
+    signOut,
+  }), [user, session, isLoading, userRole, signIn, signUp, signOut]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        isLoading,
-        userRole,
-        signIn,
-        signUp,
-        signOut,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
