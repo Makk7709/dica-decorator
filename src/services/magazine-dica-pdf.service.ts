@@ -437,26 +437,24 @@ export class MagazineDICAPdfService {
     pdf.text(title, marginX + 5, currentY);
     currentY += 12;
 
-    // Grille de swatches style catalogue (comme l'exemple fourni)
-    const swatchSize = 18; // Taille des swatches (plus grand, style catalogue)
-    const swatchSpacing = 10; // Espacement entre swatches
-    const textHeight = 10; // Hauteur pour le texte sous le swatch
-    const availableWidth = pageWidth - 50 - 10; // Largeur disponible
+    // Grille de swatches grands style catalogue (taille doublée, sans rectangle blanc)
+    const swatchSpacing = 12; // Espacement entre swatches
+    const availableWidth = pageWidth - (marginX * 2); // Largeur disponible
     const swatchesPerRow = Math.floor(availableWidth / (swatchSize + swatchSpacing));
     
     const decors = page.decors_utilises.decors;
-    let currentX = marginX + 5;
+    let currentX = marginX;
     let rowCount = 0;
 
     for (let i = 0; i < decors.length; i++) {
       // Nouvelle ligne si nécessaire
       if (i > 0 && i % swatchesPerRow === 0) {
-        currentX = marginX + 5;
-        currentY += swatchSize + textHeight + 6; // Hauteur swatch + texte + espacement
+        currentX = marginX;
+        currentY += swatchSize + textHeight + 8; // Hauteur swatch + texte + espacement
         rowCount++;
         
-        // Limiter à 2 lignes pour ne pas déborder
-        if (rowCount >= 2) break;
+        // Limiter à 1 ligne si pas assez de place (les swatches sont grands maintenant)
+        if (rowCount >= 1 && swatchesPerRow < decors.length) break;
       }
 
       const decor = decors[i];
@@ -464,11 +462,11 @@ export class MagazineDICAPdfService {
       const decorId = echantillon?.decor_id;
       const textureUrl = decorTextureUrls?.[decorId || ''] || decorTextureUrls?.[decor.code];
       
-      // Carré swatch avec couleur de fond (style exemple)
+      // Carré swatch avec couleur de fond (taille doublée)
       const colorHex = decor.color_hex || echantillon?.color_hex || '#CCCCCC';
       const rgb = this.hexToRgb(colorHex);
       
-      // Fond coloré du swatch (carré plein)
+      // Fond coloré du swatch (carré plein, sans bordure de conteneur)
       pdf.setFillColor(rgb.r, rgb.g, rgb.b);
       pdf.setDrawColor(180, 180, 180);
       pdf.setLineWidth(0.5);
@@ -479,8 +477,8 @@ export class MagazineDICAPdfService {
         try {
           const textureImage = await this.loadImageWithBase64(textureUrl);
           const imgRatio = textureImage.width / textureImage.height;
-          let imgWidth = swatchSize - 1;
-          let imgHeight = swatchSize - 1;
+          let imgWidth = swatchSize - 2;
+          let imgHeight = swatchSize - 2;
           
           if (imgRatio > 1) {
             imgHeight = imgWidth / imgRatio;
@@ -506,21 +504,21 @@ export class MagazineDICAPdfService {
         }
       }
 
-      // Nom du décor sous le swatch (style exemple : "Chêne Calme 030")
-      const decorName = decor.nom.length > 20 ? decor.nom.substring(0, 17) + '...' : decor.nom;
+      // Nom du décor sous le swatch (taille de police augmentée)
+      const decorName = decor.nom.length > 25 ? decor.nom.substring(0, 22) + '...' : decor.nom;
       pdf.setFont('Times', 'normal');
-      pdf.setFontSize(6);
+      pdf.setFontSize(8); // Police légèrement plus grande pour les swatches x2
       pdf.setTextColor(0, 0, 0);
       const nameLines = pdf.splitTextToSize(decorName, swatchSize);
-      pdf.text(nameLines, currentX, currentY + swatchSize + 3, { 
+      pdf.text(nameLines, currentX, currentY + swatchSize + 4, { 
         maxWidth: swatchSize,
         align: 'left'
       });
 
-      // Code référence sous le nom (ex: "030" ou "DICA-VSB-001")
-      const codeY = currentY + swatchSize + 3 + (nameLines.length * 3.5);
+      // Code référence sous le nom (taille augmentée)
+      const codeY = currentY + swatchSize + 4 + (nameLines.length * 4.5);
       pdf.setFont('Times', 'bold');
-      pdf.setFontSize(6);
+      pdf.setFontSize(8); // Police plus grande pour correspondre à la taille x2
       pdf.setTextColor(60, 60, 60);
       // Extraire juste la partie numérique si code long (ex: "VSB-001" -> "001")
       const codeDisplay = decor.code.includes('-') ? decor.code.split('-').pop() : decor.code;
@@ -532,9 +530,6 @@ export class MagazineDICAPdfService {
       // Passer au swatch suivant
       currentX += swatchSize + swatchSpacing;
     }
-
-    // Ajuster la position Y pour la suite
-    currentY += swatchSize + textHeight;
   }
 
   /**
