@@ -18,7 +18,7 @@ export default function Favorites() {
   const navigate = useNavigate();
 
   return (
-    <PremiumLayout>
+    <PremiumLayout backgroundImage="/images/favorites-bg.jpg" showPlates={false}>
       {/* Header */}
       <div className="border-b">
         <ContentContainer className="py-4">
