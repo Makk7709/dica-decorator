@@ -61,12 +61,17 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
     };
   }, [favorites, selectedIds]);
 
+  // Charger les favoris
+  useEffect(() => {
+    loadFavorites();
+  }, [user, projectId]);
+
   const loadFavorites = async () => {
     if (!user) return;
 
     setIsLoading(true);
     try {
-      const service = new FavoritesService(supabase as any);
+      const service = new FavoritesService(supabase);
       const result = await service.getFavoritesWithFilter(user.id, filter);
 
       if (result.success) {
@@ -81,12 +86,6 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
       setIsLoading(false);
     }
   };
-
-  // Charger les favoris au montage et quand les dépendances changent
-  useEffect(() => {
-    loadFavorites();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, projectId]);
 
   // Sélection
   const toggleSelect = (id: string) => {
@@ -114,7 +113,7 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
     if (selectedIds.size === 0) return;
 
     try {
-      const service = new FavoritesService(supabase);
+      const service = new FavoritesService(supabase as any);
       const result = await service.bulkRemoveFavorites(user!.id, Array.from(selectedIds));
 
       if (result.success) {
