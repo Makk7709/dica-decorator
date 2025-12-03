@@ -182,7 +182,7 @@ const Help: React.FC = () => {
   const [activeTab, setActiveTab] = useState('guide');
 
   return (
-    <PremiumLayout backgroundImage="/images/PAGE PROJETS.png">
+    <PremiumLayout backgroundImage="/images/page-projets.png">
       {/* Header */}
       <header className="header-premium sticky top-0 z-50">
         <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6">

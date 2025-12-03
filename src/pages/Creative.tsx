@@ -645,7 +645,7 @@ const Creative = () => {
   };
 
   return (
-    <PremiumLayout backgroundImage="/images/ASSISTANT CREATIF.png">
+    <PremiumLayout backgroundImage="/images/assistant-creatif.png">
       {/* Header Premium */}
       <header className="header-premium sticky top-0 z-50">
         <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6">
