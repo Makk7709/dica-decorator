@@ -23,7 +23,7 @@ export function PremiumLayout({
       {/* Background image optionnel */}
       {backgroundImage && (
         <div 
-          className="fixed inset-0 bg-cover bg-no-repeat z-0"
+          className="fixed inset-0 bg-cover bg-no-repeat z-0 opacity-50"
           style={{ 
             backgroundImage: `url('${backgroundImage}')`,
             backgroundPosition: 'center 30px'
