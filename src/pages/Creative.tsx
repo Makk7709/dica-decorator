@@ -484,7 +484,17 @@ const Creative = () => {
   // qui supporte PNG, JPEG et WebP avec choix du format
 
   const saveImageToProject = async () => {
-    if (!user || !selectedImageUrl) return;
+    if (!user || !selectedImageUrl) {
+      console.error("Missing user or selectedImageUrl", { user: !!user, selectedImageUrl: !!selectedImageUrl });
+      toast.error("Erreur: utilisateur ou image manquant");
+      return;
+    }
+    
+    console.log("Starting saveImageToProject...", { 
+      selectedImageUrl: selectedImageUrl.substring(0, 100) + "...",
+      selectedProjectId,
+      newProjectTitle 
+    });
     
     setIsSavingToProject(true);
     try {
@@ -492,6 +502,7 @@ const Creative = () => {
       
       // Create new project if needed
       if (!projectId && newProjectTitle.trim()) {
+        console.log("Creating new project:", newProjectTitle.trim());
         const { data: newProject, error: projectError } = await supabase
           .from("projects")
           .insert({
@@ -502,8 +513,12 @@ const Creative = () => {
           .select()
           .single();
 
-        if (projectError) throw projectError;
+        if (projectError) {
+          console.error("Project creation error:", projectError);
+          throw projectError;
+        }
         projectId = newProject.id;
+        console.log("New project created:", projectId);
       }
 
       if (!projectId) {
@@ -516,33 +531,52 @@ const Creative = () => {
       // Check if the image is base64 or already a URL
       if (selectedImageUrl.startsWith('data:image')) {
         console.log("Converting base64 to storage...");
-        // Convert base64 to blob
-        const response = await fetch(selectedImageUrl);
-        const blob = await response.blob();
         
-        // Upload to storage in creative subfolder
-        const fileName = `creative-${Date.now()}.png`;
-        const filePath = `${user.id}/creative/${fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from("project-photos")
-          .upload(filePath, blob, {
-            contentType: 'image/png',
-            upsert: false
-          });
+        try {
+          // Extract base64 data and convert to blob manually
+          const base64Data = selectedImageUrl.split(',')[1];
+          const mimeType = selectedImageUrl.split(':')[1]?.split(';')[0] || 'image/png';
+          
+          // Decode base64 to binary
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: mimeType });
+          
+          console.log("Blob created:", { size: blob.size, type: blob.type });
+          
+          // Upload to storage in creative subfolder
+          const extension = mimeType.split('/')[1] || 'png';
+          const fileName = `creative-${Date.now()}.${extension}`;
+          const filePath = `${user.id}/creative/${fileName}`;
+          
+          console.log("Uploading to storage:", filePath);
+          
+          const { error: uploadError } = await supabase.storage
+            .from("project-photos")
+            .upload(filePath, blob, {
+              contentType: mimeType,
+              upsert: false
+            });
 
-        if (uploadError) {
-          console.error("Storage upload error:", uploadError);
-          throw new Error(`Erreur upload: ${uploadError.message}`);
+          if (uploadError) {
+            console.error("Storage upload error:", uploadError);
+            throw new Error(`Erreur upload: ${uploadError.message}`);
+          }
+
+          // Get public URL
+          const { data } = supabase.storage
+            .from("project-photos")
+            .getPublicUrl(filePath);
+          
+          publicUrl = data.publicUrl;
+          console.log("Image uploaded to storage:", publicUrl);
+        } catch (conversionError: any) {
+          console.error("Base64 conversion error:", conversionError);
+          throw new Error(`Erreur de conversion d'image: ${conversionError.message}`);
         }
-
-        // Get public URL
-        const { data } = supabase.storage
-          .from("project-photos")
-          .getPublicUrl(filePath);
-        
-        publicUrl = data.publicUrl;
-        console.log("Image uploaded to storage:", publicUrl);
       } else {
         // Already a URL, use directly
         publicUrl = selectedImageUrl;
@@ -559,6 +593,7 @@ const Creative = () => {
       let photoId: string;
       
       if (!existingPhotos || existingPhotos.length === 0) {
+        console.log("Creating new photo entry for project:", projectId);
         // Create a photo entry for the project (using the creative image as source)
         const { data: newPhoto, error: photoError } = await supabase
           .from("project_photos")
@@ -569,12 +604,17 @@ const Creative = () => {
           .select()
           .single();
 
-        if (photoError) throw photoError;
+        if (photoError) {
+          console.error("Photo creation error:", photoError);
+          throw photoError;
+        }
         photoId = newPhoto.id;
       } else {
         photoId = existingPhotos[0].id;
       }
 
+      console.log("Saving render result with photoId:", photoId);
+      
       // Save as RENDER RESULT for full features (zoom, export, plaquette)
       const { error: renderError } = await supabase
         .from("render_results")
@@ -584,8 +624,12 @@ const Creative = () => {
           decor_id: null // Creative generation - no specific decor
         });
 
-      if (renderError) throw renderError;
+      if (renderError) {
+        console.error("Render result error:", renderError);
+        throw renderError;
+      }
 
+      console.log("Image saved successfully!");
       toast.success("✅ Image ajoutée avec zoom, export et plaquette disponibles !");
       setSaveToProjectDialogOpen(false);
       setSelectedImageUrl(null);
