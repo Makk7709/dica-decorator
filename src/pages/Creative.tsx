@@ -296,6 +296,12 @@ const Creative = () => {
     const decorContext = buildDecorContext();
     const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/creative-chat`;
     
+    // Get the user's session token for authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error("Session expirée - veuillez vous reconnecter");
+    }
+    
     // Build source images array with labels for the prompt
     const sourceImageUrls = sourceImages?.map(img => img.url) || [];
     const imageLabels = sourceImages?.map(img => img.label) || [];
@@ -304,7 +310,7 @@ const Creative = () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ 
         messages: [...messages, { role: "user", content: userMessage }],
