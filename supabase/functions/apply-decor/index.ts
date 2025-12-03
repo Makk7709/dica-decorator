@@ -161,6 +161,9 @@ serve(async (req) => {
     // ========================================================================
     const { photoUrl, textureUrl, photoId, decorId, useCase, renderCount = 1, format = "square", showReferences = false } = await req.json();
     
+    // Get origin from request headers for constructing absolute URLs
+    const requestOrigin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, '') || "";
+    
     // Limit render count to avoid resource exhaustion
     const safeRenderCount = Math.min(renderCount, RESOURCE_LIMITS.maxRenderCount);
     
@@ -172,6 +175,7 @@ serve(async (req) => {
       useCase,
       renderCount: safeRenderCount,
       format,
+      requestOrigin,
     });
     
     if (renderCount > safeRenderCount) {
@@ -618,26 +622,26 @@ L'annotation doit être:
           console.warn("Supabase Storage fetch error:", e instanceof Error ? e.message : e);
         }
         
-        // Strategy 2: Try production app URL if Supabase Storage failed
-        if (!textureLoaded && !textureUrl.startsWith("http")) {
-          const productionUrl = `https://wpczgwxsriezaubncuom.lovableproject.com${textureUrl}`;
-          console.log("Trying production app URL:", productionUrl);
+        // Strategy 2: Try origin-based URL if Supabase Storage failed (use request origin)
+        if (!textureLoaded && !textureUrl.startsWith("http") && requestOrigin) {
+          const originUrl = `${requestOrigin}${textureUrl}`;
+          console.log("Trying origin-based URL:", originUrl);
           
           try {
-            const prodResponse = await fetchWithTimeout(productionUrl, undefined, 10000);
-            const prodContentType = prodResponse.headers.get("content-type") ?? "";
+            const originResponse = await fetchWithTimeout(originUrl, undefined, 10000);
+            const originContentType = originResponse.headers.get("content-type") ?? "";
             
-            if (prodResponse.ok && prodContentType.startsWith("image/")) {
-              const arrayBuffer = await prodResponse.arrayBuffer();
+            if (originResponse.ok && originContentType.startsWith("image/")) {
+              const arrayBuffer = await originResponse.arrayBuffer();
               textureBase64 = arrayBufferToBase64(arrayBuffer);
-              textureMimeType = prodContentType;
+              textureMimeType = originContentType;
               textureLoaded = true;
-              console.log(`Texture loaded from production URL (${arrayBuffer.byteLength} bytes)`);
+              console.log(`Texture loaded from origin URL (${arrayBuffer.byteLength} bytes)`);
             } else {
-              console.warn("Production URL failed:", prodResponse.status, prodContentType);
+              console.warn("Origin URL failed:", originResponse.status, originContentType);
             }
           } catch (e) {
-            console.warn("Production URL fetch error:", e instanceof Error ? e.message : e);
+            console.warn("Origin URL fetch error:", e instanceof Error ? e.message : e);
           }
         }
         
