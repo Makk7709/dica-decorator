@@ -129,6 +129,36 @@ serve(async (req) => {
   }
 
   try {
+    // ========================================================================
+    // Authentication Check - Verify user is logged in
+    // ========================================================================
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("No authorization header provided");
+      return new Response(
+        JSON.stringify({ error: "Non autorisé - Authentification requise" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const authSupabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const authSupabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const { createClient: createAuthClient } = await import("https://esm.sh/@supabase/supabase-js@2.7.1");
+    const authSupabase = createAuthClient(authSupabaseUrl, authSupabaseAnonKey);
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Non autorisé - Token invalide" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log("Authenticated user:", user.id);
+    // ========================================================================
     const { photoUrl, textureUrl, photoId, decorId, useCase, renderCount = 1, format = "square", showReferences = false } = await req.json();
     
     // Limit render count to avoid resource exhaustion
