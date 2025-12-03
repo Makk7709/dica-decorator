@@ -146,8 +146,51 @@ const Creative = () => {
       const userMessage = messages[selectedMessageIndex - 1];
       const assistantMessage = messages[selectedMessageIndex];
       
-      // Sauvegarder l'URL de l'image si présente
-      const imageUrl = assistantMessage.imageUrl || null;
+      console.log("Saving favorite - selectedIndex:", selectedMessageIndex);
+      console.log("User message:", userMessage?.content?.substring(0, 100));
+      console.log("Assistant message:", assistantMessage?.content?.substring(0, 100));
+      console.log("Image URL present:", !!assistantMessage.imageUrl);
+      
+      // Si l'image est en base64, l'uploader d'abord dans le Storage
+      let storedImageUrl: string | null = null;
+      
+      if (assistantMessage.imageUrl) {
+        // Check if it's a base64 image
+        if (assistantMessage.imageUrl.startsWith('data:image')) {
+          console.log("Uploading base64 image to storage...");
+          
+          // Convert base64 to blob
+          const response = await fetch(assistantMessage.imageUrl);
+          const blob = await response.blob();
+          
+          // Upload to storage
+          const fileName = `creative-${Date.now()}.png`;
+          const filePath = `${user.id}/creative/${fileName}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from("project-photos")
+            .upload(filePath, blob, {
+              contentType: 'image/png',
+              upsert: false
+            });
+          
+          if (uploadError) {
+            console.error("Storage upload error:", uploadError);
+            throw new Error(`Erreur upload image: ${uploadError.message}`);
+          }
+          
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from("project-photos")
+            .getPublicUrl(filePath);
+          
+          storedImageUrl = publicUrl;
+          console.log("Image uploaded successfully:", publicUrl);
+        } else {
+          // Already a URL, use directly
+          storedImageUrl = assistantMessage.imageUrl;
+        }
+      }
       
       const { error } = await supabase
         .from("creative_favorites")
@@ -156,10 +199,13 @@ const Creative = () => {
           title: saveTitle.trim(),
           prompt: userMessage?.content || "",
           response: assistantMessage.content,
-          image_data: imageUrl
+          image_data: storedImageUrl
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database insert error:", error);
+        throw error;
+      }
       
       toast.success("Favori enregistré !");
       setSaveDialogOpen(false);
@@ -168,7 +214,7 @@ const Creative = () => {
       loadFavorites();
     } catch (error: any) {
       console.error("Error saving favorite:", error);
-      toast.error("Erreur lors de la sauvegarde");
+      toast.error(error.message || "Erreur lors de la sauvegarde");
     } finally {
       setIsSaving(false);
     }
@@ -465,22 +511,43 @@ const Creative = () => {
         return;
       }
 
-      // Convert base64 to blob
-      const base64Data = selectedImageUrl.split(',')[1];
-      const blob = await fetch(`data:image/png;base64,${base64Data}`).then(r => r.blob());
+      let publicUrl: string;
       
-      // Upload to storage in creative subfolder
-      const fileName = `creative-${Date.now()}.png`;
-      const { error: uploadError } = await supabase.storage
-        .from("project-photos")
-        .upload(`${user.id}/creative/${fileName}`, blob);
+      // Check if the image is base64 or already a URL
+      if (selectedImageUrl.startsWith('data:image')) {
+        console.log("Converting base64 to storage...");
+        // Convert base64 to blob
+        const response = await fetch(selectedImageUrl);
+        const blob = await response.blob();
+        
+        // Upload to storage in creative subfolder
+        const fileName = `creative-${Date.now()}.png`;
+        const filePath = `${user.id}/creative/${fileName}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("project-photos")
+          .upload(filePath, blob, {
+            contentType: 'image/png',
+            upsert: false
+          });
 
-      if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          throw new Error(`Erreur upload: ${uploadError.message}`);
+        }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("project-photos")
-        .getPublicUrl(`${user.id}/creative/${fileName}`);
+        // Get public URL
+        const { data } = supabase.storage
+          .from("project-photos")
+          .getPublicUrl(filePath);
+        
+        publicUrl = data.publicUrl;
+        console.log("Image uploaded to storage:", publicUrl);
+      } else {
+        // Already a URL, use directly
+        publicUrl = selectedImageUrl;
+        console.log("Using existing URL:", publicUrl);
+      }
 
       // Check if project has photos, if not create one
       const { data: existingPhotos } = await supabase
@@ -527,7 +594,7 @@ const Creative = () => {
       loadProjects();
     } catch (error: any) {
       console.error("Error saving to project:", error);
-      toast.error("Erreur lors de la sauvegarde");
+      toast.error(error.message || "Erreur lors de la sauvegarde");
     } finally {
       setIsSavingToProject(false);
     }
