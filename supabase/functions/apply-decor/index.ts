@@ -339,51 +339,62 @@ reste sur le bureau. NE JAMAIS inventer un autre type d'espace.
         break;
       case "terrasse":
         surfaceRules = `═══════════════════════════════════════════════════════════════════
-IDENTIFICATION DES SURFACES - PAS DE SUGGESTION D'ESPACE
+IDENTIFICATION DES SURFACES - TERRASSE / CAFÉ / RESTAURANT
 ═══════════════════════════════════════════════════════════════════
 
-⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie, quel que soit le type d'espace.
-Le contexte "terrasse" sert UNIQUEMENT à identifier les TYPES de surfaces compatibles,
-PAS à suggérer de générer une terrasse.
+⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie.
 
-SURFACES COMPATIBLES avec le décor:
-• Surfaces horizontales de sol
-• Revêtements verticaux visibles (garde-corps, murs porteurs)
+SURFACES PRIORITAIRES pour appliquer le décor (dans cet ordre):
+• DESSUS DE TABLES (surface horizontale principale) - PRIORITÉ #1
+• Plateaux de comptoirs et bars
+• Surfaces de guéridons et tables bistrot
+• Panneaux de menus ou présentoirs si visibles
+
+SURFACES SECONDAIRES (si approprié):
+• Revêtements muraux visibles
+• Garde-corps et séparations
 
 SURFACES INTERDITES (ne JAMAIS modifier):
 • Végétation (plantes, arbres)
-• Mobilier extérieur (tables, chaises)
-• Textiles (coussins, voiles)
-• Équipements décoratifs
-• Éléments naturels
+• Chaises et assises (sauf si explicitement demandé)
+• Textiles (coussins, nappes, voiles)
+• Vaisselle et accessoires de table
+• Sol existant
+• Personnes ou reflets
 
-RÈGLE ABSOLUE: Travaille UNIQUEMENT sur la photo fournie. Si c'est un bureau,
-reste sur le bureau. NE JAMAIS inventer un autre type d'espace.
+RÈGLE CRITIQUE: Pour un café/restaurant, le décor doit être appliqué 
+principalement sur les TABLES (surface horizontale). C'est le cas d'usage commercial.
 ═══════════════════════════════════════════════════════════════════`;
         break;
       default:
         surfaceRules = `═══════════════════════════════════════════════════════════════════
-IDENTIFICATION DES SURFACES - PAS DE SUGGESTION D'ESPACE
+IDENTIFICATION DES SURFACES - MODE GÉNÉRAL
 ═══════════════════════════════════════════════════════════════════
 
-⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie. IDENTIFIE le sujet principal
-(meuble, surface de travail, panneau) et applique le décor UNIQUEMENT dessus.
+⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie. 
+ANALYSE le sujet principal et applique le décor de manière intelligente.
 
-SURFACES COMPATIBLES avec le décor:
-• Surfaces horizontales de travail (dessus de tables, comptoirs)
-• Panneaux de meubles visibles
-• Étagères et plateaux
-• Surfaces principales au premier plan
+SURFACES PRIORITAIRES (dans cet ordre):
+• SUJET PRINCIPAL de la photo (meuble, table, comptoir, panneau)
+• Surfaces horizontales de travail visibles
+• Panneaux de meubles au premier plan
+• Étagères et plateaux principaux
+
+RÈGLE D'IDENTIFICATION:
+1. Identifie le SUJET CENTRAL de la photo
+2. Si c'est une TABLE/BUREAU → applique sur le dessus
+3. Si c'est un MEUBLE → applique sur les panneaux visibles
+4. Si c'est un PANNEAU → applique sur la surface
 
 SURFACES INTERDITES (ne JAMAIS modifier):
-• Murs d'arrière-plan
-• Sols de l'environnement
-• Éléments décoratifs
-• Équipements techniques
-• Accessoires
+• Murs d'arrière-plan (sauf si c'est le sujet)
+• Sol de l'environnement
+• Accessoires et objets posés
+• Équipements électroniques
+• Personnes ou reflets
 
-RÈGLE CRITIQUE: N'applique le décor QUE sur le sujet principal (le meuble/surface 
-au centre de l'image). JAMAIS sur les murs ou l'environnement en arrière-plan.
+RÈGLE CRITIQUE: CIBLE le sujet principal. Si la photo montre une table,
+applique sur LA TABLE. Si la photo montre un mur, applique sur LE MUR.
 ═══════════════════════════════════════════════════════════════════`;
     }
 
@@ -562,19 +573,41 @@ L'annotation doit être:
     // Fetch decor texture as reference with timeout
     try {
       if (textureUrl) {
-        // Build absolute URL - use the request referer to get the actual app domain
-        const referer = req.headers.get("referer") || req.headers.get("origin") || "";
-        const appUrl = referer ? new URL(referer).origin : "";
-        const absoluteTextureUrl = textureUrl.startsWith("http") ? textureUrl : `${appUrl}${textureUrl}`;
+        // Build absolute URL - use multiple fallback strategies
+        let absoluteTextureUrl = textureUrl;
+        
+        if (!textureUrl.startsWith("http")) {
+          // Try referer first
+          const referer = req.headers.get("referer") || req.headers.get("origin") || "";
+          let appUrl = "";
+          
+          if (referer) {
+            try {
+              appUrl = new URL(referer).origin;
+            } catch (e) {
+              console.warn("Failed to parse referer URL:", e);
+            }
+          }
+          
+          // Fallback: Use known DICA Lovable app URL
+          // The Lovable project ID is wpczgwxsriezaubncuom (different from Supabase ID)
+          if (!appUrl) {
+            appUrl = "https://wpczgwxsriezaubncuom.lovableproject.com";
+            console.log("Using fallback app URL:", appUrl);
+          }
+          
+          absoluteTextureUrl = `${appUrl}${textureUrl}`;
+        }
+        
         console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
         
         const textureResponse = await fetchWithTimeout(absoluteTextureUrl);
         const contentType = textureResponse.headers.get("content-type") ?? "";
         
         if (!textureResponse.ok) {
-          console.error("Failed to fetch texture:", textureResponse.status);
+          console.error("Failed to fetch texture:", textureResponse.status, "URL:", absoluteTextureUrl);
         } else if (!contentType.startsWith("image/")) {
-          console.error("Texture URL returned non-image content:", contentType);
+          console.error("Texture URL returned non-image content:", contentType, "URL:", absoluteTextureUrl);
         } else {
           const contentLength = textureResponse.headers.get("content-length");
           const size = contentLength ? parseInt(contentLength) : 0;
