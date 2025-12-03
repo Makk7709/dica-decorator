@@ -4,7 +4,6 @@
  * Composant premium pour afficher les rendus favoris avec:
  * - Layout masonry type Pinterest
  * - Filtres avancés
- * - Export vers brochures/magazine
  * - Actions en masse
  * - Statistiques
  * 
@@ -13,17 +12,15 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Heart, Download, Trash2, Grid3x3, LayoutGrid, Filter, FileText, BookOpen, X, Plus, Check } from 'lucide-react';
+import { Heart, Download, Trash2, Grid3x3, LayoutGrid, Filter, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { FavoritesService, FavoriteRender, FavoritesFilter } from '@/services/favorites.service';
-import { ResellerBrochureExportButton } from '@/components/ui/reseller-brochure-export-button';
-import { MagazineDecoExportButton } from '@/components/ui/magazine-deco-export-button';
 
 // ============================================================================
 // Types
@@ -39,8 +36,7 @@ interface FavoritesGalleryProps {
 // ============================================================================
 
 export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) {
-  const supabase = useSupabaseClient();
-  const user = useUser();
+  const { user } = useAuth();
 
   // État
   const [favorites, setFavorites] = useState<FavoriteRender[]>([]);
@@ -49,7 +45,6 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
   const [filter, setFilter] = useState<FavoritesFilter>({ projectId });
   const [layout, setLayout] = useState<'masonry' | 'grid'>('masonry');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showExportDialog, setShowExportDialog] = useState(false);
 
   // Statistiques
   const stats = useMemo(() => {
@@ -71,7 +66,7 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
 
     setIsLoading(true);
     try {
-      const service = new FavoritesService(supabase);
+      const service = new FavoritesService(supabase as any);
       const result = await service.getFavoritesWithFilter(user.id, filter);
 
       if (result.success) {
@@ -130,28 +125,35 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
     }
   };
 
+  // Téléchargement des images sélectionnées
+  const handleDownloadSelected = async () => {
+    const selectedFavorites = favorites.filter(f => selectedIds.has(f.id));
+    
+    for (const fav of selectedFavorites) {
+      try {
+        const response = await fetch(fav.render.resultImageUrl);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${fav.render.project.title}-${fav.render.decor?.referenceCode || 'render'}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Download error:', error);
+      }
+    }
+    
+    toast.success(`${selectedFavorites.length} image(s) téléchargée(s)`);
+  };
+
   // Filtres
   const applyTypeFilter = (type: 'all' | 'decor' | 'creative') => {
     setFilter(prev => ({ ...prev, type }));
     loadFavorites();
   };
-
-  // Export
-  const exportImages = useMemo(() => {
-    return favorites
-      .filter(fav => selectedIds.size === 0 || selectedIds.has(fav.id))
-      .map(fav => ({
-        id: fav.render.id,
-        url: fav.render.resultImageUrl,
-        originalUrl: fav.render.photo?.originalImageUrl,
-        decorId: fav.render.decorId || undefined,
-        decorName: fav.render.decor?.name,
-        decorCode: fav.render.decor?.referenceCode || 'ASSISTANT_IA',
-        createdAt: fav.render.createdAt,
-        isHighResolution: true,
-        isFavorite: true,
-      }));
-  }, [favorites, selectedIds]);
 
   // Render loading
   if (isLoading) {
@@ -266,11 +268,11 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowExportDialog(true)}
-            disabled={exportImages.length === 0}
+            onClick={handleDownloadSelected}
+            disabled={selectedIds.size === 0}
           >
             <Download className="h-4 w-4 mr-2" />
-            Exporter ({exportImages.length})
+            Télécharger ({selectedIds.size})
           </Button>
 
           <Button
@@ -323,47 +325,6 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
               Supprimer
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog d'export */}
-      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Exporter les favoris</DialogTitle>
-            <DialogDescription>
-              Choisissez le format d'export pour vos {exportImages.length} image{exportImages.length > 1 ? 's' : ''}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            <ResellerBrochureExportButton 
-              images={exportImages}
-              variant="outline"
-              className="w-full justify-start h-auto py-4"
-            >
-              <div className="flex items-center gap-3">
-                <FileText className="h-6 w-6" />
-                <div className="text-left">
-                  <div className="font-semibold">Brochure Commerciale</div>
-                  <div className="text-xs text-muted-foreground">Format PDF professionnel</div>
-                </div>
-              </div>
-            </ResellerBrochureExportButton>
-
-            <MagazineDecoExportButton 
-              images={exportImages}
-              variant="outline"
-              className="w-full justify-start h-auto py-4"
-            >
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-6 w-6" />
-                <div className="text-left">
-                  <div className="font-semibold">Magazine Déco</div>
-                  <div className="text-xs text-muted-foreground">Style éditorial premium</div>
-                </div>
-              </div>
-            </MagazineDecoExportButton>
-          </div>
         </DialogContent>
       </Dialog>
     </div>
