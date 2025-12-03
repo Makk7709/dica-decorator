@@ -37,7 +37,6 @@ export interface FavoriteRender {
     photo: {
       id: string;
       originalImageUrl: string;
-      caption?: string;
     } | null;
     decor: {
       id: string;
@@ -145,7 +144,6 @@ export class FavoritesService {
             project_photos (
               id,
               original_image_url,
-              caption,
               project_id,
               projects (
                 id,
@@ -157,7 +155,7 @@ export class FavoritesService {
               id,
               name,
               reference_code,
-              texture_url
+              texture_image_url
             )
           )
         `)
@@ -190,13 +188,12 @@ export class FavoritesService {
             photo: photo ? {
               id: photo.id,
               originalImageUrl: photo.original_image_url,
-              caption: photo.caption,
             } : null,
             decor: render.decors ? {
               id: render.decors.id,
               name: render.decors.name,
               referenceCode: render.decors.reference_code,
-              textureUrl: render.decors.texture_url,
+              textureUrl: render.decors.texture_image_url,
             } : null,
             project: project ? {
               id: project.id,
