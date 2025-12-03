@@ -665,6 +665,17 @@ L'annotation doit être:
         if (!textureLoaded) {
           console.error("CRITICAL: All texture fetch strategies failed for:", textureFilename);
           console.error("Please upload texture to Supabase Storage bucket 'decor-textures'");
+          // Return error immediately - cannot generate render without texture
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: `Texture introuvable: ${textureFilename}. Veuillez contacter l'administrateur pour vérifier le catalogue de décors.`,
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
         }
       }
     } catch (e) {
@@ -672,6 +683,17 @@ L'annotation doit être:
       if (e instanceof Error && e.name === "AbortError") {
         console.error("Texture fetch timed out");
       }
+      // Return error for texture fetch failures
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Impossible de charger la texture du décor. Veuillez réessayer.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
     
     // ========================================================================
