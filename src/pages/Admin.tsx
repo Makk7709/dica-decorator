@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ResellerBrandingSettings } from "@/components/admin/reseller-branding-settings";
 import { ResellerBranding } from "@/types/plaquette.types";
+import { UserProjectsDialog } from "@/components/admin/user-projects-dialog";
 
 type UsageContext = Database['public']['Enums']['usage_context'];
 
@@ -89,6 +90,10 @@ const Admin = () => {
   // Co-branding state
   const [isCoBrandingEnabled, setIsCoBrandingEnabled] = useState(false);
   const [resellerBranding, setResellerBranding] = useState<ResellerBranding | null>(null);
+  
+  // User projects dialog state
+  const [showUserProjectsDialog, setShowUserProjectsDialog] = useState(false);
+  const [selectedUserForProjects, setSelectedUserForProjects] = useState<{ id: string; email: string } | null>(null);
 
   useEffect(() => {
     if (userRole !== "admin") {
@@ -631,8 +636,8 @@ const Admin = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              // TODO: Navigate to user projects view
-                              toast.info("Fonctionnalité en cours de développement");
+                              setSelectedUserForProjects({ id: user.id, email: user.email });
+                              setShowUserProjectsDialog(true);
                             }}
                           >
                             <Eye className="mr-2 h-4 w-4" />
@@ -1018,6 +1023,17 @@ const Admin = () => {
         </Tabs>
       </main>
       </div>
+      
+      {/* User Projects Dialog */}
+      {selectedUserForProjects && user && (
+        <UserProjectsDialog
+          open={showUserProjectsDialog}
+          onOpenChange={setShowUserProjectsDialog}
+          targetUserId={selectedUserForProjects.id}
+          targetUserEmail={selectedUserForProjects.email}
+          adminUserId={user.id}
+        />
+      )}
     </div>
   );
 };

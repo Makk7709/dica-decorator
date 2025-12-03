@@ -11,3 +11,4 @@ export { useIsMobile } from "./use-mobile";
 export { useToast } from "./use-toast";
 export { useDecorContextCache } from "./use-decor-context-cache";
 export { useOptimisticRender } from "./use-optimistic-render";
+export { useCreativeImageExport, type CreativeExportState, type CreativeExportResult, type UseCreativeImageExportReturn } from "./use-creative-image-export";

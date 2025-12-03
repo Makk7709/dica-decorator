@@ -126,6 +126,10 @@ serve(async (req) => {
       "mood board", "moodboard", "plaquette", "visualise", "visualisation", 
       "image", "photo", "crée", "créer", "génère", "générer", "imagine", 
       "design", "montre", "compose", "création", "visuel", "présentation", "planche",
+      // Catalogues et échantillons
+      "catalogue", "catalog", "couverture", "éventail", "eventail", "sélection",
+      "échantillon", "echantillon", "échantillons", "samples", "swatches",
+      "collection", "gamme", "palette", "nuancier",
       // Actions de combinaison
       "combine", "combiner", "fusionne", "fusionner", "mélange", "mélanger",
       "met", "mets", "place", "placer", "ajoute", "ajouter", "intègre", "intégrer",
@@ -298,25 +302,31 @@ ${orchestrationResult.finalPromptForImageModel}
 🎨 TECHNICAL RENDERING REQUIREMENTS
 ═══════════════════════════════════════════════════════════════════
 
-1. STUDIO PROFESSIONAL QUALITY STANDARDS (NON-NEGOTIABLE):
+1. PROFESSIONAL QUALITY STANDARDS (NON-NEGOTIABLE):
+
+   ⚠️ CRITICAL: Generate images of REAL SPACES (kitchen, van, office, etc.), NOT images inside a photo studio!
+   "Professional quality" means HIGH-QUALITY IMAGE, not "image taken in a photography studio".
+   
    📸 PHOTOGRAPHY SETUP:
    - Shot with professional full-frame camera (Phase One, Hasselblad level)
    - 24mm architectural lens, f/8 aperture for maximum depth of field
    - ISO 100 for absolute clean details, no noise
-   - Professional studio lighting: softbox main light (key), fill lights eliminating harsh shadows, backlight for depth
+   - NATURAL LIGHTING appropriate for the space: daylight through windows, ambient room lighting
+   - NO VISIBLE STUDIO EQUIPMENT, NO photography backdrops, NO studio environment
    
    🎨 IMAGE QUALITY:
-   - Photorealistic rendering INDISTINGUISHABLE from real professional photography
+   - Photorealistic image of a REAL SPACE that exists in the real world
    - Commercial catalog photography aesthetic (AD Magazine, Architectural Digest level)
    - Color-graded for luxury commercial quality, natural color accuracy
    - Sharp focus across ENTIRE frame, professional post-production
    - NO artificial CGI appearance, NO fake-looking renders
    
    ✨ REALISM:
-   - Authentic material representation with real-world imperfections
-   - Natural lighting interaction with surfaces
-   - Depth and dimension through professional lighting techniques
-   - Result must pass as REAL professional architectural photography
+   - The space must be a REAL environment (actual kitchen, actual van interior, actual office)
+   - NOT a photo studio with white/gray backdrop
+   - Natural lighting interaction with surfaces appropriate for the space type
+   - Depth and dimension through natural and ambient lighting
+   - Result must look like a REAL SPACE photographed by a professional, ON LOCATION
 
 2. DICA PANEL APPLICATION (ABSOLUTE ACCURACY):
    - Panels must be clearly visible and prominent (minimum 40% of image)
@@ -327,10 +337,35 @@ ${orchestrationResult.finalPromptForImageModel}
      * "noir" → 3020_BN (DICA Black Unis)
      * "blanc" → 800_SATIN (DICA White Satin)
    - Respect material properties STRICTLY (metal reflections, wood grain direction, marble veining, etc.)
-   - If edge banding (chant) is mentioned, TRANSLATE thickness and color precisely:
-     * "chant 2mm noir" → "visible 2mm BLACK edge banding strip"
-     * "chant 10mm rouge" → "very thick 10mm RED edge profile"
    - Material authenticity is CRITICAL - textures must look like real physical materials
+
+   🚨 CRITICAL DISTINCTION - REQUEST TYPE:
+   IF request mentions "catalogue", "couverture", "éventail", "sélection de décors", "moodboard", "échantillons":
+   → Generate FLAT-LAY COMPOSITION of MATERIAL SAMPLES/SWATCHES
+   → Decors mentioned are TEXTURES TO DISPLAY, NOT objects to build
+   → "Inox Mat" = brushed steel SAMPLE PANEL, NOT an elevator made of steel!
+   → Style: elegant arrangement of rectangular panels/swatches on neutral background
+   → Each decor = a physical sample panel showing its texture and color
+
+   📐 PANEL/COUNTERTOP THICKNESS (CRITICAL - DO NOT EXAGGERATE):
+   ⚠️ THICKNESS values are in MILLIMETERS - very thin in reality!
+   * 8-10mm = ULTRA-THIN, like ceramic tile thickness (~1cm)
+   * 12-16mm = THIN, like smartphone thickness (~1.5cm)
+   * 18-19mm = STANDARD furniture panel (~2cm, book cover thickness)
+   * 22-25mm = MEDIUM (~2.5cm)
+   * 30-38mm = THICK (~3-4cm, closed laptop thickness)
+   * 50mm+ = VERY THICK (~5cm+, industrial)
+   
+   🚨 CRITICAL ERROR TO AVOID:
+   NEVER generate a thin panel INSIDE a thick frame/border!
+   "Plateau 10mm" = ONE SINGLE UNIFORM panel of 10mm TOTAL thickness
+   NOT a thin marble surface with thick wood frame around it!
+   The ENTIRE tabletop must be the specified thickness, viewed from side edge.
+   
+   🔧 EDGE BANDING (chant) - decorative strip on panel edge:
+   * "chant 1-2mm" = thin edge banding FINISH on the panel border (not additional thickness)
+   * "chant bois" = wood-finish edge band on panel side (same total thickness)
+   Edge banding is a FINISH on the edge, NOT an additional frame!
 
 3. SPACE FIDELITY:
    - Create exactly: ${detectedSpace.toUpperCase()}
@@ -375,12 +410,15 @@ Annotations must be professional and harmoniously integrated.
 ` : ''}
 
 ✨ EXPECTED RESULT: 
-Professional studio photography of ${detectedSpace} space featuring DICA panels. 
+Professional architectural photography of a REAL ${detectedSpace} space featuring DICA panels.
+⚠️ CRITICAL: This must be an image of a REAL ${detectedSpace.toUpperCase()}, NOT a photo studio!
 Quality level: COMMERCIAL CATALOG PHOTOGRAPHY (Architectural Digest, AD Magazine editorial standard).
-CRITICAL: Image must be INDISTINGUISHABLE from real professional architectural photography shot in a real space.
+The ${detectedSpace} must look like an ACTUAL REAL SPACE that exists in the real world, photographed ON LOCATION by a professional photographer.
+NO photo studio environment, NO white/gray backdrops, NO visible photography equipment.
 Panels must be clearly visible, prominently showcased, and applied with EXACT colors and specifications requested by user.
 If user specified edge thickness or color, it MUST be visible and accurate.
-Result must enable client to immediately and confidently envision their future project with absolute realism.
+Natural lighting appropriate for a ${detectedSpace} (daylight through windows, ambient lighting).
+Result must enable client to immediately envision their future REAL project with absolute realism.
 ═══════════════════════════════════════════════════════════════════`;
 
       console.log("Full orchestrated prompt length:", basePrompt.length, "characters");
@@ -444,6 +482,11 @@ Result must enable client to immediately and confidently envision their future p
           ],
           generationConfig: {
             responseModalities: GEMINI_CONFIG.imageResponseModalities,
+            // Configuration image 4K haute qualité
+            imageConfig: {
+              imageSize: "4K",        // Résolution 4K (4096px minimum)
+              aspectRatio: "16:9",    // Format paysage professionnel
+            },
           },
         }),
       });
@@ -463,10 +506,22 @@ Result must enable client to immediately and confidently envision their future p
       const imageUrl = imageBase64 ? `data:image/png;base64,${imageBase64}` : null;
       const text = textResponse || "Voici votre visualisation :";
 
+      // Build decor references for frontend display
+      const decorReferences = showReferences && orchestrationResult.decorReferences.length > 0 
+        ? orchestrationResult.decorReferences.map((ref, idx) => ({
+            reference: ref,
+            label: orchestrationResult.decorLabels?.[idx] || ref,
+          }))
+        : [];
+
+      console.log("Returning image response with decor references:", decorReferences);
+
       return new Response(JSON.stringify({ 
         type: "image",
         imageUrl,
-        text
+        text,
+        decorReferences, // Include decor references for frontend display
+        showReferences,  // Whether user wants to see references
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

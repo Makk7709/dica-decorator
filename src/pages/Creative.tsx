@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, Download, FolderPlus, ImagePlus, X, Home, Maximize2 } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, FolderPlus, ImagePlus, X, Home, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,6 +13,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PremiumLayout, ContentContainer } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { ImageExportDropdown } from "@/components/ui/image-export-dropdown";
+
+interface DecorReference {
+  reference: string;
+  label: string;
+}
 
 interface Message {
   role: "user" | "assistant";
@@ -20,6 +26,7 @@ interface Message {
   imageUrl?: string;
   sourceImageUrls?: string[];  // Support multiple images
   sourceImageUrl?: string;     // Keep for backward compat
+  decorReferences?: DecorReference[];  // References des décors DICA utilisés
 }
 
 interface UploadedImage {
@@ -325,7 +332,8 @@ const Creative = () => {
         setMessages(prev => [...prev, { 
           role: "assistant", 
           content: data.text,
-          imageUrl: data.imageUrl
+          imageUrl: data.imageUrl,
+          decorReferences: data.decorReferences || [], // Include decor references from API
         }]);
         return;
       }
@@ -420,24 +428,8 @@ const Creative = () => {
     }
   };
 
-  const downloadImage = async (imageUrl: string) => {
-    try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `dica-creative-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      toast.success("Image téléchargée");
-    } catch (error) {
-      console.error("Error downloading image:", error);
-      toast.error("Erreur lors du téléchargement");
-    }
-  };
+  // La fonction downloadImage a été remplacée par ImageExportDropdown
+  // qui supporte PNG, JPEG et WebP avec choix du format
 
   const saveImageToProject = async () => {
     if (!user || !selectedImageUrl) return;
@@ -683,14 +675,12 @@ const Creative = () => {
                                         <Maximize2 className="h-4 w-4 mr-2" />
                                         Agrandir
                                       </Button>
-                                      <Button
+                                      <ImageExportDropdown
+                                        imageUrl={message.imageUrl!}
+                                        filename={`dica-creative-${Date.now()}`}
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => downloadImage(message.imageUrl!)}
-                                      >
-                                        <Download className="h-4 w-4 mr-2" />
-                                        Télécharger
-                                      </Button>
+                                      />
                                       <Button
                                         variant="outline"
                                         size="sm"
@@ -703,6 +693,29 @@ const Creative = () => {
                                         Enregistrer dans un projet
                                       </Button>
                                     </div>
+                                    
+                                    {/* Références DICA utilisées */}
+                                    {message.decorReferences && message.decorReferences.length > 0 && (
+                                      <div className="mt-3 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20">
+                                        <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1.5">
+                                          <span className="text-sm">🏷️</span>
+                                          Décors DICA utilisés
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                          {message.decorReferences.map((decor, idx) => (
+                                            <div
+                                              key={idx}
+                                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-black/40 border border-border/50 shadow-sm"
+                                            >
+                                              <span className="text-xs font-medium text-foreground">{decor.label}</span>
+                                              <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded">
+                                                {decor.reference}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               ) : (
@@ -839,9 +852,10 @@ const Creative = () => {
                   </div>
 
                   {/* Tips */}
-                  <div className="p-4 rounded-xl bg-muted/50 text-xs text-muted-foreground space-y-1">
-                    <p className="font-medium text-foreground">💡 Astuce</p>
+                  <div className="p-4 rounded-xl bg-muted/50 text-xs text-muted-foreground space-y-2">
+                    <p className="font-medium text-foreground">💡 Astuces</p>
                     <p>Uploadez plusieurs images (décor, van, personnes...) et demandez à l'IA de les combiner en une scène créative.</p>
+                    <p>🏷️ <span className="font-medium">Étiquettes</span> : Nommez chaque image avant de l'ajouter (ex: "Van", "Décor bois", "Client") pour aider l'IA à comprendre le rôle de chaque élément dans la composition.</p>
                   </div>
                 </div>
               </div>
@@ -910,17 +924,13 @@ const Creative = () => {
                                 <Maximize2 className="h-3.5 w-3.5 mr-1.5 text-foreground" />
                                 <span className="text-foreground text-xs">Agrandir</span>
                               </Button>
-                              <Button
+                              <ImageExportDropdown
+                                imageUrl={favorite.image_data || ''}
+                                filename={`dica-favorite-${favorite.id}`}
                                 variant="secondary"
                                 size="sm"
                                 className="h-8 px-3 bg-white hover:bg-white shadow-md"
-                                asChild
-                              >
-                                <a href={favorite.image_data} download className="flex items-center gap-1.5">
-                                  <Download className="h-3.5 w-3.5 text-foreground" />
-                                  <span className="text-foreground text-xs">Télécharger</span>
-                                </a>
-                              </Button>
+                              />
                             </div>
                           </div>
                         </div>
@@ -1101,15 +1111,13 @@ const Creative = () => {
                 
                 {/* Actions en haut à gauche */}
                 <div className="absolute top-4 left-4 z-50 flex gap-2">
-                  <Button
+                  <ImageExportDropdown
+                    imageUrl={zoomedImage || ''}
+                    filename={`dica-creative-${Date.now()}`}
                     variant="secondary"
                     size="sm"
                     className="bg-white/10 hover:bg-white/20 text-white border-none"
-                    onClick={() => zoomedImage && downloadImage(zoomedImage)}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Télécharger
-                  </Button>
+                  />
                   <Button
                     variant="secondary"
                     size="sm"
