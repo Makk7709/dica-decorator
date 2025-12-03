@@ -588,42 +588,79 @@ L'annotation doit être:
     }
 
     // Fetch decor texture as reference with timeout
+    // Strategy: Try Supabase Storage first (most reliable), then fallback to other URLs
     try {
       if (textureUrl) {
-        // Build absolute URL - ALWAYS use production app URL
-        // The referer gives preview URL which doesn't have static assets
         let absoluteTextureUrl = textureUrl;
+        let textureLoaded = false;
         
-        if (!textureUrl.startsWith("http")) {
-          // CRITICAL: Always use production Lovable app URL for static assets
-          // Preview URLs (f7dcdcd1...) don't serve /public/ folder assets
-          // Production URL serves decor-textures from /public/
-          const appUrl = "https://wpczgwxsriezaubncuom.lovableproject.com";
-          absoluteTextureUrl = `${appUrl}${textureUrl}`;
-          console.log("Using production app URL for texture:", absoluteTextureUrl);
+        // Extract filename from texture URL path
+        const textureFilename = textureUrl.split('/').pop() || '';
+        
+        // Strategy 1: Try Supabase Storage bucket (most reliable)
+        const supabaseStorageUrl = `https://urkftxznsynmvkskytih.supabase.co/storage/v1/object/public/decor-textures/${textureFilename}`;
+        console.log("Trying Supabase Storage URL:", supabaseStorageUrl);
+        
+        try {
+          const storageResponse = await fetchWithTimeout(supabaseStorageUrl, undefined, 10000);
+          const storageContentType = storageResponse.headers.get("content-type") ?? "";
+          
+          if (storageResponse.ok && storageContentType.startsWith("image/")) {
+            const arrayBuffer = await storageResponse.arrayBuffer();
+            textureBase64 = arrayBufferToBase64(arrayBuffer);
+            textureMimeType = storageContentType;
+            textureLoaded = true;
+            console.log(`Texture loaded from Supabase Storage (${arrayBuffer.byteLength} bytes)`);
+          } else {
+            console.warn("Supabase Storage failed:", storageResponse.status, storageContentType);
+          }
+        } catch (e) {
+          console.warn("Supabase Storage fetch error:", e instanceof Error ? e.message : e);
         }
         
-        console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
-        
-        const textureResponse = await fetchWithTimeout(absoluteTextureUrl);
-        const contentType = textureResponse.headers.get("content-type") ?? "";
-        
-        if (!textureResponse.ok) {
-          console.error("Failed to fetch texture:", textureResponse.status, "URL:", absoluteTextureUrl);
-        } else if (!contentType.startsWith("image/")) {
-          console.error("Texture URL returned non-image content:", contentType, "URL:", absoluteTextureUrl);
-        } else {
-          const contentLength = textureResponse.headers.get("content-length");
-          const size = contentLength ? parseInt(contentLength) : 0;
+        // Strategy 2: Try production app URL if Supabase Storage failed
+        if (!textureLoaded && !textureUrl.startsWith("http")) {
+          const productionUrl = `https://wpczgwxsriezaubncuom.lovableproject.com${textureUrl}`;
+          console.log("Trying production app URL:", productionUrl);
           
-          if (size > RESOURCE_LIMITS.maxImageSize) {
-            console.warn(`Texture size (${size} bytes) exceeds limit.`);
-          } else {
-            const arrayBuffer = await textureResponse.arrayBuffer();
+          try {
+            const prodResponse = await fetchWithTimeout(productionUrl, undefined, 10000);
+            const prodContentType = prodResponse.headers.get("content-type") ?? "";
+            
+            if (prodResponse.ok && prodContentType.startsWith("image/")) {
+              const arrayBuffer = await prodResponse.arrayBuffer();
+              textureBase64 = arrayBufferToBase64(arrayBuffer);
+              textureMimeType = prodContentType;
+              textureLoaded = true;
+              console.log(`Texture loaded from production URL (${arrayBuffer.byteLength} bytes)`);
+            } else {
+              console.warn("Production URL failed:", prodResponse.status, prodContentType);
+            }
+          } catch (e) {
+            console.warn("Production URL fetch error:", e instanceof Error ? e.message : e);
+          }
+        }
+        
+        // Strategy 3: Try the original URL (might be absolute already)
+        if (!textureLoaded && textureUrl.startsWith("http")) {
+          absoluteTextureUrl = textureUrl;
+          console.log("Trying original absolute URL:", absoluteTextureUrl);
+          
+          const response = await fetchWithTimeout(absoluteTextureUrl);
+          const contentType = response.headers.get("content-type") ?? "";
+          
+          if (response.ok && contentType.startsWith("image/")) {
+            const arrayBuffer = await response.arrayBuffer();
             textureBase64 = arrayBufferToBase64(arrayBuffer);
             textureMimeType = contentType;
-            console.log(`Texture fetched (${arrayBuffer.byteLength} bytes) and converted to base64`);
+            textureLoaded = true;
+            console.log(`Texture loaded from original URL (${arrayBuffer.byteLength} bytes)`);
           }
+        }
+        
+        if (!textureLoaded) {
+          console.error("CRITICAL: All texture fetch strategies failed for:", textureFilename);
+          console.error("Please upload texture to Supabase Storage bucket 'decor-textures'");
         }
       }
     } catch (e) {
