@@ -338,32 +338,49 @@ reste sur le bureau. NE JAMAIS inventer un autre type d'espace.
 ═══════════════════════════════════════════════════════════════════`;
         break;
       case "terrasse":
-        surfaceRules = `═══════════════════════════════════════════════════════════════════
-IDENTIFICATION DES SURFACES - TERRASSE / CAFÉ / RESTAURANT
+        surfaceRules = `╔═══════════════════════════════════════════════════════════════════╗
+║ 🎯 TERRASSE/CAFÉ: APPLIQUER SUR LES PLATEAUX DE TABLES UNIQUEMENT ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+🚨🚨🚨 INSTRUCTION CRITIQUE - LIRE 3 FOIS AVANT DE COMMENCER 🚨🚨🚨
+
+TU DOIS APPLIQUER LE DÉCOR SUR: LES DESSUS DE TABLES
+TU DOIS APPLIQUER LE DÉCOR SUR: LES DESSUS DE TABLES  
+TU DOIS APPLIQUER LE DÉCOR SUR: LES DESSUS DE TABLES
+
+═══════════════════════════════════════════════════════════════════
+SURFACE CIBLE UNIQUE: PLATEAUX DE TABLES
 ═══════════════════════════════════════════════════════════════════
 
-⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie.
+✅ OÙ APPLIQUER LE DÉCOR (et SEULEMENT là):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+→ DESSUS DE TABLES (surfaces horizontales où les clients posent leurs verres)
+→ PLATEAUX DE GUÉRIDONS (tables rondes de café/bistrot)
+→ DESSUS DE COMPTOIRS/BARS (si visibles au premier plan)
 
-SURFACES PRIORITAIRES pour appliquer le décor (dans cet ordre):
-• DESSUS DE TABLES (surface horizontale principale) - PRIORITÉ #1
-• Plateaux de comptoirs et bars
-• Surfaces de guéridons et tables bistrot
-• Panneaux de menus ou présentoirs si visibles
+❌ NE JAMAIS TOUCHER - LISTE EXHAUSTIVE:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ MURS - PAS DE DÉCOR SUR LES MURS
+❌ CHAISES - PAS DE DÉCOR SUR LES CHAISES  
+❌ PIEDS DE TABLES - PAS DE DÉCOR SUR LES PIEDS
+❌ SOL - PAS DE DÉCOR SUR LE SOL
+❌ PARASOLS/STORES - PAS DE DÉCOR
+❌ VÉGÉTATION - PAS DE DÉCOR
+❌ PERSONNES - PAS DE DÉCOR
+❌ VAISSELLE/VERRES - PAS DE DÉCOR
+❌ FAÇADE DU BÂTIMENT - PAS DE DÉCOR
 
-SURFACES SECONDAIRES (si approprié):
-• Revêtements muraux visibles
-• Garde-corps et séparations
+═══════════════════════════════════════════════════════════════════
+VÉRIFICATION AVANT GÉNÉRATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+□ Ai-je identifié les TABLES dans la photo? → OUI requis
+□ Vais-je appliquer le décor sur les DESSUS de tables? → OUI requis
+□ Vais-je laisser les murs INTACTS? → OUI requis
+□ Vais-je laisser les chaises INTACTES? → OUI requis
 
-SURFACES INTERDITES (ne JAMAIS modifier):
-• Végétation (plantes, arbres)
-• Chaises et assises (sauf si explicitement demandé)
-• Textiles (coussins, nappes, voiles)
-• Vaisselle et accessoires de table
-• Sol existant
-• Personnes ou reflets
-
-RÈGLE CRITIQUE: Pour un café/restaurant, le décor doit être appliqué 
-principalement sur les TABLES (surface horizontale). C'est le cas d'usage commercial.
+CAS D'USAGE COMMERCIAL: Un restaurateur veut montrer à son client 
+comment ses TABLES de terrasse pourraient être habillées avec le décor DICA.
+Le décor va SUR LES TABLES, pas ailleurs.
 ═══════════════════════════════════════════════════════════════════`;
         break;
       default:
