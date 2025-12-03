@@ -330,39 +330,36 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
       <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Exporter les favoris</DialogTitle>
+            <DialogTitle>Télécharger les favoris</DialogTitle>
             <DialogDescription>
-              Choisissez le format d'export pour vos {exportImages.length} image{exportImages.length > 1 ? 's' : ''}
+              {exportImages.length} image{exportImages.length > 1 ? 's' : ''} sélectionnée{exportImages.length > 1 ? 's' : ''}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-4">
-            <ResellerBrochureExportButton 
-              images={exportImages}
-              variant="outline"
-              className="w-full justify-start h-auto py-4"
-            >
-              <div className="flex items-center gap-3">
-                <FileText className="h-6 w-6" />
-                <div className="text-left">
-                  <div className="font-semibold">Brochure Commerciale</div>
-                  <div className="text-xs text-muted-foreground">Format PDF professionnel</div>
-                </div>
-              </div>
-            </ResellerBrochureExportButton>
-
-            <MagazineDecoExportButton 
-              images={exportImages}
-              variant="outline"
-              className="w-full justify-start h-auto py-4"
-            >
-              <div className="flex items-center gap-3">
-                <BookOpen className="h-6 w-6" />
-                <div className="text-left">
-                  <div className="font-semibold">Magazine Déco</div>
-                  <div className="text-xs text-muted-foreground">Style éditorial premium</div>
-                </div>
-              </div>
-            </MagazineDecoExportButton>
+          <div className="py-4 space-y-4">
+            <div className="text-center text-muted-foreground">
+              <p className="mb-4 text-sm">
+                Téléchargez vos images favoris ou accédez au projet pour créer des brochures professionnelles.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="default"
+                className="flex-1"
+                onClick={() => {
+                  exportImages.forEach((img, i) => {
+                    const link = document.createElement('a');
+                    link.href = img.url;
+                    link.download = `favori-${i + 1}.jpg`;
+                    link.click();
+                  });
+                  toast.success(`${exportImages.length} image(s) téléchargée(s)`);
+                  setShowExportDialog(false);
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Télécharger ({exportImages.length})
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -140,24 +140,24 @@ export class FavoritesService {
             id,
             result_image_url,
             created_at,
-            project_id,
-            photo_id,
+            project_photo_id,
             decor_id,
             project_photos (
               id,
               original_image_url,
-              caption
+              caption,
+              project_id,
+              projects (
+                id,
+                title,
+                use_case
+              )
             ),
             decors (
               id,
               name,
               reference_code,
               texture_url
-            ),
-            projects (
-              id,
-              title,
-              use_case
             )
           )
         `)
@@ -172,6 +172,9 @@ export class FavoritesService {
       // Formater les données
       const favorites: FavoriteRender[] = (data || []).map((fav: any) => {
         const render = fav.render_results;
+        const photo = render.project_photos;
+        const project = photo?.projects;
+        
         return {
           id: fav.id,
           userId: fav.user_id,
@@ -181,13 +184,13 @@ export class FavoritesService {
             id: render.id,
             resultImageUrl: render.result_image_url,
             createdAt: new Date(render.created_at),
-            projectId: render.project_id,
-            photoId: render.photo_id,
+            projectId: photo?.project_id || '',
+            photoId: render.project_photo_id,
             decorId: render.decor_id,
-            photo: render.project_photos ? {
-              id: render.project_photos.id,
-              originalImageUrl: render.project_photos.original_image_url,
-              caption: render.project_photos.caption,
+            photo: photo ? {
+              id: photo.id,
+              originalImageUrl: photo.original_image_url,
+              caption: photo.caption,
             } : null,
             decor: render.decors ? {
               id: render.decors.id,
@@ -195,12 +198,13 @@ export class FavoritesService {
               referenceCode: render.decors.reference_code,
               textureUrl: render.decors.texture_url,
             } : null,
-            project: {
-              id: render.projects.id,
-              title: render.projects.title,
-              useCase: render.projects.use_case,
-            },
-            isCreativeImport: !render.decor_id && !render.photo_id,
+            project: project ? {
+              id: project.id,
+              title: project.title,
+              useCase: project.use_case,
+            } : { id: '', title: 'Projet inconnu', useCase: '' },
+            // Creative import = pas de décor (render généré par IA)
+            isCreativeImport: !render.decor_id,
           },
         };
       });
