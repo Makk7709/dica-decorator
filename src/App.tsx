@@ -20,6 +20,7 @@ const Creative = lazy(() => import("./pages/Creative"));
 const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const Presentation = lazy(() => import("./pages/Presentation"));
 const Help = lazy(() => import("./pages/Help"));
+const Favorites = lazy(() => import("./pages/Favorites"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading component
@@ -117,6 +118,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Help />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/favorites"
+                  element={
+                    <ProtectedRoute>
+                      <Favorites />
                     </ProtectedRoute>
                   }
                 />

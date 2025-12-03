@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WelcomeModal, useOnboarding } from "@/components/onboarding";
-import { Plus, LogOut, Settings, FolderOpen, Sparkles, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen, Sparkles, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -270,6 +270,27 @@ const Dashboard = () => {
               className="sm:hidden text-primary"
             >
               <Sparkles className="h-5 w-5" />
+            </Button>
+
+            {/* Mes Favoris - Desktop */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/favorites")}
+              className="hidden sm:flex items-center gap-2 text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+            >
+              <Heart className="h-4 w-4 fill-current" />
+              <span className="hidden md:inline">Mes Favoris</span>
+            </Button>
+            
+            {/* Mobile: Icon only */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/favorites")}
+              className="sm:hidden text-red-500"
+            >
+              <Heart className="h-5 w-5 fill-current" />
             </Button>
 
             {userRole === "admin" && (
