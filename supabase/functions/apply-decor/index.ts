@@ -590,30 +590,17 @@ L'annotation doit être:
     // Fetch decor texture as reference with timeout
     try {
       if (textureUrl) {
-        // Build absolute URL - use multiple fallback strategies
+        // Build absolute URL - ALWAYS use production app URL
+        // The referer gives preview URL which doesn't have static assets
         let absoluteTextureUrl = textureUrl;
         
         if (!textureUrl.startsWith("http")) {
-          // Try referer first
-          const referer = req.headers.get("referer") || req.headers.get("origin") || "";
-          let appUrl = "";
-          
-          if (referer) {
-            try {
-              appUrl = new URL(referer).origin;
-            } catch (e) {
-              console.warn("Failed to parse referer URL:", e);
-            }
-          }
-          
-          // Fallback: Use known DICA Lovable app URL
-          // The Lovable project ID is wpczgwxsriezaubncuom (different from Supabase ID)
-          if (!appUrl) {
-            appUrl = "https://wpczgwxsriezaubncuom.lovableproject.com";
-            console.log("Using fallback app URL:", appUrl);
-          }
-          
+          // CRITICAL: Always use production Lovable app URL for static assets
+          // Preview URLs (f7dcdcd1...) don't serve /public/ folder assets
+          // Production URL serves decor-textures from /public/
+          const appUrl = "https://wpczgwxsriezaubncuom.lovableproject.com";
           absoluteTextureUrl = `${appUrl}${textureUrl}`;
+          console.log("Using production app URL for texture:", absoluteTextureUrl);
         }
         
         console.log("Fetching decor texture for Gemini:", absoluteTextureUrl);
