@@ -108,7 +108,7 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
     if (selectedIds.size === 0) return;
 
     try {
-      const service = new FavoritesService(supabase as any);
+      const service = new FavoritesService(supabase);
       const result = await service.bulkRemoveFavorites(user!.id, Array.from(selectedIds));
 
       if (result.success) {
