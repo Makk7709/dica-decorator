@@ -26,20 +26,10 @@ export default defineConfig(({ mode }) => ({
       output: {
         // Manual chunks for better caching
         manualChunks: {
-          // Vendor chunks
+          // Vendor chunks - core libraries only
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-scroll-area',
-          ],
           'vendor-query': ['@tanstack/react-query'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          'vendor-charts': ['recharts'],
+          // Let Vite auto-split UI, Supabase, forms, and charts for better code-splitting
         },
       },
     },
