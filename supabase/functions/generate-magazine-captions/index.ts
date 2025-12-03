@@ -29,6 +29,37 @@ serve(async (req) => {
   }
 
   try {
+    // ========================================================================
+    // Authentication Check - Verify user is logged in
+    // ========================================================================
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.error("No authorization header provided");
+      return new Response(
+        JSON.stringify({ error: "Non autorisé - Authentification requise" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.7.1");
+    const authSupabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      console.error("Authentication failed:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Non autorisé - Token invalide" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log("Authenticated user:", user.id);
+    // ========================================================================
+
     console.log("🎨 Magazine Captions - Starting generation");
 
     const { projectName, projectType, decorLabel, decorReference, decorCategory, imageUrl } = await req.json() as CaptionRequest;
