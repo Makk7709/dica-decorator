@@ -165,6 +165,7 @@ export class ImageExportService {
   /**
    * Convertit une image dans un format donné
    * Utilise canvas pour la conversion
+   * Inclut un timeout de 30 secondes pour éviter les blocages
    */
   static async convertImageToFormat(
     imageUrl: string,
@@ -177,8 +178,25 @@ export class ImageExportService {
     const { format, quality = this.getRecommendedQuality(options.format) } = options;
     const validQuality = this.validateQuality(quality);
 
+    // Timeout de 30 secondes
+    const timeoutMs = 30000;
+    
     // Récupérer l'image via fetch pour contourner CORS
-    const response = await fetch(imageUrl);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    let response: Response;
+    try {
+      response = await fetch(imageUrl, { signal: controller.signal });
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Timeout: Le téléchargement a pris trop de temps');
+      }
+      throw new Error(`Erreur de connexion: ${error.message}`);
+    }
+    clearTimeout(timeoutId);
+    
     if (!response.ok) {
       throw new Error(`Erreur de chargement de l'image: ${response.status}`);
     }
@@ -195,7 +213,13 @@ export class ImageExportService {
     img.crossOrigin = 'anonymous';
 
     return new Promise((resolve, reject) => {
+      // Timeout pour le chargement de l'image
+      const imgTimeoutId = setTimeout(() => {
+        reject(new Error('Timeout: Le chargement de l\'image a pris trop de temps'));
+      }, 15000);
+      
       img.onload = () => {
+        clearTimeout(imgTimeoutId);
         try {
           // Créer un canvas aux dimensions de l'image
           const canvas = document.createElement('canvas');
@@ -219,6 +243,8 @@ export class ImageExportService {
           // Convertir en blob
           canvas.toBlob(
             (blob) => {
+              // Nettoyer le blob URL créé
+              URL.revokeObjectURL(img.src);
               if (blob) {
                 resolve(blob);
               } else {
@@ -229,11 +255,14 @@ export class ImageExportService {
             validQuality
           );
         } catch (error) {
+          URL.revokeObjectURL(img.src);
           reject(error);
         }
       };
 
       img.onerror = () => {
+        clearTimeout(imgTimeoutId);
+        URL.revokeObjectURL(img.src);
         reject(new Error('Erreur de chargement de l\'image'));
       };
 
