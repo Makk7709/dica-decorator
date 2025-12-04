@@ -343,48 +343,67 @@ reste sur le bureau. NE JAMAIS inventer un autre type d'espace.
         break;
       case "terrasse":
         surfaceRules = `╔═══════════════════════════════════════════════════════════════════╗
-║ 🎯 TERRASSE/CAFÉ: APPLIQUER SUR LES PLATEAUX DE TABLES UNIQUEMENT ║
+║ 🚨🚨🚨 TERRASSE: DÉCOR SUR PLATEAUX DE TABLES UNIQUEMENT 🚨🚨🚨 ║
 ╚═══════════════════════════════════════════════════════════════════╝
 
-🚨🚨🚨 INSTRUCTION CRITIQUE - LIRE 3 FOIS AVANT DE COMMENCER 🚨🚨🚨
-
-TU DOIS APPLIQUER LE DÉCOR SUR: LES DESSUS DE TABLES
-TU DOIS APPLIQUER LE DÉCOR SUR: LES DESSUS DE TABLES  
-TU DOIS APPLIQUER LE DÉCOR SUR: LES DESSUS DE TABLES
-
-═══════════════════════════════════════════════════════════════════
-SURFACE CIBLE UNIQUE: PLATEAUX DE TABLES
-═══════════════════════════════════════════════════════════════════
-
-✅ OÙ APPLIQUER LE DÉCOR (et SEULEMENT là):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-→ DESSUS DE TABLES (surfaces horizontales où les clients posent leurs verres)
-→ PLATEAUX DE GUÉRIDONS (tables rondes de café/bistrot)
-→ DESSUS DE COMPTOIRS/BARS (si visibles au premier plan)
-
-❌ NE JAMAIS TOUCHER - LISTE EXHAUSTIVE:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-❌ MURS - PAS DE DÉCOR SUR LES MURS
-❌ CHAISES - PAS DE DÉCOR SUR LES CHAISES  
-❌ PIEDS DE TABLES - PAS DE DÉCOR SUR LES PIEDS
-❌ SOL - PAS DE DÉCOR SUR LE SOL
-❌ PARASOLS/STORES - PAS DE DÉCOR
-❌ VÉGÉTATION - PAS DE DÉCOR
-❌ PERSONNES - PAS DE DÉCOR
-❌ VAISSELLE/VERRES - PAS DE DÉCOR
-❌ FAÇADE DU BÂTIMENT - PAS DE DÉCOR
+██████████████████████████████████████████████████████████████████████
+█ STOP! LIS CECI 5 FOIS AVANT DE COMMENCER:                         █
+█                                                                    █
+█ LE DÉCOR VA SUR LES DESSUS DE TABLES.                             █
+█ LE DÉCOR VA SUR LES DESSUS DE TABLES.                             █
+█ LE DÉCOR VA SUR LES DESSUS DE TABLES.                             █
+█ LE DÉCOR VA SUR LES DESSUS DE TABLES.                             █
+█ LE DÉCOR VA SUR LES DESSUS DE TABLES.                             █
+█                                                                    █
+█ PAS SUR LES CHAISES. PAS SUR LES MURS. PAS SUR LE SOL.           █
+██████████████████████████████████████████████████████████████████████
 
 ═══════════════════════════════════════════════════════════════════
-VÉRIFICATION AVANT GÉNÉRATION:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-□ Ai-je identifié les TABLES dans la photo? → OUI requis
-□ Vais-je appliquer le décor sur les DESSUS de tables? → OUI requis
-□ Vais-je laisser les murs INTACTS? → OUI requis
-□ Vais-je laisser les chaises INTACTES? → OUI requis
+✅ SEULE CIBLE AUTORISÉE: SURFACES HORIZONTALES DES TABLES
+═══════════════════════════════════════════════════════════════════
+OÙ APPLIQUER (EXCLUSIVEMENT):
+→ Les DESSUS DE TABLES (plateaux horizontaux où on pose les verres)
+→ Les PLATEAUX DE GUÉRIDONS (petites tables rondes de café)
+→ Les SURFACES HORIZONTALES DE COMPTOIRS (si au premier plan)
 
-CAS D'USAGE COMMERCIAL: Un restaurateur veut montrer à son client 
-comment ses TABLES de terrasse pourraient être habillées avec le décor DICA.
-Le décor va SUR LES TABLES, pas ailleurs.
+C'EST TOUT. RIEN D'AUTRE.
+
+═══════════════════════════════════════════════════════════════════
+❌❌❌ INTERDICTION ABSOLUE - NE JAMAIS APPLIQUER SUR: ❌❌❌
+═══════════════════════════════════════════════════════════════════
+
+🚫 CHAISES = INTERDIT (dossiers, assises, accoudoirs)
+🚫 PIEDS DE TABLES = INTERDIT (structure métallique/bois)
+🚫 MURS = INTERDIT (façades, cloisons, parois)
+🚫 SOL = INTERDIT (carrelage, béton, pavés)
+🚫 PARASOLS = INTERDIT
+🚫 STORES = INTERDIT
+🚫 VÉGÉTATION = INTERDIT (plantes, arbres)
+🚫 PERSONNES = INTERDIT
+🚫 VAISSELLE = INTERDIT (verres, assiettes, couverts)
+🚫 BÂTIMENT = INTERDIT (façade, fenêtres, portes)
+🚫 MOBILIER AUTRE = INTERDIT (banquettes, canapés, fauteuils)
+
+SI TU APPLIQUES LE DÉCOR SUR UNE CHAISE → ERREUR GRAVE
+SI TU APPLIQUES LE DÉCOR SUR UN MUR → ERREUR GRAVE
+SI TU APPLIQUES LE DÉCOR SUR LE SOL → ERREUR GRAVE
+
+═══════════════════════════════════════════════════════════════════
+📋 CHECKLIST TERRASSE - VALIDATION OBLIGATOIRE:
+═══════════════════════════════════════════════════════════════════
+AVANT de générer, vérifie:
+□ J'ai identifié les TABLES dans la photo → OUI
+□ Je vais appliquer le décor UNIQUEMENT sur les DESSUS de tables → OUI
+□ Les CHAISES restent 100% intactes sans aucun décor → OUI
+□ Les MURS restent 100% intacts sans aucun décor → OUI
+□ Le SOL reste 100% intact sans aucun décor → OUI
+□ Les PIEDS DE TABLES restent intacts → OUI
+
+Si UNE réponse est NON → RECOMMENCE TA RÉFLEXION
+
+RAPPEL COMMERCIAL: Un restaurateur veut visualiser ses TABLES de 
+terrasse avec un nouveau revêtement. Il veut voir le DESSUS de ses 
+tables transformé, PAS ses chaises, PAS ses murs.
 ═══════════════════════════════════════════════════════════════════`;
         break;
       default:
