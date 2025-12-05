@@ -75,15 +75,12 @@ const Legal = () => {
               <section>
                 <h2 className="text-lg font-semibold text-foreground mb-3">2. Éditeur de l'application</h2>
                 <div className="text-sm leading-relaxed space-y-1 bg-muted/30 rounded-lg p-4">
-                  <p><strong>Raison sociale :</strong> <span className="text-muted-foreground">[NOM_DE_L_EDITEUR]</span></p>
-                  <p><strong>Forme juridique :</strong> <span className="text-muted-foreground">[FORME_JURIDIQUE]</span></p>
-                  <p><strong>Siège social :</strong> <span className="text-muted-foreground">[ADRESSE_SIEGE]</span></p>
-                  <p><strong>SIRET :</strong> <span className="text-muted-foreground">[SIRET]</span></p>
-                  <p><strong>Contact support :</strong> <span className="text-muted-foreground">[EMAIL_SUPPORT]</span></p>
+                  <p><strong>Raison sociale :</strong> KOREV AI</p>
+                  <p><strong>Forme juridique :</strong> SAS</p>
+                  <p><strong>Siège social :</strong> 20 Route d'Uriage, 38320 Herbeys, France</p>
+                  <p><strong>SIRET :</strong> 845 355 668 00029</p>
+                  <p><strong>Contact support :</strong> <a href="mailto:contact@korev-ai.com" className="text-primary hover:underline">contact@korev-ai.com</a></p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2 italic">
-                  Ces informations sont à compléter par DICA France avant publication.
-                </p>
               </section>
 
               <Separator />
@@ -220,10 +217,10 @@ const Legal = () => {
               <section>
                 <h2 className="text-lg font-semibold text-foreground mb-3">10. Loi applicable et juridiction compétente</h2>
                 <p className="text-sm leading-relaxed">
-                  Les présentes conditions d'utilisation sont soumises au droit <span className="text-muted-foreground">[FRANÇAIS]</span>.
+                  Les présentes conditions d'utilisation sont soumises au droit français.
                 </p>
                 <p className="text-sm leading-relaxed mt-2">
-                  En cas de litige relatif à l'interprétation ou à l'exécution des présentes conditions, et à défaut de résolution amiable, les parties conviennent de soumettre leur différend à la compétence exclusive des tribunaux de <span className="text-muted-foreground">[VILLE_COMPÉTENTE]</span>.
+                  En cas de litige relatif à l'interprétation ou à l'exécution des présentes conditions, et à défaut de résolution amiable, les parties conviennent de soumettre leur différend à la compétence exclusive des tribunaux de Grenoble.
                 </p>
               </section>
 
