@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -268,9 +268,17 @@ const Auth = () => {
           </div>
 
           {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground mt-6">
-            © {new Date().getFullYear()} DICA France • Powered by KOREV AI
-          </p>
+          <div className="text-center mt-6 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} DICA France • Powered by KOREV AI
+            </p>
+            <Link 
+              to="/mentions-legales" 
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
+            >
+              Mentions légales & CGU
+            </Link>
+          </div>
         </div>
       </div>
     </PremiumLayout>
