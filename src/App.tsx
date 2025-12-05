@@ -21,6 +21,7 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const Presentation = lazy(() => import("./pages/Presentation"));
 const Help = lazy(() => import("./pages/Help"));
 const Favorites = lazy(() => import("./pages/Favorites"));
+const Legal = lazy(() => import("./pages/Legal"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading component
@@ -129,6 +130,7 @@ const App = () => (
                     </ProtectedRoute>
                   }
                 />
+                <Route path="/mentions-legales" element={<Legal />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

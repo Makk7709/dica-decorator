@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
@@ -50,6 +50,16 @@ const Index = () => {
         >
           Entrer
         </Button>
+      </div>
+
+      {/* Footer */}
+      <div className="absolute bottom-4 left-0 right-0 z-20 text-center">
+        <Link 
+          to="/mentions-legales"
+          className="text-xs text-white/60 hover:text-white transition-colors underline-offset-4 hover:underline"
+        >
+          Mentions légales & CGU
+        </Link>
       </div>
     </div>
   );

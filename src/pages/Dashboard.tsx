@@ -24,6 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { projectDeletionService } from "@/services/project-deletion.service";
 import { projectRenameService } from "@/services/project-rename.service";
+import { AppFooter } from "@/components/ui/app-footer";
 
 interface Project {
   id: string;
@@ -515,6 +516,9 @@ const Dashboard = () => {
           </div>
         )}
       </ContentContainer>
+
+      {/* Footer */}
+      <AppFooter className="mt-auto" />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
