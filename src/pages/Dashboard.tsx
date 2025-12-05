@@ -518,7 +518,7 @@ const Dashboard = () => {
       </ContentContainer>
 
       {/* Footer */}
-      <AppFooter className="mt-auto" />
+      <AppFooter />
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

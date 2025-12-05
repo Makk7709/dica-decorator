@@ -51,7 +51,7 @@ export function PremiumLayout({
       )}
       
       {/* Contenu */}
-      <div className="content-safe relative z-10">
+      <div className="content-safe relative z-10 flex flex-col min-h-screen">
         {children}
       </div>
     </div>
@@ -163,7 +163,7 @@ export function ContentContainer({
 }) {
   return (
     <div className={cn(
-      "container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12",
+      "container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 flex-1",
       className
     )}>
       {children}
