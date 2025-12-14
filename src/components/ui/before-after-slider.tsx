@@ -363,6 +363,20 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         </div>
       )}
 
+      {/* Disclaimer non contractuel */}
+      {bothLoaded && (
+        <div
+          className={cn(
+            'absolute z-20 bottom-3 left-3',
+            'px-2 py-1 rounded',
+            'bg-black/40 text-white/80 text-[10px]',
+            'backdrop-blur-sm'
+          )}
+        >
+          Image non contractuelle
+        </div>
+      )}
+
       {/* Instructions overlay (on hover, first time) */}
       <div
         className={cn(
