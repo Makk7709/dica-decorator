@@ -1061,6 +1061,11 @@ const ProjectDetail = () => {
                               className="w-full h-auto"
                             />
                             
+                            {/* Disclaimer non contractuel */}
+                            <div className="absolute bottom-2 left-2 z-10 px-1.5 py-0.5 rounded bg-black/40 text-white/80 text-[9px] backdrop-blur-sm">
+                              Image non contractuelle
+                            </div>
+                            
                             {/* Checkbox sélection pour Magazine DECO - en haut à gauche */}
                             <div className="absolute top-2 left-2 z-20">
                               <button
