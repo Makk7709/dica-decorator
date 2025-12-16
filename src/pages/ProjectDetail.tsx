@@ -1286,7 +1286,7 @@ const ProjectDetail = () => {
             </div>
             
             <Tabs defaultValue="metal" className="w-full">
-              <TabsList className="grid w-full grid-cols-5 h-auto">
+              <TabsList className="grid w-full grid-cols-6 h-auto">
                 <TabsTrigger value="metal" className="py-3">
                   Métal
                   <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
@@ -1317,12 +1317,18 @@ const ProjectDetail = () => {
                     {decors.filter(d => d.category.toLowerCase() === 'deco').length}
                   </span>
                 </TabsTrigger>
+                <TabsTrigger value="Évasion" className="py-3">
+                  Évasion
+                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
+                    {decors.filter(d => d.category === 'Évasion').length}
+                  </span>
+                </TabsTrigger>
               </TabsList>
 
-              {['metal', 'unis', 'marbre', 'bois', 'deco'].map((category) => (
+              {['metal', 'unis', 'marbre', 'bois', 'deco', 'Évasion'].map((category) => (
                 <TabsContent key={category} value={category} className="mt-6">
                   <div className="max-h-[35vh] overflow-y-auto pr-2">
-                    {decors.filter(d => d.category.toLowerCase() === category).length === 0 ? (
+                    {decors.filter(d => d.category.toLowerCase() === category.toLowerCase() || d.category === category).length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <p className="text-lg text-muted-foreground">
                           Aucun décor disponible dans cette catégorie
@@ -1331,7 +1337,7 @@ const ProjectDetail = () => {
                     ) : (
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {decors
-                          .filter(d => d.category.toLowerCase() === category)
+                          .filter(d => d.category.toLowerCase() === category.toLowerCase() || d.category === category)
                           .map((decor) => (
                             <Card
                               key={decor.id}
