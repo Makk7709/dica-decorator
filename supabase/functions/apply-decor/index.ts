@@ -159,7 +159,7 @@ serve(async (req) => {
     
     console.log("Authenticated user:", user.id);
     // ========================================================================
-    const { photoUrl, textureUrl, photoId, decorId, useCase, renderCount = 1, format = "square", showReferences = false } = await req.json();
+    const { photoUrl, textureUrl, photoId, decorId, useCase, renderCount = 1, format = "square", showReferences = false, originalWidth, originalHeight } = await req.json();
     
     // Get origin from request headers for constructing absolute URLs
     const requestOrigin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, '') || "";
@@ -752,6 +752,26 @@ L'annotation doit être:
       console.log(`Generating render ${i + 1}/${safeRenderCount}...`);
       
       try {
+        // Convert format to aspect ratio for Gemini
+        const getAspectRatio = (fmt: string) => {
+          switch (fmt) {
+            case "portrait": return "9:16";
+            case "landscape": return "16:9";
+            case "original": 
+              // Calculate aspect ratio from original dimensions
+              if (originalWidth && originalHeight) {
+                const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+                const divisor = gcd(originalWidth, originalHeight);
+                return `${originalWidth / divisor}:${originalHeight / divisor}`;
+              }
+              return "1:1"; // Fallback
+            default: return "1:1"; // square
+          }
+        };
+        
+        const aspectRatio = getAspectRatio(format);
+        console.log(`Using aspect ratio: ${aspectRatio} for format: ${format}`);
+        
         const geminiResponse = await fetchWithTimeout(geminiUrl, {
           method: "POST",
           headers: {
@@ -766,6 +786,7 @@ L'annotation doit être:
             ],
             generationConfig: {
               responseModalities: GEMINI_CONFIG.responseModalities,
+              aspectRatio: aspectRatio,
             },
           }),
         }, 60000); // 60s timeout for Gemini API
