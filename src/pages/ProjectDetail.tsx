@@ -76,7 +76,8 @@ const ProjectDetail = () => {
   const [showDecorDialog, setShowDecorDialog] = useState(false);
   const [favoriteRenderIds, setFavoriteRenderIds] = useState<Set<string>>(new Set());
   const [renderCount, setRenderCount] = useState<number>(1);
-  const [renderFormat, setRenderFormat] = useState<"square" | "portrait" | "landscape">("square");
+  const [renderFormat, setRenderFormat] = useState<"square" | "portrait" | "landscape" | "original">("square");
+  const [originalDimensions, setOriginalDimensions] = useState<{ width: number; height: number } | null>(null);
   const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const [comparisonMode, setComparisonMode] = useState<{
@@ -417,7 +418,9 @@ const ProjectDetail = () => {
           useCase: project.use_case,
           renderCount,
           format: renderFormat,
-          showReferences, // Ajouter les références DICA sur l'image
+          showReferences,
+          originalWidth: renderFormat === "original" ? originalDimensions?.width : undefined,
+          originalHeight: renderFormat === "original" ? originalDimensions?.height : undefined,
         },
       });
 
@@ -477,7 +480,9 @@ const ProjectDetail = () => {
           useCase: project.use_case,
           renderCount: 1,
           format: renderFormat,
-          showReferences, // Inclure les références DICA lors de la régénération
+          showReferences,
+          originalWidth: renderFormat === "original" ? originalDimensions?.width : undefined,
+          originalHeight: renderFormat === "original" ? originalDimensions?.height : undefined,
         },
       });
 
@@ -1034,6 +1039,12 @@ const ProjectDetail = () => {
                       onClick={() => {
                         setSelectedPhoto(photo);
                         setShowDecorDialog(true);
+                        // Load original image dimensions
+                        const img = new Image();
+                        img.onload = () => {
+                          setOriginalDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+                        };
+                        img.src = photo.original_image_url;
                       }}
                   className="w-full btn-primary-premium h-11 rounded-xl"
                     >
@@ -1247,6 +1258,9 @@ const ProjectDetail = () => {
                     <SelectItem value="square">Carré (1024×1024)</SelectItem>
                     <SelectItem value="portrait">Portrait (768×1344)</SelectItem>
                     <SelectItem value="landscape">Paysage (1344×768)</SelectItem>
+                    <SelectItem value="original">
+                      Format original {originalDimensions ? `(${originalDimensions.width}×${originalDimensions.height})` : ""}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
