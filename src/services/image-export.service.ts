@@ -208,8 +208,9 @@ export class ImageExportService {
     if (this.isDataUrl(imageUrl)) {
       try {
         originalBlob = this.dataUrlToBlob(imageUrl);
-      } catch (error: any) {
-        throw new Error(`Erreur de conversion du data URL: ${error.message}`);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erreur inconnue';
+        throw new Error(`Erreur de conversion du data URL: ${message}`);
       }
     } else {
       // Timeout de 30 secondes pour les URLs HTTP
@@ -219,13 +220,18 @@ export class ImageExportService {
       
       let response: Response;
       try {
-        response = await fetch(imageUrl, { signal: controller.signal });
-      } catch (error: any) {
+        response = await fetch(imageUrl, { 
+          signal: controller.signal,
+          mode: 'cors',
+          credentials: 'omit',
+        });
+      } catch (error: unknown) {
         clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           throw new Error('Timeout: Le téléchargement a pris trop de temps');
         }
-        throw new Error(`Erreur de connexion: ${error.message}`);
+        const message = error instanceof Error ? error.message : 'Erreur inconnue';
+        throw new Error(`Erreur de connexion: ${message}`);
       }
       clearTimeout(timeoutId);
       
@@ -242,8 +248,8 @@ export class ImageExportService {
     }
 
     // Créer une image pour le canvas
+    // Note: pas besoin de crossOrigin car on charge depuis un blob URL local
     const img = new Image();
-    img.crossOrigin = 'anonymous';
 
     return new Promise((resolve, reject) => {
       // Timeout pour le chargement de l'image
@@ -306,27 +312,85 @@ export class ImageExportService {
 
   /**
    * Télécharge une image dans le format spécifié
+   * Avec fallback vers téléchargement direct si la conversion échoue
    */
   static async downloadImage(
     imageUrl: string,
     options: ImageExportOptions = DEFAULT_EXPORT_OPTIONS
   ): Promise<void> {
-    const blob = await this.convertImageToFormat(imageUrl, options);
     const filename = options.filename
       ? this.generateFilename(options.format, options.filename)
       : this.generateFilename(options.format);
 
+    let blob: Blob;
+    
+    try {
+      // Tenter la conversion au format demandé
+      blob = await this.convertImageToFormat(imageUrl, options);
+    } catch (conversionError) {
+      console.warn('[ImageExport] Conversion échouée, tentative de téléchargement direct:', conversionError);
+      
+      // Fallback: télécharger directement l'image originale
+      try {
+        blob = await this.fetchImageAsBlob(imageUrl);
+      } catch (fetchError) {
+        // Dernier recours: ouvrir l'image dans un nouvel onglet
+        console.error('[ImageExport] Téléchargement direct échoué:', fetchError);
+        window.open(imageUrl, '_blank');
+        throw new Error('Téléchargement impossible - image ouverte dans un nouvel onglet');
+      }
+    }
+
     // Créer un lien de téléchargement
+    this.triggerDownload(blob, filename);
+  }
+
+  /**
+   * Télécharge une image directement comme Blob
+   */
+  private static async fetchImageAsBlob(imageUrl: string): Promise<Blob> {
+    if (this.isDataUrl(imageUrl)) {
+      return this.dataUrlToBlob(imageUrl);
+    }
+
+    const response = await fetch(imageUrl, {
+      mode: 'cors',
+      credentials: 'omit',
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
+  /**
+   * Déclenche le téléchargement d'un blob
+   */
+  private static triggerDownload(blob: Blob, filename: string): void {
     const blobUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
     link.download = filename;
+    
+    // Masquer le lien (avec vérification pour les environnements de test)
+    if (link.style) {
+      link.style.display = 'none';
+    }
+    
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-
-    // Nettoyer
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    
+    // Nettoyer après un court délai
+    setTimeout(() => {
+      try {
+        document.body.removeChild(link);
+      } catch {
+        // Ignorer si le lien a déjà été supprimé
+      }
+      URL.revokeObjectURL(blobUrl);
+    }, 100);
   }
 
   /**
