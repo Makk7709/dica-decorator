@@ -741,7 +741,7 @@ const ProjectDetail = () => {
                         const decor = decors.find(d => d.id === render.decor_id);
                         return {
                           id: render.id,
-                          url: render.result_image_url,
+                          url: getRenderUrl(render.id) || "",
                           originalUrl: photo?.original_image_url,
                           decorId: render.decor_id || '',
                           decorName: decor?.name || '',
@@ -754,7 +754,7 @@ const ProjectDetail = () => {
                     // Créations IA ensuite
                     ...creativeImports.map(creative => ({
                       id: creative.id,
-                      url: creative.result_image_url,
+                      url: getRenderUrl(creative.id) || "",
                       originalUrl: photos.find(p => p.id === creative.photoId)?.original_image_url,
                       decorId: 'creative',
                       decorName: 'Création Assistant IA',
@@ -795,7 +795,7 @@ const ProjectDetail = () => {
                             const isFavorite = favoriteRenderIds.has(render.id);
                             return {
                               id: render.id,
-                              url: render.result_image_url,
+                              url: getRenderUrl(render.id) || "",
                               originalUrl: photo?.original_image_url,
                               decorId: render.decor_id || '',
                               decorName: decor?.name || '',
@@ -809,7 +809,7 @@ const ProjectDetail = () => {
                       // Créations assistant IA
                       ...creativeImports.map(creative => ({
                         id: creative.id,
-                        url: creative.result_image_url,
+                        url: getRenderUrl(creative.id) || "",
                         originalUrl: undefined,
                         decorId: '',
                         decorName: 'Création Assistant IA',
@@ -957,7 +957,10 @@ const ProjectDetail = () => {
                         variant="secondary"
                         size="icon"
                         className="h-7 w-7 bg-white/90 hover:bg-white shadow-md"
-                        onClick={() => setZoomedImage(creative.result_image_url)}
+                        onClick={() => {
+                          const resolvedUrl = getRenderUrl(creative.id);
+                          if (resolvedUrl) setZoomedImage(resolvedUrl);
+                        }}
                         title="Agrandir"
                       >
                         <Maximize2 className="h-3.5 w-3.5 text-gray-700" />
@@ -967,7 +970,7 @@ const ProjectDetail = () => {
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 z-10">
                       <div className="flex gap-2">
                         <ImageExportDropdown
-                          imageUrl={creative.result_image_url}
+                          imageUrl={getRenderUrl(creative.id) || ""}
                           filename={`dica-ia-${creative.id}`}
                           variant="secondary"
                           size="sm"
@@ -1188,7 +1191,10 @@ const ProjectDetail = () => {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
                                   <DropdownMenuItem
-                                    onClick={() => setZoomedImage(render.result_image_url)}
+                                    onClick={() => {
+                                      const resolvedUrl = getRenderUrl(render.id);
+                                      if (resolvedUrl) setZoomedImage(resolvedUrl);
+                                    }}
                                     className="cursor-pointer"
                                   >
                                     <Maximize2 className="mr-2 h-4 w-4" />
@@ -1198,12 +1204,15 @@ const ProjectDetail = () => {
                                     onClick={() => {
                                       const decor = decors.find(d => d.id === render.decor_id);
                                       const isCreativeRender = !render.decor_id;
-                                      setComparisonMode({
-                                        before: photo.original_image_url,
-                                        after: render.result_image_url,
-                                        decorName: decor?.name || (isCreativeRender ? 'Création Assistant IA' : undefined),
-                                        decorCode: decor?.reference_code || (isCreativeRender ? 'CREATIVE-AI' : undefined),
-                                      });
+                                      const resolvedUrl = getRenderUrl(render.id);
+                                      if (resolvedUrl) {
+                                        setComparisonMode({
+                                          before: photo.original_image_url,
+                                          after: resolvedUrl,
+                                          decorName: decor?.name || (isCreativeRender ? 'Création Assistant IA' : undefined),
+                                          decorCode: decor?.reference_code || (isCreativeRender ? 'CREATIVE-AI' : undefined),
+                                        });
+                                      }
                                     }}
                                     className="cursor-pointer"
                                   >
@@ -1215,7 +1224,7 @@ const ProjectDetail = () => {
                                     Télécharger en...
                                   </div>
                                   <ImageExportMenuItems
-                                    imageUrl={render.result_image_url}
+                                    imageUrl={getRenderUrl(render.id) || ""}
                                     filename={`dica-render-${render.id}`}
                                   />
                                   {render.decor_id && (
