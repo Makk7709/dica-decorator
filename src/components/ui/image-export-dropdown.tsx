@@ -107,31 +107,34 @@ export function ImageExportDropdown({
           const Icon = FORMAT_ICONS[format.value];
           const isCurrentlyExporting = exportingFormat === format.value;
 
-          return (
-            <DropdownMenuItem
-              key={format.value}
-              onClick={() => handleExport(format.value)}
-              disabled={isExporting}
-              className="cursor-pointer flex items-start gap-3 py-2"
-            >
-              <div className="flex-shrink-0 mt-0.5">
-                {isCurrentlyExporting ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                ) : (
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm">{format.label}</div>
-                <div className="text-xs text-muted-foreground flex items-center gap-2">
-                  <span>{format.description}</span>
-                  <span className="text-primary font-medium">
-                    ~{format.estimatedSize}
-                  </span>
+            return (
+              <DropdownMenuItem
+                key={format.value}
+                onSelect={(e) => {
+                  // Radix DropdownMenu utilise onSelect (pas onClick) ;
+                  // preventDefault évite certains comportements qui annulent l'action.
+                  e.preventDefault();
+                  void handleExport(format.value);
+                }}
+                disabled={isExporting}
+                className="cursor-pointer flex items-start gap-3 py-2"
+              >
+                <div className="flex-shrink-0 mt-0.5">
+                  {isCurrentlyExporting ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  ) : (
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                  )}
                 </div>
-              </div>
-            </DropdownMenuItem>
-          );
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{format.label}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-2">
+                    <span>{format.description}</span>
+                    <span className="text-primary font-medium">~{format.estimatedSize}</span>
+                  </div>
+                </div>
+              </DropdownMenuItem>
+            );
         })}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -188,22 +191,23 @@ export function ImageExportMenuItems({
         const isCurrentlyExporting = exportingFormat === format.value;
 
         return (
-          <DropdownMenuItem
-            key={format.value}
-            onClick={() => handleExport(format.value)}
-            disabled={!!exportingFormat}
-            className="cursor-pointer"
-          >
-            {isCurrentlyExporting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Icon className="mr-2 h-4 w-4" />
-            )}
-            <span className="flex-1">{format.label.split('—')[0].trim()}</span>
-            <span className="text-xs text-muted-foreground ml-2">
-              ~{format.estimatedSize}
-            </span>
-          </DropdownMenuItem>
+            <DropdownMenuItem
+              key={format.value}
+              onSelect={(e) => {
+                e.preventDefault();
+                void handleExport(format.value);
+              }}
+              disabled={!!exportingFormat}
+              className="cursor-pointer"
+            >
+              {isCurrentlyExporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Icon className="mr-2 h-4 w-4" />
+              )}
+              <span className="flex-1">{format.label.split('—')[0].trim()}</span>
+              <span className="text-xs text-muted-foreground ml-2">~{format.estimatedSize}</span>
+            </DropdownMenuItem>
         );
       })}
     </>
