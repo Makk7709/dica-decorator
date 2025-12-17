@@ -409,10 +409,23 @@ const ProjectDetail = () => {
     setIsGenerating(true);
 
     try {
+      // Toujours récupérer la dernière URL de texture (évite les problèmes de cache UI)
+      const { data: latestDecor, error: latestDecorError } = await supabase
+        .from("decors")
+        .select("texture_image_url")
+        .eq("id", selectedDecor.id)
+        .maybeSingle();
+
+      if (latestDecorError) {
+        console.warn("[Decor] Impossible de rafraîchir la texture_image_url:", latestDecorError.message);
+      }
+
+      const textureUrlToUse = latestDecor?.texture_image_url || selectedDecor.texture_image_url;
+
       const { data, error } = await supabase.functions.invoke("apply-decor", {
         body: {
           photoUrl: selectedPhoto.original_image_url,
-          textureUrl: selectedDecor.texture_image_url,
+          textureUrl: textureUrlToUse,
           photoId: selectedPhoto.id,
           decorId: selectedDecor.id,
           useCase: project.use_case,
@@ -431,9 +444,9 @@ const ProjectDetail = () => {
       setShowDecorDialog(false);
       setSelectedPhoto(null);
       setSelectedDecor(null);
-      
+
       // Small delay to ensure database has propagated the new render
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       await loadProject();
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la génération du rendu");
@@ -445,15 +458,15 @@ const ProjectDetail = () => {
   const handleRegenerateRender = async (renderId: string, photoId: string) => {
     if (!user || !project) return;
 
-    const photo = photos.find(p => p.id === photoId);
-    const render = renders[photoId]?.find(r => r.id === renderId);
-    
+    const photo = photos.find((p) => p.id === photoId);
+    const render = renders[photoId]?.find((r) => r.id === renderId);
+
     if (!photo || !render || !render.decor_id) {
       toast.error("Impossible de régénérer ce rendu");
       return;
     }
 
-    const decor = decors.find(d => d.id === render.decor_id);
+    const decor = decors.find((d) => d.id === render.decor_id);
     if (!decor) {
       toast.error("Décor introuvable");
       return;
@@ -470,11 +483,24 @@ const ProjectDetail = () => {
 
       if (deleteError) throw deleteError;
 
+      // Toujours récupérer la dernière URL de texture (évite les problèmes de cache UI)
+      const { data: latestDecor, error: latestDecorError } = await supabase
+        .from("decors")
+        .select("texture_image_url")
+        .eq("id", decor.id)
+        .maybeSingle();
+
+      if (latestDecorError) {
+        console.warn("[Decor] Impossible de rafraîchir la texture_image_url:", latestDecorError.message);
+      }
+
+      const textureUrlToUse = latestDecor?.texture_image_url || decor.texture_image_url;
+
       // Generate new render with same parameters
       const { data, error } = await supabase.functions.invoke("apply-decor", {
         body: {
           photoUrl: photo.original_image_url,
-          textureUrl: decor.texture_image_url,
+          textureUrl: textureUrlToUse,
           photoId: photo.id,
           decorId: decor.id,
           useCase: project.use_case,
@@ -489,9 +515,9 @@ const ProjectDetail = () => {
       if (error) throw error;
 
       toast.success("Variante régénérée avec succès !");
-      
+
       // Small delay to ensure database has propagated the new render
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       await loadProject();
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la régénération");
