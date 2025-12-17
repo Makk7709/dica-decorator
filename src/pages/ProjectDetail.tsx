@@ -1119,9 +1119,9 @@ const ProjectDetail = () => {
                               renderId={render.id}
                               fallbackUrl={render.result_image_url}
                               alt="Rendu"
-                              className="w-full h-auto"
+                              className="w-full"
                               onResolved={(url) =>
-                                setRenderUrlById((prev) => (prev[render.id] ? prev : { ...prev, [render.id]: url }))
+                                setRenderUrlById((prev) => ({ ...prev, [render.id]: url }))
                               }
                             />
                             

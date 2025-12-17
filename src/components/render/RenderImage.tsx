@@ -106,7 +106,8 @@ export function RenderImage({
 
   // Afficher un skeleton pendant le chargement initial
   if (isLoading && !url) {
-    return <Skeleton className={className || "w-full aspect-[4/3]"} />;
+    const base = (className || "w-full").replace(/\bh-auto\b/g, "").trim();
+    return <Skeleton className={`${base} aspect-[4/3]`} />;
   }
 
   // Si pas d'URL, afficher un placeholder
