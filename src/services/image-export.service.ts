@@ -163,9 +163,33 @@ export class ImageExportService {
   }
 
   /**
+   * Convertit un data URL en Blob
+   */
+  static dataUrlToBlob(dataUrl: string): Blob {
+    const arr = dataUrl.split(',');
+    const mimeMatch = arr[0].match(/:(.*?);/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  }
+
+  /**
+   * Vérifie si une URL est un data URL
+   */
+  static isDataUrl(url: string): boolean {
+    return url.startsWith('data:');
+  }
+
+  /**
    * Convertit une image dans un format donné
    * Utilise canvas pour la conversion
    * Inclut un timeout de 30 secondes pour éviter les blocages
+   * Gère les data URLs et les URLs HTTP
    */
   static async convertImageToFormat(
     imageUrl: string,
@@ -178,30 +202,39 @@ export class ImageExportService {
     const { format, quality = this.getRecommendedQuality(options.format) } = options;
     const validQuality = this.validateQuality(quality);
 
-    // Timeout de 30 secondes
-    const timeoutMs = 30000;
-    
-    // Récupérer l'image via fetch pour contourner CORS
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-    
-    let response: Response;
-    try {
-      response = await fetch(imageUrl, { signal: controller.signal });
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error('Timeout: Le téléchargement a pris trop de temps');
-      }
-      throw new Error(`Erreur de connexion: ${error.message}`);
-    }
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`Erreur de chargement de l'image: ${response.status}`);
-    }
+    let originalBlob: Blob;
 
-    const originalBlob = await response.blob();
+    // Gérer les data URLs différemment des URLs HTTP
+    if (this.isDataUrl(imageUrl)) {
+      try {
+        originalBlob = this.dataUrlToBlob(imageUrl);
+      } catch (error: any) {
+        throw new Error(`Erreur de conversion du data URL: ${error.message}`);
+      }
+    } else {
+      // Timeout de 30 secondes pour les URLs HTTP
+      const timeoutMs = 30000;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      
+      let response: Response;
+      try {
+        response = await fetch(imageUrl, { signal: controller.signal });
+      } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+          throw new Error('Timeout: Le téléchargement a pris trop de temps');
+        }
+        throw new Error(`Erreur de connexion: ${error.message}`);
+      }
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Erreur de chargement de l'image: ${response.status}`);
+      }
+
+      originalBlob = await response.blob();
+    }
     
     // Si c'est déjà le bon format et qualité max, retourner directement
     if (format === 'png' && validQuality === 1) {
