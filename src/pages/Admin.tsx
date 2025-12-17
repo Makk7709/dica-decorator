@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getTextureStorageUrl } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -787,7 +788,7 @@ const Admin = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <img
-                        src={decor.texture_image_url}
+                        src={getTextureStorageUrl(decor.texture_image_url)}
                         alt={decor.name}
                         className="h-32 w-full rounded object-cover"
                       />

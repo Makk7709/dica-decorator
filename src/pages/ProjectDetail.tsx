@@ -16,6 +16,7 @@ import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/p
 import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { compressImage, formatFileSize } from "@/lib/image-compression";
+import { getTextureStorageUrl } from "@/lib/utils";
 import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 import { ResellerBrochureExportButton } from "@/components/ui/reseller-brochure-export-button";
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
@@ -1377,7 +1378,7 @@ const ProjectDetail = () => {
                               <CardContent className="p-3">
                                 <div className="relative mb-2 overflow-hidden rounded-lg">
                                   <img
-                                    src={decor.texture_image_url}
+                                    src={getTextureStorageUrl(decor.texture_image_url)}
                                     alt={decor.name}
                                     className="h-32 w-full object-cover transition-transform hover:scale-105"
                                   />
