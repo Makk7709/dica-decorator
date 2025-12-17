@@ -68,9 +68,10 @@ export function ImageExportDropdown({
 
       const formatInfo = ImageExportService.getFormatInfo(format);
       toast.success(`Image exportée en ${formatInfo.name} !`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Export error:', error);
-      toast.error(`Erreur d'export: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      toast.error(`Erreur d'export: ${message}`);
     } finally {
       setIsExporting(false);
       setExportingFormat(null);
@@ -175,9 +176,10 @@ export function ImageExportMenuItems({
 
       const formatInfo = ImageExportService.getFormatInfo(format);
       toast.success(`Image exportée en ${formatInfo.name} !`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Export error:', error);
-      toast.error(`Erreur d'export: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      toast.error(`Erreur d'export: ${message}`);
     } finally {
       setExportingFormat(null);
       onExportEnd?.();

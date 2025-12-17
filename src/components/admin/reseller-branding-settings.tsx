@@ -102,6 +102,7 @@ export function ResellerBrandingSettings({
   useEffect(() => {
     const result = service.validateResellerBranding(formData);
     setValidation(result);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData]);
 
   // Mettre à jour quand les props changent

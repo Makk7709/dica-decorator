@@ -234,7 +234,8 @@ export const ShareLinkDialog: React.FC<ShareLinkDialogProps> = ({
     if (existingLinks.length > 0 && links.length === 0) {
       setLinks(existingLinks);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingLinks]);
 
   const handleCreateLink = useCallback(async () => {
     setIsCreating(true);

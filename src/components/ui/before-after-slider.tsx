@@ -160,7 +160,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 
   // Keyboard events
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    service.handleKeyDown(e as any);
+    service.handleKeyDown(e.nativeEvent);
   }, [service]);
 
   // Add/remove global listeners

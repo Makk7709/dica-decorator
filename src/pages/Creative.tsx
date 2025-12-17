@@ -98,6 +98,7 @@ const Creative = () => {
     loadDecors();
     loadFavorites();
     loadProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
 
   useEffect(() => {
@@ -116,7 +117,7 @@ const Creative = () => {
 
       if (error) throw error;
       setFavorites(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading favorites:", error);
     }
   };
@@ -133,7 +134,7 @@ const Creative = () => {
 
       if (error) throw error;
       setProjects(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading projects:", error);
     }
   };
@@ -212,9 +213,10 @@ const Creative = () => {
       setSaveTitle("");
       setSelectedMessageIndex(null);
       loadFavorites();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving favorite:", error);
-      toast.error(error.message || "Erreur lors de la sauvegarde");
+      const message = error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -231,7 +233,7 @@ const Creative = () => {
       
       toast.success("Favori supprimé");
       loadFavorites();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting favorite:", error);
       toast.error("Erreur lors de la suppression");
     }
@@ -249,7 +251,7 @@ const Creative = () => {
       if (error) throw error;
       console.log(`Décors chargés: ${data?.length || 0} décors actifs`);
       setDecors(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading decors:", error);
       toast.error("Erreur lors du chargement des décors");
     }
@@ -323,7 +325,7 @@ const Creative = () => {
       setUploadedImages(prev => [...prev, { url: publicUrl, label }]);
       setCurrentImageLabel("");
       toast.success(`${label} uploadée`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error uploading image:", error);
       toast.error("Erreur lors de l'upload");
     } finally {
@@ -463,9 +465,10 @@ const Creative = () => {
 
     try {
       await streamChat(userMessage, sourceImages.length > 0 ? sourceImages : undefined);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error:", error);
-      toast.error(error.message || "Erreur lors de la communication avec l'IA");
+      const message = error instanceof Error ? error.message : "Erreur lors de la communication avec l'IA";
+      toast.error(message);
       // Remove the empty assistant message on error
       setMessages(prev => prev.slice(0, -1));
     } finally {
@@ -573,9 +576,10 @@ const Creative = () => {
           
           publicUrl = data.publicUrl;
           console.log("Image uploaded to storage:", publicUrl);
-        } catch (conversionError: any) {
+        } catch (conversionError: unknown) {
           console.error("Base64 conversion error:", conversionError);
-          throw new Error(`Erreur de conversion d'image: ${conversionError.message}`);
+          const message = conversionError instanceof Error ? conversionError.message : "Erreur inconnue";
+          throw new Error(`Erreur de conversion d'image: ${message}`);
         }
       } else {
         // Already a URL, use directly
@@ -636,9 +640,10 @@ const Creative = () => {
       setSelectedProjectId("");
       setNewProjectTitle("");
       loadProjects();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving to project:", error);
-      toast.error(error.message || "Erreur lors de la sauvegarde");
+      const message = error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
+      toast.error(message);
     } finally {
       setIsSavingToProject(false);
     }

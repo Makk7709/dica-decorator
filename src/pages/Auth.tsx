@@ -43,8 +43,12 @@ const Auth = () => {
     // Validation
     try {
       emailSchema.parse(loginData.email);
-    } catch (error: any) {
-      toast.error(error.errors[0]?.message || "Email invalide");
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0]?.message || "Email invalide");
+      } else {
+        toast.error("Email invalide");
+      }
       return;
     }
 
@@ -54,7 +58,7 @@ const Auth = () => {
       await signIn(loginData.email, loginData.password);
       toast.success("Connexion réussie !");
       navigate("/dashboard");
-    } catch (error: any) {
+    } catch {
       // Messages d'erreur génériques pour éviter l'énumération de comptes
       toast.error("Email ou mot de passe incorrect");
     } finally {
@@ -68,16 +72,24 @@ const Auth = () => {
     // Validation email
     try {
       emailSchema.parse(signupData.email);
-    } catch (error: any) {
-      toast.error(error.errors[0]?.message || "Email invalide");
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0]?.message || "Email invalide");
+      } else {
+        toast.error("Email invalide");
+      }
       return;
     }
 
     // Validation mot de passe
     try {
       passwordSchema.parse(signupData.password);
-    } catch (error: any) {
-      toast.error(error.errors[0]?.message || "Mot de passe invalide");
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0]?.message || "Mot de passe invalide");
+      } else {
+        toast.error("Mot de passe invalide");
+      }
       return;
     }
 
@@ -95,7 +107,7 @@ const Auth = () => {
       // Connexion automatique après inscription
       await signIn(signupData.email, signupData.password);
       navigate("/dashboard");
-    } catch (error: any) {
+    } catch {
       // Messages génériques pour éviter l'énumération
       toast.error("Impossible de créer le compte. Veuillez réessayer.");
     } finally {

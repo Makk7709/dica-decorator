@@ -59,6 +59,7 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
   // Charger les favoris
   useEffect(() => {
     loadFavorites();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, projectId]);
 
   const loadFavorites = async () => {
@@ -66,7 +67,7 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
 
     setIsLoading(true);
     try {
-      const service = new FavoritesService(supabase as any);
+      const service = new FavoritesService(supabase);
       const result = await service.getFavoritesWithFilter(user.id, filter);
 
       if (result.success) {
@@ -234,7 +235,7 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
           </div>
 
           {/* Filtres type */}
-          <Select value={filter.type || 'all'} onValueChange={(v: any) => applyTypeFilter(v)}>
+          <Select value={filter.type || 'all'} onValueChange={(v: 'all' | 'decor' | 'creative') => applyTypeFilter(v)}>
             <SelectTrigger className="w-[140px] h-9">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Type" />

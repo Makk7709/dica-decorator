@@ -44,7 +44,7 @@ export interface AnalyticsChartProps {
   /** Type de graphique */
   type: ChartType;
   /** Données du graphique */
-  data: Array<{ name: string; value: number; [key: string]: any }>;
+  data: Array<{ name: string; value: number; [key: string]: string | number }>;
   /** Hauteur du graphique */
   height?: number;
   /** Clé pour la valeur */
@@ -63,12 +63,24 @@ export interface AnalyticsChartProps {
 // Custom Tooltip
 // ============================================================================
 
-const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
+interface TooltipEntry {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: TooltipEntry[];
+  label?: string;
+}
+
+const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg border bg-background p-3 shadow-lg">
         <p className="font-medium">{label}</p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: TooltipEntry, index: number) => (
           <p key={index} className="text-sm" style={{ color: entry.color }}>
             {entry.name}: {entry.value.toLocaleString('fr-FR')}
           </p>
@@ -83,8 +95,10 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
 // Chart Components
 // ============================================================================
 
+type ChartDataItem = { name: string; value: number; [key: string]: string | number };
+
 const LineChartComponent: React.FC<{
-  data: any[];
+  data: ChartDataItem[];
   dataKey: string;
   showGrid: boolean;
 }> = ({ data, dataKey, showGrid }) => (
@@ -114,7 +128,7 @@ const LineChartComponent: React.FC<{
 );
 
 const BarChartComponent: React.FC<{
-  data: any[];
+  data: ChartDataItem[];
   dataKey: string;
   showGrid: boolean;
 }> = ({ data, dataKey, showGrid }) => (
@@ -141,7 +155,7 @@ const BarChartComponent: React.FC<{
 );
 
 const PieChartComponent: React.FC<{
-  data: any[];
+  data: ChartDataItem[];
   dataKey: string;
   showLegend: boolean;
 }> = ({ data, dataKey, showLegend }) => (

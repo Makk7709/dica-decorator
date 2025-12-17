@@ -104,6 +104,7 @@ const Admin = () => {
     loadCategories();
     loadUsers();
     loadUserBranding();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userRole, navigate, user]);
 
   const loadUserBranding = async () => {
@@ -142,7 +143,7 @@ const Admin = () => {
           setResellerBranding(null);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Admin] Error loading user branding:", error);
     }
   };
@@ -157,7 +158,7 @@ const Admin = () => {
 
       if (error) throw error;
       setDecors(data || []);
-    } catch (error: any) {
+    } catch {
       toast.error("Erreur lors du chargement des décors");
     } finally {
       setIsLoading(false);
@@ -173,7 +174,7 @@ const Admin = () => {
 
       if (error) throw error;
       setCategories(data || []);
-    } catch (error: any) {
+    } catch {
       toast.error("Erreur lors du chargement des catégories");
     }
   };
@@ -200,7 +201,7 @@ const Admin = () => {
       if (data?.users) {
         setUsers(data.users);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erreur lors du chargement des utilisateurs");
       console.error(error);
     } finally {
@@ -219,7 +220,7 @@ const Admin = () => {
       toast.success("Quota mis à jour");
       setEditingUserId(null);
       loadUsers();
-    } catch (error: any) {
+    } catch {
       toast.error("Erreur lors de la mise à jour du quota");
     }
   };
@@ -234,7 +235,7 @@ const Admin = () => {
       if (error) throw error;
       toast.success(isActive ? "Compte désactivé" : "Compte réactivé");
       loadUsers();
-    } catch (error: any) {
+    } catch {
       toast.error("Erreur lors de la mise à jour du compte");
     }
   };
@@ -249,7 +250,7 @@ const Admin = () => {
       if (error) throw error;
       toast.success(!currentValue ? "Co-branding activé" : "Co-branding désactivé");
       loadUsers();
-    } catch (error: any) {
+    } catch {
       toast.error("Erreur lors de la mise à jour du co-branding");
     }
   };
@@ -314,8 +315,9 @@ const Admin = () => {
       setIsDialogOpen(false);
       resetForm();
       loadDecors();
-    } catch (error: any) {
-      toast.error(error.message || "Erreur lors de la sauvegarde");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
       setUploadingImage(false);
@@ -362,8 +364,9 @@ const Admin = () => {
       setIsCategoryDialogOpen(false);
       resetCategoryForm();
       loadCategories();
-    } catch (error: any) {
-      toast.error(error.message || "Erreur lors de la sauvegarde");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
       setUploadingImage(false);
@@ -382,7 +385,7 @@ const Admin = () => {
       if (error) throw error;
       toast.success("Décor supprimé");
       loadDecors();
-    } catch (error: any) {
+    } catch {
       toast.error("Erreur lors de la suppression");
     }
   };
@@ -397,7 +400,7 @@ const Admin = () => {
       if (error) throw error;
       toast.success(decor.is_active ? "Décor désactivé" : "Décor activé");
       loadDecors();
-    } catch (error: any) {
+    } catch {
       toast.error("Erreur lors de la mise à jour");
     }
   };
@@ -414,7 +417,7 @@ const Admin = () => {
       if (error) throw error;
       toast.success("Catégorie supprimée");
       loadCategories();
-    } catch (error: any) {
+    } catch {
       toast.error("Erreur lors de la suppression");
     }
   };
@@ -1013,9 +1016,10 @@ const Admin = () => {
                   toast.success("Configuration du co-branding sauvegardée avec succès");
                   
                   console.log("[Admin] Branding saved successfully for user:", user.id, branding);
-                } catch (error: any) {
+                } catch (error: unknown) {
                   console.error("[Admin] Error saving branding:", error);
-                  toast.error(`Erreur: ${error.message || "Impossible de sauvegarder"}`);
+                  const message = error instanceof Error ? error.message : "Impossible de sauvegarder";
+                  toast.error(`Erreur: ${message}`);
                 }
               }}
             />
