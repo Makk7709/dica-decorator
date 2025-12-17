@@ -510,6 +510,62 @@ RÉSULTAT ATTENDU:
 pas de générer une nouvelle scène. La photo du client EST ta base de travail.
 ═══════════════════════════════════════════════════════════════════`;
 
+    // Layer 4: Format/Aspect ratio directive
+    const getFormatInstructions = () => {
+      switch (format) {
+        case "portrait":
+          return `═══════════════════════════════════════════════════════════════════
+🖼️ FORMAT DE SORTIE: PORTRAIT (9:16)
+═══════════════════════════════════════════════════════════════════
+L'image générée DOIT être au format PORTRAIT (ratio 9:16).
+• Orientation: VERTICALE (plus haute que large)
+• Dimensions suggérées: 768×1344 pixels ou proportions équivalentes
+• RECADRER si nécessaire pour respecter ce format vertical
+═══════════════════════════════════════════════════════════════════`;
+        case "landscape":
+          return `═══════════════════════════════════════════════════════════════════
+🖼️ FORMAT DE SORTIE: PAYSAGE (16:9)
+═══════════════════════════════════════════════════════════════════
+L'image générée DOIT être au format PAYSAGE (ratio 16:9).
+• Orientation: HORIZONTALE (plus large que haute)
+• Dimensions suggérées: 1344×768 pixels ou proportions équivalentes
+• RECADRER si nécessaire pour respecter ce format horizontal
+═══════════════════════════════════════════════════════════════════`;
+        case "original":
+          if (originalWidth && originalHeight) {
+            const ratio = (originalWidth / originalHeight).toFixed(2);
+            return `═══════════════════════════════════════════════════════════════════
+🖼️ FORMAT DE SORTIE: ORIGINAL (${originalWidth}×${originalHeight})
+═══════════════════════════════════════════════════════════════════
+L'image générée DOIT CONSERVER le format EXACT de la photo source.
+• Ratio d'aspect: ${ratio}:1 (largeur:hauteur)
+• Dimensions originales: ${originalWidth}×${originalHeight} pixels
+• NE PAS recadrer, NE PAS modifier les proportions
+• Préserver l'intégralité de la composition originale
+═══════════════════════════════════════════════════════════════════`;
+          }
+          return `═══════════════════════════════════════════════════════════════════
+🖼️ FORMAT DE SORTIE: ORIGINAL
+═══════════════════════════════════════════════════════════════════
+L'image générée DOIT CONSERVER le format EXACT de la photo source.
+• NE PAS recadrer, NE PAS modifier les proportions
+• Préserver l'intégralité de la composition originale
+═══════════════════════════════════════════════════════════════════`;
+        default: // square
+          return `═══════════════════════════════════════════════════════════════════
+🖼️ FORMAT DE SORTIE: CARRÉ (1:1)
+═══════════════════════════════════════════════════════════════════
+L'image générée DOIT être au format CARRÉ (ratio 1:1).
+• Orientation: CARRÉE (largeur = hauteur)
+• Dimensions suggérées: 1024×1024 pixels
+• RECADRER si nécessaire pour respecter ce format carré
+═══════════════════════════════════════════════════════════════════`;
+      }
+    };
+    
+    const formatInstructions = getFormatInstructions();
+    console.log(`Format instructions for: ${format}`);
+
     // Assemble final prompt with TASK DEFINITION FIRST
     const prompt = `${taskDefinition}
 
@@ -521,6 +577,8 @@ ${materialRules}
 
 ${qualityDirective}
 
+${formatInstructions}
+
 ═══════════════════════════════════════════════════════════════════
 📋 CHECKLIST FINALE AVANT GÉNÉRATION
 ═══════════════════════════════════════════════════════════════════
@@ -530,6 +588,7 @@ ${qualityDirective}
 ✓ La photo originale est-elle préservée (cadrage, objets)?
 ✓ Seules les surfaces autorisées sont-elles modifiées?
 ✓ Le résultat est-il crédible pour un professionnel?
+✓ Le FORMAT de sortie est-il respecté (${format})?
 
 Si UNE seule réponse est NON → Améliorer ou refuser le rendu.
 ═══════════════════════════════════════════════════════════════════
