@@ -752,44 +752,52 @@ L'annotation doit être:
       console.log(`Generating render ${i + 1}/${safeRenderCount}...`);
       
       try {
-        // Convert format to aspect ratio for Gemini
-        const getAspectRatio = (fmt: string) => {
-          switch (fmt) {
-            case "portrait": return "9:16";
-            case "landscape": return "16:9";
-            case "original": 
-              // Calculate aspect ratio from original dimensions
+        // Note: Gemini 3 Pro Image Preview ne supporte pas le champ generationConfig.aspectRatio.
+        // On encode donc le format souhaité dans le prompt (format-only), sans paramètre JSON dédié.
+        const formatHint = (() => {
+          switch (format) {
+            case "portrait":
+              return "FORMAT DE SORTIE: portrait (9:16).";
+            case "landscape":
+              return "FORMAT DE SORTIE: paysage (16:9).";
+            case "original":
               if (originalWidth && originalHeight) {
-                const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
-                const divisor = gcd(originalWidth, originalHeight);
-                return `${originalWidth / divisor}:${originalHeight / divisor}`;
+                return `FORMAT DE SORTIE: respecter le ratio original (~${originalWidth}:${originalHeight}).`;
               }
-              return "1:1"; // Fallback
-            default: return "1:1"; // square
+              return "FORMAT DE SORTIE: carré (1:1) si ratio original indisponible.";
+            default:
+              return "FORMAT DE SORTIE: carré (1:1).";
           }
-        };
-        
-        const aspectRatio = getAspectRatio(format);
-        console.log(`Using aspect ratio: ${aspectRatio} for format: ${format}`);
-        
-        const geminiResponse = await fetchWithTimeout(geminiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: requestParts,
-              },
-            ],
-            generationConfig: {
-              responseModalities: GEMINI_CONFIG.responseModalities,
-              aspectRatio: aspectRatio,
+        })();
+
+        const renderRequestParts = requestParts.map((p) => {
+          if (typeof p?.text === "string") {
+            return { ...p, text: `${p.text}\n\n${formatHint}` };
+          }
+          return p;
+        });
+
+        const geminiResponse = await fetchWithTimeout(
+          geminiUrl,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          }),
-        }, 60000); // 60s timeout for Gemini API
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: "user",
+                  parts: renderRequestParts,
+                },
+              ],
+              generationConfig: {
+                responseModalities: GEMINI_CONFIG.responseModalities,
+              },
+            }),
+          },
+          60000,
+        ); // 60s timeout for Gemini API
 
         // Handle errors with detailed logging
         if (!geminiResponse.ok) {
