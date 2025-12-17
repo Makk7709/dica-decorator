@@ -23,6 +23,7 @@ import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-b
 
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
+import { RenderImage } from "@/components/render/RenderImage";
 
 interface Project {
   id: string;
@@ -48,7 +49,8 @@ interface Decor {
 
 interface RenderResult {
   id: string;
-  result_image_url: string;
+  // ⚠️ Peut être vide au chargement (hydration lazy pour éviter les payloads base64 énormes)
+  result_image_url?: string;
   decor_id: string | null;
   created_at: string;
 }
@@ -56,7 +58,7 @@ interface RenderResult {
 // Création de l'assistant IA (sans décor associé)
 interface CreativeImport {
   id: string;
-  result_image_url: string;
+  result_image_url?: string;
   created_at: string;
   photoId: string;
 }
@@ -70,6 +72,8 @@ const ProjectDetail = () => {
   const [decors, setDecors] = useState<Decor[]>([]);
   const [renders, setRenders] = useState<{ [photoId: string]: RenderResult[] }>({});
   const [creativeImports, setCreativeImports] = useState<CreativeImport[]>([]); // Créations Assistant IA
+  const [renderUrlById, setRenderUrlById] = useState<Record<string, string>>({});
+  const getRenderUrl = (renderId: string, fallback?: string) => renderUrlById[renderId] || fallback || "";
   const [selectedPhoto, setSelectedPhoto] = useState<ProjectPhoto | null>(null);
   const [selectedDecor, setSelectedDecor] = useState<Decor | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -268,48 +272,59 @@ const ProjectDetail = () => {
       const photoIds = (photosResult.data || []).map(p => p.id);
       
       if (photoIds.length > 0) {
-        // Lancer la requête des renders
-        const { data: allRendersData } = await supabase
+        // ⚠️ Important: ne pas sélectionner result_image_url ici (peut être gigantesque en base64)
+        const { data: allRendersData, error: rendersError } = await supabase
           .from("render_results")
-          .select("*")
+          .select("id, project_photo_id, decor_id, created_at")
           .in("project_photo_id", photoIds)
           .order("created_at", { ascending: false });
+
+        if (rendersError) {
+          console.error("[Load] Erreur chargement renders:", rendersError);
+          throw rendersError;
+        }
 
         // Traitement rapide avec Map pour O(n) au lieu de O(n²)
         const rendersByPhoto: { [photoId: string]: RenderResult[] } = {};
         const allCreativeImports: CreativeImport[] = [];
-        
+
         // Pré-initialiser avec Map pour performance
         const photoIdSet = new Set(photoIds);
-        photoIds.forEach(photoId => {
+        photoIds.forEach((photoId) => {
           rendersByPhoto[photoId] = [];
         });
-        
+
         // Traitement en une seule passe
         if (allRendersData) {
           for (let i = 0; i < allRendersData.length; i++) {
-            const render = allRendersData[i];
+            const render = allRendersData[i] as any;
             if (render.decor_id === null) {
               // Création de l'assistant IA
               allCreativeImports.push({
                 id: render.id,
-                result_image_url: render.result_image_url,
+                result_image_url: "",
                 created_at: render.created_at,
                 photoId: render.project_photo_id,
               });
             } else if (photoIdSet.has(render.project_photo_id)) {
               // Rendu décor classique
-              rendersByPhoto[render.project_photo_id].push(render);
+              rendersByPhoto[render.project_photo_id].push({
+                id: render.id,
+                result_image_url: "",
+                decor_id: render.decor_id,
+                created_at: render.created_at,
+              });
             }
           }
         }
-        
-        // ✅ Afficher créations IA et renders
+
         setCreativeImports(allCreativeImports);
         setRenders(rendersByPhoto);
         setIsLoadingRenders(false);
-        
-        console.log(`[Load] ${allCreativeImports.length} créations IA, ${Object.values(rendersByPhoto).flat().length} renders chargés`);
+
+        console.log(
+          `[Load] ${allCreativeImports.length} créations IA, ${Object.values(rendersByPhoto).flat().length} renders chargés (hydration images lazy)`
+        );
       } else {
         setRenders({});
         setCreativeImports([]);
@@ -922,10 +937,14 @@ const ProjectDetail = () => {
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="relative">
-                    <img
-                      src={creative.result_image_url}
+                    <RenderImage
+                      renderId={creative.id}
+                      fallbackUrl={creative.result_image_url}
                       alt="Création IA"
                       className="w-full aspect-square object-cover"
+                      onResolved={(url) =>
+                        setRenderUrlById((prev) => (prev[creative.id] ? prev : { ...prev, [creative.id]: url }))
+                      }
                     />
                     {/* Badge IA */}
                     <div className="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
@@ -1093,10 +1112,14 @@ const ProjectDetail = () => {
                           style={{ animationDelay: `${renderIndex * 50}ms` }}
                         >
                           <div className="relative">
-                              <img
-                                src={render.result_image_url}
-                                alt="Rendu"
+                            <RenderImage
+                              renderId={render.id}
+                              fallbackUrl={render.result_image_url}
+                              alt="Rendu"
                               className="w-full h-auto"
+                              onResolved={(url) =>
+                                setRenderUrlById((prev) => (prev[render.id] ? prev : { ...prev, [render.id]: url }))
+                              }
                             />
                             
                             {/* Disclaimer non contractuel */}
