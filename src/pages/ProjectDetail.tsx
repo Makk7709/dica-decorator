@@ -16,14 +16,12 @@ import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/p
 import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { compressImage, formatFileSize } from "@/lib/image-compression";
-import { getTextureStorageUrl } from "@/lib/utils";
 import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 import { ResellerBrochureExportButton } from "@/components/ui/reseller-brochure-export-button";
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
 
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
-import { RenderImage } from "@/components/render/RenderImage";
 
 interface Project {
   id: string;
@@ -49,8 +47,7 @@ interface Decor {
 
 interface RenderResult {
   id: string;
-  // ⚠️ Peut être vide au chargement (hydration lazy pour éviter les payloads base64 énormes)
-  result_image_url?: string;
+  result_image_url: string;
   decor_id: string | null;
   created_at: string;
 }
@@ -58,7 +55,7 @@ interface RenderResult {
 // Création de l'assistant IA (sans décor associé)
 interface CreativeImport {
   id: string;
-  result_image_url?: string;
+  result_image_url: string;
   created_at: string;
   photoId: string;
 }
@@ -72,8 +69,6 @@ const ProjectDetail = () => {
   const [decors, setDecors] = useState<Decor[]>([]);
   const [renders, setRenders] = useState<{ [photoId: string]: RenderResult[] }>({});
   const [creativeImports, setCreativeImports] = useState<CreativeImport[]>([]); // Créations Assistant IA
-  const [renderUrlById, setRenderUrlById] = useState<Record<string, string>>({});
-  const getRenderUrl = (renderId: string, fallback?: string) => renderUrlById[renderId] || fallback || "";
   const [selectedPhoto, setSelectedPhoto] = useState<ProjectPhoto | null>(null);
   const [selectedDecor, setSelectedDecor] = useState<Decor | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -272,59 +267,48 @@ const ProjectDetail = () => {
       const photoIds = (photosResult.data || []).map(p => p.id);
       
       if (photoIds.length > 0) {
-        // ⚠️ Important: ne pas sélectionner result_image_url ici (peut être gigantesque en base64)
-        const { data: allRendersData, error: rendersError } = await supabase
+        // Lancer la requête des renders
+        const { data: allRendersData } = await supabase
           .from("render_results")
-          .select("id, project_photo_id, decor_id, created_at")
+          .select("*")
           .in("project_photo_id", photoIds)
           .order("created_at", { ascending: false });
-
-        if (rendersError) {
-          console.error("[Load] Erreur chargement renders:", rendersError);
-          throw rendersError;
-        }
 
         // Traitement rapide avec Map pour O(n) au lieu de O(n²)
         const rendersByPhoto: { [photoId: string]: RenderResult[] } = {};
         const allCreativeImports: CreativeImport[] = [];
-
+        
         // Pré-initialiser avec Map pour performance
         const photoIdSet = new Set(photoIds);
-        photoIds.forEach((photoId) => {
+        photoIds.forEach(photoId => {
           rendersByPhoto[photoId] = [];
         });
-
+        
         // Traitement en une seule passe
         if (allRendersData) {
           for (let i = 0; i < allRendersData.length; i++) {
-            const render = allRendersData[i] as any;
+            const render = allRendersData[i];
             if (render.decor_id === null) {
               // Création de l'assistant IA
               allCreativeImports.push({
                 id: render.id,
-                result_image_url: "",
+                result_image_url: render.result_image_url,
                 created_at: render.created_at,
                 photoId: render.project_photo_id,
               });
             } else if (photoIdSet.has(render.project_photo_id)) {
               // Rendu décor classique
-              rendersByPhoto[render.project_photo_id].push({
-                id: render.id,
-                result_image_url: "",
-                decor_id: render.decor_id,
-                created_at: render.created_at,
-              });
+              rendersByPhoto[render.project_photo_id].push(render);
             }
           }
         }
-
+        
+        // ✅ Afficher créations IA et renders
         setCreativeImports(allCreativeImports);
         setRenders(rendersByPhoto);
         setIsLoadingRenders(false);
-
-        console.log(
-          `[Load] ${allCreativeImports.length} créations IA, ${Object.values(rendersByPhoto).flat().length} renders chargés (hydration images lazy)`
-        );
+        
+        console.log(`[Load] ${allCreativeImports.length} créations IA, ${Object.values(rendersByPhoto).flat().length} renders chargés`);
       } else {
         setRenders({});
         setCreativeImports([]);
@@ -425,23 +409,10 @@ const ProjectDetail = () => {
     setIsGenerating(true);
 
     try {
-      // Toujours récupérer la dernière URL de texture (évite les problèmes de cache UI)
-      const { data: latestDecor, error: latestDecorError } = await supabase
-        .from("decors")
-        .select("texture_image_url")
-        .eq("id", selectedDecor.id)
-        .maybeSingle();
-
-      if (latestDecorError) {
-        console.warn("[Decor] Impossible de rafraîchir la texture_image_url:", latestDecorError.message);
-      }
-
-      const textureUrlToUse = latestDecor?.texture_image_url || selectedDecor.texture_image_url;
-
       const { data, error } = await supabase.functions.invoke("apply-decor", {
         body: {
           photoUrl: selectedPhoto.original_image_url,
-          textureUrl: textureUrlToUse,
+          textureUrl: selectedDecor.texture_image_url,
           photoId: selectedPhoto.id,
           decorId: selectedDecor.id,
           useCase: project.use_case,
@@ -460,9 +431,9 @@ const ProjectDetail = () => {
       setShowDecorDialog(false);
       setSelectedPhoto(null);
       setSelectedDecor(null);
-
+      
       // Small delay to ensure database has propagated the new render
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
       await loadProject();
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la génération du rendu");
@@ -474,15 +445,15 @@ const ProjectDetail = () => {
   const handleRegenerateRender = async (renderId: string, photoId: string) => {
     if (!user || !project) return;
 
-    const photo = photos.find((p) => p.id === photoId);
-    const render = renders[photoId]?.find((r) => r.id === renderId);
-
+    const photo = photos.find(p => p.id === photoId);
+    const render = renders[photoId]?.find(r => r.id === renderId);
+    
     if (!photo || !render || !render.decor_id) {
       toast.error("Impossible de régénérer ce rendu");
       return;
     }
 
-    const decor = decors.find((d) => d.id === render.decor_id);
+    const decor = decors.find(d => d.id === render.decor_id);
     if (!decor) {
       toast.error("Décor introuvable");
       return;
@@ -499,24 +470,11 @@ const ProjectDetail = () => {
 
       if (deleteError) throw deleteError;
 
-      // Toujours récupérer la dernière URL de texture (évite les problèmes de cache UI)
-      const { data: latestDecor, error: latestDecorError } = await supabase
-        .from("decors")
-        .select("texture_image_url")
-        .eq("id", decor.id)
-        .maybeSingle();
-
-      if (latestDecorError) {
-        console.warn("[Decor] Impossible de rafraîchir la texture_image_url:", latestDecorError.message);
-      }
-
-      const textureUrlToUse = latestDecor?.texture_image_url || decor.texture_image_url;
-
       // Generate new render with same parameters
       const { data, error } = await supabase.functions.invoke("apply-decor", {
         body: {
           photoUrl: photo.original_image_url,
-          textureUrl: textureUrlToUse,
+          textureUrl: decor.texture_image_url,
           photoId: photo.id,
           decorId: decor.id,
           useCase: project.use_case,
@@ -531,9 +489,9 @@ const ProjectDetail = () => {
       if (error) throw error;
 
       toast.success("Variante régénérée avec succès !");
-
+      
       // Small delay to ensure database has propagated the new render
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 500));
       await loadProject();
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la régénération");
@@ -741,7 +699,7 @@ const ProjectDetail = () => {
                         const decor = decors.find(d => d.id === render.decor_id);
                         return {
                           id: render.id,
-                          url: getRenderUrl(render.id) || "",
+                          url: render.result_image_url,
                           originalUrl: photo?.original_image_url,
                           decorId: render.decor_id || '',
                           decorName: decor?.name || '',
@@ -754,7 +712,7 @@ const ProjectDetail = () => {
                     // Créations IA ensuite
                     ...creativeImports.map(creative => ({
                       id: creative.id,
-                      url: getRenderUrl(creative.id) || "",
+                      url: creative.result_image_url,
                       originalUrl: photos.find(p => p.id === creative.photoId)?.original_image_url,
                       decorId: 'creative',
                       decorName: 'Création Assistant IA',
@@ -795,7 +753,7 @@ const ProjectDetail = () => {
                             const isFavorite = favoriteRenderIds.has(render.id);
                             return {
                               id: render.id,
-                              url: getRenderUrl(render.id) || "",
+                              url: render.result_image_url,
                               originalUrl: photo?.original_image_url,
                               decorId: render.decor_id || '',
                               decorName: decor?.name || '',
@@ -809,7 +767,7 @@ const ProjectDetail = () => {
                       // Créations assistant IA
                       ...creativeImports.map(creative => ({
                         id: creative.id,
-                        url: getRenderUrl(creative.id) || "",
+                        url: creative.result_image_url,
                         originalUrl: undefined,
                         decorId: '',
                         decorName: 'Création Assistant IA',
@@ -937,14 +895,10 @@ const ProjectDetail = () => {
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="relative">
-                    <RenderImage
-                      renderId={creative.id}
-                      fallbackUrl={creative.result_image_url}
+                    <img
+                      src={creative.result_image_url}
                       alt="Création IA"
                       className="w-full aspect-square object-cover"
-                      onResolved={(url) =>
-                        setRenderUrlById((prev) => (prev[creative.id] ? prev : { ...prev, [creative.id]: url }))
-                      }
                     />
                     {/* Badge IA */}
                     <div className="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
@@ -957,10 +911,7 @@ const ProjectDetail = () => {
                         variant="secondary"
                         size="icon"
                         className="h-7 w-7 bg-white/90 hover:bg-white shadow-md"
-                        onClick={() => {
-                          const resolvedUrl = getRenderUrl(creative.id);
-                          if (resolvedUrl) setZoomedImage(resolvedUrl);
-                        }}
+                        onClick={() => setZoomedImage(creative.result_image_url)}
                         title="Agrandir"
                       >
                         <Maximize2 className="h-3.5 w-3.5 text-gray-700" />
@@ -970,7 +921,7 @@ const ProjectDetail = () => {
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 z-10">
                       <div className="flex gap-2">
                         <ImageExportDropdown
-                          imageUrl={getRenderUrl(creative.id) || ""}
+                          imageUrl={creative.result_image_url}
                           filename={`dica-ia-${creative.id}`}
                           variant="secondary"
                           size="sm"
@@ -1115,14 +1066,10 @@ const ProjectDetail = () => {
                           style={{ animationDelay: `${renderIndex * 50}ms` }}
                         >
                           <div className="relative">
-                            <RenderImage
-                              renderId={render.id}
-                              fallbackUrl={render.result_image_url}
-                              alt="Rendu"
-                              className="w-full"
-                              onResolved={(url) =>
-                                setRenderUrlById((prev) => ({ ...prev, [render.id]: url }))
-                              }
+                              <img
+                                src={render.result_image_url}
+                                alt="Rendu"
+                              className="w-full h-auto"
                             />
                             
                             {/* Disclaimer non contractuel */}
@@ -1191,10 +1138,7 @@ const ProjectDetail = () => {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48">
                                   <DropdownMenuItem
-                                    onClick={() => {
-                                      const resolvedUrl = getRenderUrl(render.id);
-                                      if (resolvedUrl) setZoomedImage(resolvedUrl);
-                                    }}
+                                    onClick={() => setZoomedImage(render.result_image_url)}
                                     className="cursor-pointer"
                                   >
                                     <Maximize2 className="mr-2 h-4 w-4" />
@@ -1204,15 +1148,12 @@ const ProjectDetail = () => {
                                     onClick={() => {
                                       const decor = decors.find(d => d.id === render.decor_id);
                                       const isCreativeRender = !render.decor_id;
-                                      const resolvedUrl = getRenderUrl(render.id);
-                                      if (resolvedUrl) {
-                                        setComparisonMode({
-                                          before: photo.original_image_url,
-                                          after: resolvedUrl,
-                                          decorName: decor?.name || (isCreativeRender ? 'Création Assistant IA' : undefined),
-                                          decorCode: decor?.reference_code || (isCreativeRender ? 'CREATIVE-AI' : undefined),
-                                        });
-                                      }
+                                      setComparisonMode({
+                                        before: photo.original_image_url,
+                                        after: render.result_image_url,
+                                        decorName: decor?.name || (isCreativeRender ? 'Création Assistant IA' : undefined),
+                                        decorCode: decor?.reference_code || (isCreativeRender ? 'CREATIVE-AI' : undefined),
+                                      });
                                     }}
                                     className="cursor-pointer"
                                   >
@@ -1224,7 +1165,7 @@ const ProjectDetail = () => {
                                     Télécharger en...
                                   </div>
                                   <ImageExportMenuItems
-                                    imageUrl={getRenderUrl(render.id) || ""}
+                                    imageUrl={render.result_image_url}
                                     filename={`dica-render-${render.id}`}
                                   />
                                   {render.decor_id && (
@@ -1345,7 +1286,7 @@ const ProjectDetail = () => {
             </div>
             
             <Tabs defaultValue="metal" className="w-full">
-              <TabsList className="grid w-full grid-cols-6 h-auto">
+              <TabsList className="grid w-full grid-cols-5 h-auto">
                 <TabsTrigger value="metal" className="py-3">
                   Métal
                   <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
@@ -1376,18 +1317,12 @@ const ProjectDetail = () => {
                     {decors.filter(d => d.category.toLowerCase() === 'deco').length}
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="Évasion" className="py-3">
-                  Évasion
-                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                    {decors.filter(d => d.category === 'Évasion').length}
-                  </span>
-                </TabsTrigger>
               </TabsList>
 
-              {['metal', 'unis', 'marbre', 'bois', 'deco', 'Évasion'].map((category) => (
+              {['metal', 'unis', 'marbre', 'bois', 'deco'].map((category) => (
                 <TabsContent key={category} value={category} className="mt-6">
                   <div className="max-h-[35vh] overflow-y-auto pr-2">
-                    {decors.filter(d => d.category.toLowerCase() === category.toLowerCase() || d.category === category).length === 0 ? (
+                    {decors.filter(d => d.category.toLowerCase() === category).length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <p className="text-lg text-muted-foreground">
                           Aucun décor disponible dans cette catégorie
@@ -1396,7 +1331,7 @@ const ProjectDetail = () => {
                     ) : (
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {decors
-                          .filter(d => d.category.toLowerCase() === category.toLowerCase() || d.category === category)
+                          .filter(d => d.category.toLowerCase() === category)
                           .map((decor) => (
                             <Card
                               key={decor.id}
@@ -1410,7 +1345,7 @@ const ProjectDetail = () => {
                               <CardContent className="p-3">
                                 <div className="relative mb-2 overflow-hidden rounded-lg">
                                   <img
-                                    src={getTextureStorageUrl(decor.texture_image_url)}
+                                    src={decor.texture_image_url}
                                     alt={decor.name}
                                     className="h-32 w-full object-cover transition-transform hover:scale-105"
                                   />
