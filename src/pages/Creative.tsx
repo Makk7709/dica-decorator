@@ -377,20 +377,35 @@ const Creative = () => {
       throw new Error("Échec de la connexion au service IA");
     }
 
-    const contentType = resp.headers.get("content-type");
-    
-    // Check if it's an image response (JSON)
-    if (contentType?.includes("application/json")) {
+    const contentType = resp.headers.get("content-type") || "";
+
+    // Si la réponse est en JSON, on la consomme ici et on NE tente PAS de streamer ensuite.
+    if (contentType.includes("application/json")) {
       const data = await resp.json();
-      if (data.type === "image") {
-        setMessages(prev => [...prev, { 
-          role: "assistant", 
-          content: data.text,
-          imageUrl: data.imageUrl,
-          decorReferences: data.decorReferences || [], // Include decor references from API
-        }]);
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.type === "image") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.text,
+            imageUrl: data.imageUrl,
+            decorReferences: data.decorReferences || [],
+          },
+        ]);
         return;
       }
+
+      if (data?.type === "text" && typeof data?.content === "string") {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+        return;
+      }
+
+      throw new Error("Réponse inattendue du service IA");
     }
 
     // Stream text response
@@ -399,6 +414,7 @@ const Creative = () => {
     }
 
     const reader = resp.body.getReader();
+
     const decoder = new TextDecoder();
     let textBuffer = "";
     let streamDone = false;
