@@ -458,15 +458,99 @@ Result must enable client to immediately envision their future REAL project with
 
       // Build request parts
       const requestParts: any[] = [{ text: basePrompt }];
-      
-      // Add ALL source images
+
+      // ======================================================================
+      // Add decor texture reference images (to prevent the model from inventing)
+      // ======================================================================
+      if (orchestrationResult.decorReferences.length > 0) {
+        console.log(`Fetching ${orchestrationResult.decorReferences.length} decor texture images from database...`);
+
+        const { data: decorRows, error: decorErr } = await authSupabase
+          .from("decors")
+          .select("reference_code,name,texture_image_url")
+          .in("reference_code", orchestrationResult.decorReferences)
+          .eq("is_active", true);
+
+        if (decorErr) {
+          console.error("Error fetching decors:", decorErr);
+          throw new Error("Impossible de récupérer les textures des décors");
+        }
+
+        const byRef = new Map(
+          (decorRows || []).map((d) => [d.reference_code, d] as const)
+        );
+
+        for (const ref of orchestrationResult.decorReferences) {
+          const row = byRef.get(ref);
+          if (!row?.texture_image_url) {
+            console.error("Missing texture_image_url for decor:", ref);
+            return new Response(
+              JSON.stringify({
+                type: "text",
+                content:
+                  `Je ne peux pas générer une image fiable car la texture du décor "${ref}" n'est pas disponible (URL manquante).\n\nMerci de vérifier que ce décor pointe bien vers une image de texture dans le stockage (URL complète).`,
+              }),
+              {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
+
+          if (!row.texture_image_url.startsWith("http")) {
+            console.error("Non-absolute texture_image_url for decor:", ref, row.texture_image_url);
+            return new Response(
+              JSON.stringify({
+                type: "text",
+                content:
+                  `Je ne peux pas utiliser la texture du décor "${ref}" car son URL n'est pas une URL complète (http/https).\n\nMerci de mettre dans la base une URL complète vers l'image de texture (stockage).`,
+              }),
+              {
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              }
+            );
+          }
+
+          try {
+            const label = row.name || ref;
+            console.log(`Fetching decor texture (${label}):`, row.texture_image_url);
+            const imageResponse = await fetch(row.texture_image_url);
+            if (!imageResponse.ok) {
+              console.error("Failed fetching decor texture", ref, "status", imageResponse.status);
+              continue;
+            }
+
+            const arrayBuffer = await imageResponse.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = "";
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            const imageBase64 = btoa(binary);
+            const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
+
+            requestParts.push({
+              inlineData: {
+                mimeType: imageMimeType,
+                data: imageBase64,
+              },
+            });
+            console.log(`✓ Decor texture added (${ref})`);
+          } catch (e) {
+            console.error("Error fetching decor texture", ref, e);
+          }
+        }
+      }
+
+      // ======================================================================
+      // Add ALL source images (space photos, inspiration, etc.)
+      // ======================================================================
       if (allSourceImages.length > 0) {
         console.log(`Fetching ${allSourceImages.length} source images for Gemini...`);
-        
+
         for (let i = 0; i < allSourceImages.length; i++) {
           const imageUrl = allSourceImages[i];
           const label = allImageLabels[i] || `Image ${i + 1}`;
-          
+
           try {
             console.log(`Fetching image ${i + 1} (${label}):`, imageUrl);
             const imageResponse = await fetch(imageUrl);
@@ -479,7 +563,7 @@ Result must enable client to immediately envision their future REAL project with
               }
               const imageBase64 = btoa(binary);
               const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
-              
+
               requestParts.push({
                 inlineData: {
                   mimeType: imageMimeType,
@@ -494,7 +578,9 @@ Result must enable client to immediately envision their future REAL project with
         }
       }
 
-      console.log(`Sending request with ${allSourceImages.length} source images`);
+      console.log(
+        `Sending request with ${orchestrationResult.decorReferences.length} decor textures + ${allSourceImages.length} source images`
+      );
 
       // Call Gemini API for image generation
       const geminiUrl = buildImageGenerationUrl(GOOGLE_AI_API_KEY);
