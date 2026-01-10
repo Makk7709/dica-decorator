@@ -14,16 +14,20 @@ const Index = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center">
+    <div className="relative min-h-screen flex items-center justify-center bg-black">
       {/* Full-screen background video */}
       <video 
         className="absolute inset-0 w-full h-full object-cover"
         autoPlay
         muted
         playsInline
+        loop
+        preload="auto"
+        poster="/images/dica-landing-hero.jpg"
         onTimeUpdate={handleVideoTimeUpdate}
       >
         <source src="/videos/dica-landing-hero.mp4" type="video/mp4" />
+        Votre navigateur ne supporte pas la lecture vidéo.
       </video>
       
       {/* Overlay for better text visibility */}
