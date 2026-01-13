@@ -19,6 +19,7 @@ import { compressImage, formatFileSize } from "@/lib/image-compression";
 import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 import { ResellerBrochureExportButton } from "@/components/ui/reseller-brochure-export-button";
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
+import { SafeImage } from "@/components/ui/safe-image";
 
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
@@ -895,10 +896,11 @@ const ProjectDetail = () => {
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="relative">
-                    <img
+                    <SafeImage
                       src={creative.result_image_url}
                       alt="Création IA"
                       className="w-full aspect-square object-cover"
+                      loading="lazy"
                     />
                     {/* Badge IA */}
                     <div className="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
@@ -1027,10 +1029,11 @@ const ProjectDetail = () => {
 
                 {/* Photo Image */}
                 <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">
-                  <img
+                  <SafeImage
                     src={photo.original_image_url}
                     alt="Photo projet"
                     className="w-full aspect-[4/3] object-cover"
+                    loading="lazy"
                   />
                 </div>
                   
@@ -1066,10 +1069,11 @@ const ProjectDetail = () => {
                           style={{ animationDelay: `${renderIndex * 50}ms` }}
                         >
                           <div className="relative">
-                              <img
-                                src={render.result_image_url}
-                                alt="Rendu"
+                            <SafeImage
+                              src={render.result_image_url}
+                              alt="Rendu"
                               className="w-full h-auto"
+                              loading="lazy"
                             />
                             
                             {/* Disclaimer non contractuel */}

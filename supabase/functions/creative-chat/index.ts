@@ -480,65 +480,59 @@ Result must enable client to immediately envision their future REAL project with
           (decorRows || []).map((d) => [d.reference_code, d] as const)
         );
 
-        for (const ref of orchestrationResult.decorReferences) {
-          const row = byRef.get(ref);
-          if (!row?.texture_image_url) {
-            console.error("Missing texture_image_url for decor:", ref);
-            return new Response(
-              JSON.stringify({
-                type: "text",
-                content:
-                  `Je ne peux pas générer une image fiable car la texture du décor "${ref}" n'est pas disponible (URL manquante).\n\nMerci de vérifier que ce décor pointe bien vers une image de texture dans le stockage (URL complète).`,
-              }),
-              {
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              }
-            );
-          }
+         const requestOrigin = req.headers.get("origin")
+           ?? (req.headers.get("referer") ? new URL(req.headers.get("referer")!).origin : null);
 
-          if (!row.texture_image_url.startsWith("http")) {
-            console.error("Non-absolute texture_image_url for decor:", ref, row.texture_image_url);
-            return new Response(
-              JSON.stringify({
-                type: "text",
-                content:
-                  `Je ne peux pas utiliser la texture du décor "${ref}" car son URL n'est pas une URL complète (http/https).\n\nMerci de mettre dans la base une URL complète vers l'image de texture (stockage).`,
-              }),
-              {
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              }
-            );
-          }
+         for (const ref of orchestrationResult.decorReferences) {
+           const row = byRef.get(ref);
+           if (!row?.texture_image_url) {
+             console.warn("Missing texture_image_url for decor (skipping texture grounding):", ref);
+             continue;
+           }
 
-          try {
-            const label = row.name || ref;
-            console.log(`Fetching decor texture (${label}):`, row.texture_image_url);
-            const imageResponse = await fetch(row.texture_image_url);
-            if (!imageResponse.ok) {
-              console.error("Failed fetching decor texture", ref, "status", imageResponse.status);
-              continue;
-            }
+           // Accept relative URLs by resolving them against the request origin when possible.
+           const resolvedTextureUrl = row.texture_image_url.startsWith("http")
+             ? row.texture_image_url
+             : (requestOrigin ? new URL(row.texture_image_url, requestOrigin).toString() : null);
 
-            const arrayBuffer = await imageResponse.arrayBuffer();
-            const bytes = new Uint8Array(arrayBuffer);
-            let binary = "";
-            for (let i = 0; i < bytes.byteLength; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            const imageBase64 = btoa(binary);
-            const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
+           if (!resolvedTextureUrl) {
+             console.warn(
+               "Non-absolute texture_image_url without origin (skipping texture grounding):",
+               ref,
+               row.texture_image_url,
+             );
+             continue;
+           }
 
-            requestParts.push({
-              inlineData: {
-                mimeType: imageMimeType,
-                data: imageBase64,
-              },
-            });
-            console.log(`✓ Decor texture added (${ref})`);
-          } catch (e) {
-            console.error("Error fetching decor texture", ref, e);
-          }
-        }
+           try {
+             const label = row.name || ref;
+             console.log(`Fetching decor texture (${label}):`, resolvedTextureUrl);
+             const imageResponse = await fetch(resolvedTextureUrl);
+             if (!imageResponse.ok) {
+               console.error("Failed fetching decor texture", ref, "status", imageResponse.status);
+               continue;
+             }
+
+             const arrayBuffer = await imageResponse.arrayBuffer();
+             const bytes = new Uint8Array(arrayBuffer);
+             let binary = "";
+             for (let i = 0; i < bytes.byteLength; i++) {
+               binary += String.fromCharCode(bytes[i]);
+             }
+             const imageBase64 = btoa(binary);
+             const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
+
+             requestParts.push({
+               inlineData: {
+                 mimeType: imageMimeType,
+                 data: imageBase64,
+               },
+             });
+             console.log(`✓ Decor texture added (${ref})`);
+           } catch (e) {
+             console.error("Error fetching decor texture", ref, e);
+           }
+         }
       }
 
       // ======================================================================
