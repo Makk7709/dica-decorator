@@ -47,35 +47,38 @@ function buildDecorContext(decors: Decor[]): string | null {
     return acc;
   }, {} as Record<string, Decor[]>);
 
-  // Collect all valid reference codes for strict enforcement
+  // Build JSON list for validation
+  const validRefsJson = decors.map(d => ({
+    ref: d.reference_code,
+    name: d.name,
+    cat: d.category
+  }));
+
+  // Collect all valid reference codes
   const allReferences = decors.map(d => d.reference_code);
 
-  let context = `═══════════════════════════════════════════════════════════════════
-🔒 CATALOGUE OFFICIEL DICA - ${decors.length} DÉCORS AUTORISÉS
-═══════════════════════════════════════════════════════════════════
+  let context = `════════════════════════════════════════════════════════════════════
+🚨 CATALOGUE DICA - LISTE STRICTE (${decors.length} décors)
+════════════════════════════════════════════════════════════════════
 
-⚠️ RÈGLE STRICTE: Utilise UNIQUEMENT les décors listés ci-dessous.
+📋 RÉFÉRENCES VALIDES (copie exactement):
+${allReferences.join('\n')}
 
-📋 RÉFÉRENCES AUTORISÉES: ${allReferences.join(', ')}
+📊 JSON:
+${JSON.stringify(validRefsJson, null, 2)}
 
-═══════════════════════════════════════════════════════════════════
+════════════════════════════════════════════════════════════════════
 `;
 
   for (const [category, categoryDecors] of Object.entries(decorsByCategory)) {
-    // Keep category lowercase as per test requirements
-    context += `📂 CATEGORY: ${category}\n`;
-    context += '─'.repeat(40) + '\n';
-
+    context += `📂 ${category}:\n`;
     for (const decor of categoryDecors) {
-      context += `✓ ${decor.name} (Réf: ${decor.reference_code})\n`;
-      context += `  Contextes: ${decor.usage_contexts.join(', ')}\n`;
-      context += '\n';
+      context += `  • "${decor.reference_code}" = ${decor.name}\n`;
     }
-
     context += '\n';
   }
 
-  context += `🚫 INTERDIT: N'invente JAMAIS de référence non listée ci-dessus.\n`;
+  context += `⛔ COPIE les références EXACTEMENT. Ne modifie PAS.\n`;
 
   return context;
 }

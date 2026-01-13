@@ -186,6 +186,31 @@ Valider que les demandes utilisateurs utilisent UNIQUEMENT les décors du catalo
 
 🔒 CONTRAINTES STRICTES ET NON-NÉGOCIABLES:
 
+⛔⛔⛔ RÈGLE CRITIQUE SUR LES RÉFÉRENCES ⛔⛔⛔
+
+Tu DOIS utiliser les références EXACTEMENT comme elles apparaissent dans le catalogue.
+Le système de validation va REJETER toute référence modifiée ou inventée.
+
+FORMAT OBLIGATOIRE DES RÉFÉRENCES:
+- Les références ont le format: NUMERO_TYPE_FINITION (ex: "3040_BN_FC", "668_SHIKY_FC")
+- COPIE-COLLE les références exactement depuis le catalogue
+- N'abrège PAS (ex: "3040_BN" au lieu de "3040_BN_FC" sera REJETÉ)
+- N'invente PAS de nouveaux suffixes
+
+EXEMPLES D'ERREURS QUI SERONT REJETÉES:
+❌ "3040_BN" → manque le suffixe _FC ou _PF
+❌ "800_SATIN_FC" → le bon est "800_SATIN" sans suffixe
+❌ "INOX_3022" → format inversé, le bon est "3022_MAT_FC"
+❌ "BOIS_CHENE" → inventé, utilise les vraies références
+❌ "FU210" → incomplet, le bon est "FU210_FC"
+
+EXEMPLES DE RÉFÉRENCES CORRECTES:
+✅ "3022_MAT_FC" = Inox Mat
+✅ "3040_BN_FC" = Inox Brossé
+✅ "800_SATIN" = Blanc Satin (sans suffixe)
+✅ "668_SHIKY_FC" = Bois Shiky
+✅ "FU210_FC" = Bois Chêne
+
 1. DÉCORS CATALOGUE DICA UNIQUEMENT - VALIDATION STRICTE
    - Utilise EXCLUSIVEMENT les décors LISTÉS dans le catalogue fourni
    - JAMAIS inventer de couleurs, textures ou références hors catalogue
@@ -453,53 +478,110 @@ Réponds en utilisant la fonction validate_dica_request.`;
 
 /**
  * Extract all valid reference codes from the decor context
- * Uses multiple patterns to catch different reference formats
+ * Uses JSON parsing for strict extraction
  */
 function extractValidReferenceCodes(decorContext: string): Set<string> {
   const validRefs = new Set<string>();
   
-  // Match patterns like "reference_code: XXX", "Ref: XXX", "(Réf: XXX)" or just reference codes in context
+  // Try to parse JSON list first (most reliable)
+  try {
+    const jsonMatch = decorContext.match(/\[\s*\{[^}]*"ref"[^}]*\}[\s\S]*?\]/);
+    if (jsonMatch) {
+      const jsonArray = JSON.parse(jsonMatch[0]);
+      for (const item of jsonArray) {
+        if (item.ref) {
+          validRefs.add(item.ref.toUpperCase());
+        }
+      }
+      console.log(`📋 Extracted ${validRefs.size} refs from JSON`);
+    }
+  } catch (e) {
+    console.log("JSON parsing failed, using pattern matching");
+  }
+  
+  // Also match patterns for redundancy
   const patterns = [
-    /reference_code[:\s]+([A-Z0-9_]+)/gi,
-    /\bRef[:\s]+([A-Z0-9_]+)/gi,
+    /"([A-Z0-9]+_[A-Z0-9_]+)"/gi, // Quoted refs like "3040_BN_FC"
     /\(Réf:\s*([A-Z0-9_]+)\)/gi,
-    /\b(\d{3,4}_[A-Z_]+(?:_[A-Z0-9]+)?)\b/g, // e.g. 3040_BN_PF, 788_WOOD, 1071_VELVET
+    /^([A-Z0-9]+_[A-Z0-9_]+)$/gim, // Standalone refs on their own line
+    /"ref":\s*"([^"]+)"/gi, // JSON ref field
   ];
   
   for (const pattern of patterns) {
     let match;
-    while ((match = pattern.exec(decorContext)) !== null) {
-      validRefs.add(match[1].toUpperCase());
+    const contextCopy = decorContext; // Reset for each pattern
+    pattern.lastIndex = 0;
+    while ((match = pattern.exec(contextCopy)) !== null) {
+      const ref = match[1].toUpperCase();
+      // Filter out obviously wrong matches
+      if (ref.length > 4 && ref.includes('_')) {
+        validRefs.add(ref);
+      }
     }
   }
   
-  console.log(`📋 Extracted ${validRefs.size} valid reference codes from catalog`);
+  console.log(`📋 Total extracted: ${validRefs.size} valid reference codes`);
   return validRefs;
 }
 
 /**
- * Check if a reference is valid (exists in catalog)
+ * Find best matching valid reference for an invalid one
+ * Returns null if no good match found
  */
-function isValidReference(ref: string, validRefs: Set<string>, decorContext: string): boolean {
-  const upperRef = ref.toUpperCase();
+function findBestMatch(invalidRef: string, validRefs: Set<string>): string | null {
+  const upperRef = invalidRef.toUpperCase().replace(/[^A-Z0-9]/g, '');
   
-  // Direct match
-  if (validRefs.has(upperRef)) return true;
+  // Extract the base number (e.g., "3040" from "3040_BN_FC")
+  const numberMatch = invalidRef.match(/(\d{3,4})/);
+  const baseNumber = numberMatch ? numberMatch[1] : null;
   
-  // Check if ref is contained in any valid ref (partial match)
+  let bestMatch: string | null = null;
+  let bestScore = 0;
+  
   for (const validRef of validRefs) {
-    if (validRef.includes(upperRef) || upperRef.includes(validRef)) return true;
+    const upperValid = validRef.toUpperCase();
+    let score = 0;
+    
+    // Exact match
+    if (upperValid === upperRef) {
+      return validRef;
+    }
+    
+    // Same base number - high score
+    if (baseNumber && validRef.startsWith(baseNumber)) {
+      score += 50;
+    }
+    
+    // Contains the invalid ref
+    if (upperValid.includes(upperRef) || upperRef.includes(upperValid.replace(/[^A-Z0-9]/g, ''))) {
+      score += 30;
+    }
+    
+    // Similar length
+    if (Math.abs(validRef.length - invalidRef.length) <= 3) {
+      score += 10;
+    }
+    
+    if (score > bestScore && score >= 50) { // Only accept if score is high enough
+      bestScore = score;
+      bestMatch = validRef;
+    }
   }
   
-  // Check if the reference appears anywhere in the context (fallback)
-  if (decorContext.toUpperCase().includes(upperRef)) return true;
-  
-  return false;
+  return bestMatch;
+}
+
+/**
+ * Check if a reference is EXACTLY valid (strict mode)
+ */
+function isValidReferenceStrict(ref: string, validRefs: Set<string>): boolean {
+  const upperRef = ref.toUpperCase();
+  return validRefs.has(upperRef);
 }
 
 /**
  * Validate orchestrator result against business rules
- * STRICT: Filters out invented references that don't exist in catalog
+ * ULTRA-STRICT: Filters out or auto-corrects invented references
  */
 function validateOrchestratorResult(result: OrchestratorResult, decorContext: string): void {
   // Validate status
@@ -509,79 +591,79 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
 
   // Extract all valid references from the catalog
   const validRefs = extractValidReferenceCodes(decorContext);
+  console.log(`🔍 Valid refs available: ${Array.from(validRefs).slice(0, 10).join(', ')}...`);
   
-  // STRICT VALIDATION: Filter out invented references
+  // ULTRA-STRICT VALIDATION: Check each reference and auto-correct if possible
   if (result.decorReferences && result.decorReferences.length > 0) {
     const originalCount = result.decorReferences.length;
     const originalLabels = result.decorLabels || [];
     const invalidRefs: string[] = [];
+    const correctedRefs: { from: string; to: string }[] = [];
     
-    // Filter to keep only valid references
+    // Filter and correct references
     const validatedRefs: string[] = [];
     const validatedLabels: string[] = [];
     
     for (let i = 0; i < result.decorReferences.length; i++) {
       const ref = result.decorReferences[i];
-      const upperRef = ref.toUpperCase();
       
-      // Check if reference exists in catalog
-      if (isValidReference(ref, validRefs, decorContext)) {
+      // STRICT CHECK: Exact match only
+      if (isValidReferenceStrict(ref, validRefs)) {
         validatedRefs.push(ref);
         if (originalLabels[i]) {
           validatedLabels.push(originalLabels[i]);
         }
-        console.log(`✅ Valid decor reference: ${ref}`);
+        console.log(`✅ VALID: ${ref}`);
       } else {
-        // Try to find a close match
-        let found = false;
-        for (const validRef of validRefs) {
-          // Check if the ref is a substring or close match
-          if (validRef.includes(upperRef) || upperRef.includes(validRef)) {
-            validatedRefs.push(validRef);
-            if (originalLabels[i]) {
-              validatedLabels.push(originalLabels[i]);
-            }
-            console.log(`🔄 Corrected decor reference: ${ref} → ${validRef}`);
-            found = true;
-            break;
-          }
-        }
+        // Try to find best match for auto-correction
+        const bestMatch = findBestMatch(ref, validRefs);
         
-        if (!found) {
+        if (bestMatch) {
+          validatedRefs.push(bestMatch);
+          if (originalLabels[i]) {
+            validatedLabels.push(originalLabels[i]);
+          }
+          correctedRefs.push({ from: ref, to: bestMatch });
+          console.log(`🔄 AUTO-CORRECTED: "${ref}" → "${bestMatch}"`);
+        } else {
           invalidRefs.push(ref);
-          console.warn(`❌ REJECTED invented decor reference: ${ref} - not in catalog`);
+          console.error(`❌ REJECTED (no match): "${ref}"`);
         }
       }
     }
     
-    // If there are invalid references and status was "ok", change to need_clarification
+    // Log corrections
+    if (correctedRefs.length > 0) {
+      console.log(`🔧 Auto-corrected ${correctedRefs.length} references:`);
+      correctedRefs.forEach(c => console.log(`   "${c.from}" → "${c.to}"`));
+    }
+    
+    // If there are STILL invalid references after auto-correction, change status
     if (invalidRefs.length > 0 && result.status === "ok") {
-      console.error(`🚫 Found ${invalidRefs.length} invented/invalid decor references: ${invalidRefs.join(', ')}`);
+      console.error(`🚫 ${invalidRefs.length} references could not be matched: ${invalidRefs.join(', ')}`);
       
-      result.status = "need_clarification";
-      result.clarificationQuestions = [
-        `Je ne trouve pas les décors suivants dans le catalogue DICA: ${invalidRefs.join(', ')}`,
-        "Pourriez-vous préciser quels décors du catalogue DICA vous souhaitez utiliser ?",
-        "Voici quelques références disponibles que vous pourriez utiliser à la place."
-      ];
-      result.validationWarnings = [`Références inventées détectées et rejetées: ${invalidRefs.join(', ')}`];
-      console.log(`⚠️ Status changed from "ok" to "need_clarification" due to invalid references`);
+      // Only change status if ALL refs were invalid or if we have no valid refs
+      if (validatedRefs.length === 0) {
+        result.status = "need_clarification";
+        result.clarificationQuestions = [
+          `Je ne reconnais pas les références suivantes: ${invalidRefs.join(', ')}`,
+          "Voici quelques décors DICA disponibles que vous pourriez utiliser:",
+          Array.from(validRefs).slice(0, 10).join(', ')
+        ];
+        console.log(`⚠️ Status changed to "need_clarification" - no valid refs found`);
+      } else {
+        // Some refs are valid, keep status ok but add warning
+        result.validationWarnings = [`Références ignorées: ${invalidRefs.join(', ')}`];
+        console.log(`⚠️ Keeping status "ok" with ${validatedRefs.length} valid refs`);
+      }
     }
     
     // Update result with validated references only
     result.decorReferences = validatedRefs;
     result.decorLabels = validatedLabels;
     
-    if (validatedRefs.length < originalCount) {
-      console.warn(`🔒 Filtered decor references: ${originalCount} → ${validatedRefs.length} (removed ${originalCount - validatedRefs.length} invented refs)`);
-    }
-    
-    // If all references were invalid and we had some, log a critical warning
-    if (validatedRefs.length === 0 && originalCount > 0) {
-      console.error(`🚨 CRITICAL: All ${originalCount} decor references were invented and filtered out!`);
-    }
+    console.log(`📊 Final: ${originalCount} refs → ${validatedRefs.length} valid (${correctedRefs.length} corrected, ${invalidRefs.length} rejected)`);
   } else if (result.status === "ok") {
-    // No decor references but status is ok - this might be acceptable for some queries
     console.warn(`⚠️ No decor references provided but status=ok`);
   }
 

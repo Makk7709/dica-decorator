@@ -284,41 +284,73 @@ const Creative = () => {
       return acc;
     }, {} as Record<string, Decor[]>);
 
+    // Build JSON list of valid references for strict validation
+    const validRefsJson = decors.map(d => ({
+      ref: d.reference_code,
+      name: d.name,
+      cat: d.category
+    }));
+    
     // Collect all valid reference codes
     const allReferences = decors.map(d => d.reference_code);
     
-    let context = `═══════════════════════════════════════════════════════════════════
-🔒 CATALOGUE OFFICIEL DICA - ${decors.length} DÉCORS AUTORISÉS
-═══════════════════════════════════════════════════════════════════
+    let context = `════════════════════════════════════════════════════════════════════════════════
+🚨🚨🚨 CATALOGUE DICA - LISTE FERMÉE ET STRICTE 🚨🚨🚨
+════════════════════════════════════════════════════════════════════════════════
 
-⚠️ RÈGLE STRICTE: Tu ne peux utiliser QUE les décors listés ci-dessous.
-Toute référence non présente dans cette liste est INTERDITE.
+⛔ RÈGLE ABSOLUE: Tu peux UNIQUEMENT utiliser les références de cette liste.
+⛔ INVENTER une référence = ERREUR FATALE qui sera REJETÉE par le système.
+⛔ Le système de validation VÉRIFIE chaque référence. Les inventions sont BLOQUÉES.
 
-📋 LISTE DES RÉFÉRENCES AUTORISÉES (${allReferences.length} codes):
-${allReferences.join(', ')}
+════════════════════════════════════════════════════════════════════════════════
+📋 RÉFÉRENCES VALIDES (COPIE-COLLE EXACTEMENT CES CODES):
+════════════════════════════════════════════════════════════════════════════════
 
-═══════════════════════════════════════════════════════════════════
-📚 DÉTAIL DES DÉCORS PAR CATÉGORIE
-═══════════════════════════════════════════════════════════════════
+${allReferences.join('\n')}
+
+════════════════════════════════════════════════════════════════════════════════
+📊 FORMAT JSON DES DÉCORS (pour validation stricte):
+════════════════════════════════════════════════════════════════════════════════
+
+${JSON.stringify(validRefsJson, null, 2)}
+
+════════════════════════════════════════════════════════════════════════════════
+❌ EXEMPLES DE RÉFÉRENCES INTERDITES (NE JAMAIS UTILISER):
+════════════════════════════════════════════════════════════════════════════════
+- "3040_BN" ❌ (incomplet, manque _FC ou _PF)
+- "800_SATIN_FC" ❌ (n'existe pas, le bon est "800_SATIN")
+- "INOX_MAT" ❌ (n'existe pas, le bon est "3022_MAT_FC")
+- "FU210" ❌ (incomplet, le bon est "FU210_FC")
+- "BOIS_CHENE" ❌ (inventé, utilise "668_SHIKY_FC" ou "708_WOOD_FC")
+- Toute référence qui n'apparaît PAS dans la liste ci-dessus
+
+════════════════════════════════════════════════════════════════════════════════
+✅ EXEMPLES DE RÉFÉRENCES CORRECTES (À UTILISER):
+════════════════════════════════════════════════════════════════════════════════
+- "3022_MAT_FC" ✅ Inox Mat
+- "3040_BN_FC" ✅ Inox Brossé
+- "800_SATIN" ✅ Blanc Satin
+- "668_SHIKY_FC" ✅ Bois Shiky
+- "FU210_FC" ✅ Bois Chêne Naturel
+- "3178_SPA_FC" ✅ Rouge Unis
+
+════════════════════════════════════════════════════════════════════════════════
+📚 DÉTAIL PAR CATÉGORIE
+════════════════════════════════════════════════════════════════════════════════
 `;
     
     for (const [category, categoryDecors] of Object.entries(decorsByCategory)) {
-      context += `\n📁 Catégorie ${category.toUpperCase()} (${categoryDecors.length} décors):\n`;
-      context += '─'.repeat(50) + '\n';
+      context += `\n📁 ${category.toUpperCase()}:\n`;
       categoryDecors.forEach(decor => {
-        context += `  ✓ ${decor.name}\n`;
-        context += `    → Référence EXACTE: (Réf: ${decor.reference_code})\n`;
-        context += `    → Contextes d'usage: ${decor.usage_contexts.join(", ")}\n`;
+        context += `  • "${decor.reference_code}" = ${decor.name}\n`;
       });
-      context += '\n';
     }
     
     context += `
-═══════════════════════════════════════════════════════════════════
-🚫 RAPPEL FINAL: N'utilise JAMAIS une référence qui n'est pas dans 
-la liste ci-dessus. Si le client demande un décor non listé,
-propose-lui des alternatives parmi les ${decors.length} décors autorisés.
-═══════════════════════════════════════════════════════════════════`;
+════════════════════════════════════════════════════════════════════════════════
+⚠️ RAPPEL: COPIE les références EXACTEMENT comme écrites ci-dessus.
+Ne modifie PAS, ne raccourcis PAS, n'invente PAS de nouvelles références.
+════════════════════════════════════════════════════════════════════════════════`;
     
     console.log(`Contexte décors construit: ${decors.length} décors dans ${Object.keys(decorsByCategory).length} catégories`);
     return context;
