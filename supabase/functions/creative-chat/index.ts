@@ -491,9 +491,18 @@ Result must enable client to immediately envision their future REAL project with
            }
 
            // Accept relative URLs by resolving them against the request origin when possible.
-           const resolvedTextureUrl = row.texture_image_url.startsWith("http")
-             ? row.texture_image_url
-             : (requestOrigin ? new URL(row.texture_image_url, requestOrigin).toString() : null);
+           // Also properly encode URLs with spaces
+           let resolvedTextureUrl: string | null = null;
+           
+           if (row.texture_image_url.startsWith("http")) {
+             resolvedTextureUrl = row.texture_image_url;
+           } else if (requestOrigin) {
+             // Encode spaces and special characters in the path
+             const encodedPath = row.texture_image_url.includes('%') 
+               ? row.texture_image_url // Already encoded
+               : row.texture_image_url.split('/').map((part: string) => encodeURIComponent(part)).join('/').replace(/%2F/g, '/');
+             resolvedTextureUrl = new URL(encodedPath, requestOrigin).toString();
+           }
 
            if (!resolvedTextureUrl) {
              console.warn(

@@ -438,7 +438,32 @@ Réponds en utilisant la fonction validate_dica_request.`;
 }
 
 /**
+ * Extract all valid reference codes from the decor context
+ */
+function extractValidReferenceCodes(decorContext: string): Set<string> {
+  const validRefs = new Set<string>();
+  
+  // Match patterns like "reference_code: XXX" or "Ref: XXX" or just reference codes in context
+  const patterns = [
+    /reference_code[:\s]+([A-Z0-9_]+)/gi,
+    /\bRef[:\s]+([A-Z0-9_]+)/gi,
+    /\b(\d{3,4}_[A-Z_]+(?:_[A-Z0-9]+)?)\b/g, // e.g. 3040_BN_PF, 788_WOOD, 1071_VELVET
+  ];
+  
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(decorContext)) !== null) {
+      validRefs.add(match[1].toUpperCase());
+    }
+  }
+  
+  console.log(`📋 Extracted ${validRefs.size} valid reference codes from catalog`);
+  return validRefs;
+}
+
+/**
  * Validate orchestrator result against business rules
+ * STRICT: Filters out invented references that don't exist in catalog
  */
 function validateOrchestratorResult(result: OrchestratorResult, decorContext: string): void {
   // Validate status
@@ -446,13 +471,61 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
     throw new Error(`Invalid status: ${result.status}`);
   }
 
-  // Validate decor references exist in catalog (permissive - just warn)
+  // Extract all valid references from the catalog
+  const validRefs = extractValidReferenceCodes(decorContext);
+  
+  // STRICT VALIDATION: Filter out invented references
   if (result.decorReferences && result.decorReferences.length > 0) {
-    for (const ref of result.decorReferences) {
-      if (!decorContext.includes(ref)) {
-        console.warn(`⚠️ Decor reference not found in catalog: ${ref} - AI may have invented this`);
-        // Just warn - we trust the AI's creative interpretation
+    const originalCount = result.decorReferences.length;
+    const originalLabels = result.decorLabels || [];
+    
+    // Filter to keep only valid references
+    const validatedRefs: string[] = [];
+    const validatedLabels: string[] = [];
+    
+    for (let i = 0; i < result.decorReferences.length; i++) {
+      const ref = result.decorReferences[i].toUpperCase();
+      
+      // Check if reference exists in catalog
+      if (validRefs.has(ref)) {
+        validatedRefs.push(result.decorReferences[i]);
+        if (originalLabels[i]) {
+          validatedLabels.push(originalLabels[i]);
+        }
+        console.log(`✅ Valid decor reference: ${ref}`);
+      } else {
+        // Try to find a close match
+        let found = false;
+        for (const validRef of validRefs) {
+          // Check if the ref is a substring or close match
+          if (validRef.includes(ref) || ref.includes(validRef)) {
+            validatedRefs.push(validRef);
+            if (originalLabels[i]) {
+              validatedLabels.push(originalLabels[i]);
+            }
+            console.log(`🔄 Corrected decor reference: ${ref} → ${validRef}`);
+            found = true;
+            break;
+          }
+        }
+        
+        if (!found) {
+          console.warn(`❌ REJECTED invented decor reference: ${ref} - not in catalog`);
+        }
       }
+    }
+    
+    // Update result with validated references only
+    result.decorReferences = validatedRefs;
+    result.decorLabels = validatedLabels;
+    
+    if (validatedRefs.length < originalCount) {
+      console.warn(`🔒 Filtered decor references: ${originalCount} → ${validatedRefs.length} (removed ${originalCount - validatedRefs.length} invented refs)`);
+    }
+    
+    // If all references were invalid and we had some, log a critical warning
+    if (validatedRefs.length === 0 && originalCount > 0) {
+      console.error(`🚨 CRITICAL: All ${originalCount} decor references were invented and filtered out!`);
     }
   } else if (result.status === "ok") {
     console.warn(`⚠️ No decor references provided but status=ok - AI should have selected decors`);
@@ -462,11 +535,9 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
   if (result.status === "ok") {
     if (!result.finalPromptForImageModel || result.finalPromptForImageModel.length < 30) {
       console.warn("⚠️ finalPromptForImageModel is short or missing, but accepting");
-      // Don't throw - let it proceed even if short
     }
     if (result.decorReferences.length === 0) {
-      console.warn("⚠️ No decor references but status=ok - AI should ideally include decor refs");
-      // Don't throw - the AI might have good reasons
+      console.warn("⚠️ No valid decor references after validation - generation may not use DICA decors accurately");
     }
   }
 
