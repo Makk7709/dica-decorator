@@ -70,6 +70,8 @@ const Creative = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [decors, setDecors] = useState<Decor[]>([]);
+  const [isDecorsLoading, setIsDecorsLoading] = useState(false);
+  const [decorsLoadError, setDecorsLoadError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -240,6 +242,9 @@ const Creative = () => {
   };
 
   const loadDecors = async () => {
+    setIsDecorsLoading(true);
+    setDecorsLoadError(null);
+
     try {
       const { data, error } = await supabase
         .from("decors")
@@ -251,9 +256,17 @@ const Creative = () => {
       if (error) throw error;
       console.log(`Décors chargés: ${data?.length || 0} décors actifs`);
       setDecors(data || []);
+
+      if (!data || data.length === 0) {
+        setDecorsLoadError("Aucun décor actif trouvé dans le catalogue");
+      }
     } catch (error: unknown) {
       console.error("Error loading decors:", error);
+      const message = error instanceof Error ? error.message : "Erreur inconnue";
+      setDecorsLoadError(message);
       toast.error("Erreur lors du chargement des décors");
+    } finally {
+      setIsDecorsLoading(false);
     }
   };
 
@@ -741,6 +754,40 @@ const Creative = () => {
                       Créez des mood boards, plaquettes et visualisations avec vos décors
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* Catalogue status */}
+              <div className="mb-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/60 px-4 py-3">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Catalogue décors :</span>{" "}
+                    {isDecorsLoading ? (
+                      <span className="inline-flex items-center gap-2 text-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Chargement…
+                      </span>
+                    ) : decorsLoadError ? (
+                      <span className="text-destructive">Indisponible</span>
+                    ) : (
+                      <span className="text-foreground">{decors.length} disponibles</span>
+                    )}
+                    {decorsLoadError ? (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {decorsLoadError}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={loadDecors}
+                    disabled={isDecorsLoading}
+                  >
+                    Recharger
+                  </Button>
                 </div>
               </div>
 
