@@ -173,24 +173,26 @@ export async function orchestrateDicaPrompt(
  * Build system prompt for orchestrator
  */
 function buildOrchestratorSystemPrompt(): string {
-  return `Tu es le "DICA Prompt Orchestrator", un expert IA créatif et non-bloquant spécialisé dans l'optimisation des prompts pour Nano Banana.
+  return `Tu es le "DICA Prompt Orchestrator", un expert IA spécialisé dans la validation et structuration des demandes pour le catalogue DICA.
 
 🎯 TA MISSION:
-Transformer TOUTE demande utilisateur en un prompt optimisé de haute qualité pour Nano Banana, en comblant intelligemment les détails manquants.
+Valider que les demandes utilisateurs utilisent UNIQUEMENT les décors du catalogue DICA et structurer les prompts en respectant STRICTEMENT les références fournies.
 
-⚡ PRINCIPE FONDAMENTAL: TOUJOURS OPTIMISER, JAMAIS BLOQUER
-- Tu retournes TOUJOURS status="ok" sauf cas vraiment exceptionnels
-- Si des infos manquent → TU LES INVENTES de manière cohérente et professionnelle
-- Tu es créatif, autonome, et proactif
-- Ton rôle est d'AMÉLIORER le prompt, pas de le rejeter
+⚠️ PRINCIPE FONDAMENTAL: RESPECT ABSOLU DU CATALOGUE DICA
+- Tu n'utilises QUE les décors qui existent dans le catalogue fourni
+- Tu ne peux JAMAIS inventer de couleur, texture ou référence non listée
+- Si l'utilisateur mentionne un décor qui n'existe pas → status="need_clarification" ou "reject"
+- Les références de décors DOIVENT correspondre EXACTEMENT à celles du catalogue
 
-🔒 2 CONTRAINTES STRICTES ET NON-NÉGOCIABLES:
+🔒 CONTRAINTES STRICTES ET NON-NÉGOCIABLES:
 
-1. DÉCORS CATALOGUE DICA UNIQUEMENT
-   - Utilise EXCLUSIVEMENT les décors du catalogue DICA fourni
+1. DÉCORS CATALOGUE DICA UNIQUEMENT - VALIDATION STRICTE
+   - Utilise EXCLUSIVEMENT les décors LISTÉS dans le catalogue fourni
    - JAMAIS inventer de couleurs, textures ou références hors catalogue
-   - Si l'utilisateur mentionne une couleur/style, trouve le décor DICA le plus proche
-   - Vérifie que chaque référence existe dans le catalogue
+   - Si l'utilisateur mentionne une couleur/style, cherche le décor DICA EXACT correspondant DANS LE CATALOGUE
+   - Si aucun décor correspondant n'existe dans le catalogue → DEMANDE CLARIFICATION
+   - CHAQUE référence utilisée DOIT apparaître TEXTUELLEMENT dans le catalogue fourni
+   - En cas de doute, utilise status="need_clarification" pour demander à l'utilisateur de choisir parmi les décors existants
 
 2. EXACTITUDE VISUELLE DES DÉCORS
    - Respecte STRICTEMENT les propriétés matériaux de chaque décor:
@@ -295,24 +297,31 @@ Transformer TOUTE demande utilisateur en un prompt optimisé de haute qualité p
    - DICA Inox Mat (ref: 3022_MAT_FC) brushed stainless steel sample with delicate metallic finish
    Samples arranged in elegant overlapping fan pattern. Soft diffused natural lighting creating gentle shadows. Harmonious soft color palette. Product photography for interior design materials catalog. High-resolution print quality."
 
-📋 LOGIQUE D'OPTIMISATION:
+📋 LOGIQUE DE VALIDATION STRICTE:
 
-✅ Status "ok" (95% des cas):
-- Demande claire ou floue → INVENTE les détails manquants intelligemment
-- Image fournie → Applique décors DICA sur surfaces appropriées
-- Prompt vague → ENRICHIS avec contexte professionnel cohérent
-- Type d'espace ambigu → CHOISIS le plus logique (van, bureau, cuisine, etc.)
-- Décor non spécifié → SÉLECTIONNE le plus approprié du catalogue
-- Couleur mentionnée → TROUVE le décor DICA exact correspondant (ex: "rouge" → 3178_SPA, "vert olive" → 3179_SPA, "noir" → 3020_BN, "blanc" → 800_SATIN)
-- Épaisseur/chant mentionné → TRADUIS précisément en détail visuel (voir section 3)
+✅ Status "ok" (UNIQUEMENT si toutes les conditions sont remplies):
+- TOUS les décors mentionnés existent TEXTUELLEMENT dans le catalogue fourni
+- Les références utilisées dans decorReferences correspondent EXACTEMENT aux codes du catalogue
+- Image fournie → Applique UNIQUEMENT les décors DICA du catalogue sur surfaces appropriées
+- Décor non spécifié par l'utilisateur → PROPOSE des décors du catalogue avec leurs références exactes
+- Couleur mentionnée → VÉRIFIE qu'un décor DICA correspondant existe DANS LE CATALOGUE avant de l'utiliser
 
-⚠️ Status "need_clarification" (rare, <3% des cas):
-- UNIQUEMENT si décors mentionnés n'existent pas dans le catalogue ET tu ne peux pas deviner l'intention
-- UNIQUEMENT si demande totalement absurde et impossible à interpréter
+⚠️ Status "need_clarification" (quand nécessaire):
+- L'utilisateur mentionne un décor/couleur/texture qui n'existe PAS dans le catalogue
+- L'utilisateur est vague et plusieurs décors du catalogue pourraient correspondre
+- Tu as besoin de précisions pour sélectionner le bon décor DICA
+- PROPOSE TOUJOURS des alternatives existantes du catalogue dans tes questions
 
-❌ Status "reject" (très rare, <2% des cas):
-- UNIQUEMENT si demande viole les 2 contraintes strictes de façon irréparable
-- UNIQUEMENT si demande explicitement hors gamme DICA (ex: "ne pas utiliser de décors DICA")
+❌ Status "reject":
+- Décor demandé explicitement hors gamme DICA
+- Demande impossible à satisfaire avec le catalogue disponible
+- L'utilisateur insiste pour utiliser un décor qui n'existe pas
+
+🚨 RÈGLE D'OR - VALIDATION DES RÉFÉRENCES:
+Avant de retourner status="ok", VÉRIFIE que CHAQUE entrée de decorReferences:
+1. Correspond à un code de référence EXACT du catalogue (ex: "3178_SPA_FC", "FU210_FC")
+2. N'est PAS une référence inventée ou modifiée
+3. Existe textuellement dans le contexte du catalogue fourni
 
 🎨 GÉNÉRATION DU PROMPT FINAL (status="ok"):
 
@@ -377,10 +386,12 @@ Samples elegantly arranged in cascading fan pattern showing texture details. Sof
 ⚠️ RAPPEL CRITIQUE pour ce type de demande: Les décors sont des ÉCHANTILLONS DE MATÉRIAUX à photographier, PAS des objets à construire !
 
 ⚡ TON ATTITUDE:
-- Créatif et proactif, jamais bloquant
-- Tu complètes, tu optimises, tu améliores
-- Tu es le meilleur allié de l'utilisateur pour obtenir des rendus parfaits
-- Les 2 seules limites: catalogue DICA + exactitude visuelle décors
+- Rigoureux et précis sur les références du catalogue
+- Tu ne proposes QUE des décors qui existent réellement dans le catalogue fourni
+- Tu demandes des clarifications plutôt que d'inventer des décors
+- Tu guides l'utilisateur vers les bonnes références du catalogue DICA
+- JAMAIS d'invention de références ou de décors non listés
+- En cas de doute, utilise status="need_clarification" et propose des alternatives du catalogue
 
 🚨 RÈGLE CRITIQUE - TYPES DE DEMANDES À DISTINGUER:
 
@@ -423,14 +434,17 @@ ${input.decorContext}
     }
   }
 
-  message += `\n\n🎯 OPTIMISATION REQUISE:
-1. Extraire ou INVENTER intelligemment le type d'espace
-2. Sélectionner les décors DICA les plus appropriés du catalogue
-3. Combler les détails manquants de manière créative
-4. Retourner status="ok" (sauf cas vraiment exceptionnels)
-5. Générer un prompt final riche et optimisé
+  message += `\n\n🎯 VALIDATION REQUISE:
+1. Identifier le type d'espace demandé (ou demander clarification si ambigu)
+2. VÉRIFIER que CHAQUE décor mentionné existe DANS LE CATALOGUE ci-dessus
+3. Utiliser UNIQUEMENT les références EXACTES du catalogue dans decorReferences
+4. Si un décor demandé n'existe pas → status="need_clarification" avec alternatives du catalogue
+5. Générer un prompt final utilisant UNIQUEMENT les références validées du catalogue
 
-⚡ RAPPEL: Status "ok" est attendu dans 95%+ des cas. Sois créatif et proactif!
+🚨 RÈGLE STRICTE: 
+- Les decorReferences DOIVENT correspondre EXACTEMENT aux codes "Réf:" du catalogue
+- Ne JAMAIS inventer de référence qui n'apparaît pas textuellement dans le catalogue
+- En cas de doute, demande clarification plutôt que d'inventer
 
 Réponds en utilisant la fonction validate_dica_request.`;
 
@@ -439,14 +453,16 @@ Réponds en utilisant la fonction validate_dica_request.`;
 
 /**
  * Extract all valid reference codes from the decor context
+ * Uses multiple patterns to catch different reference formats
  */
 function extractValidReferenceCodes(decorContext: string): Set<string> {
   const validRefs = new Set<string>();
   
-  // Match patterns like "reference_code: XXX" or "Ref: XXX" or just reference codes in context
+  // Match patterns like "reference_code: XXX", "Ref: XXX", "(Réf: XXX)" or just reference codes in context
   const patterns = [
     /reference_code[:\s]+([A-Z0-9_]+)/gi,
     /\bRef[:\s]+([A-Z0-9_]+)/gi,
+    /\(Réf:\s*([A-Z0-9_]+)\)/gi,
     /\b(\d{3,4}_[A-Z_]+(?:_[A-Z0-9]+)?)\b/g, // e.g. 3040_BN_PF, 788_WOOD, 1071_VELVET
   ];
   
@@ -459,6 +475,26 @@ function extractValidReferenceCodes(decorContext: string): Set<string> {
   
   console.log(`📋 Extracted ${validRefs.size} valid reference codes from catalog`);
   return validRefs;
+}
+
+/**
+ * Check if a reference is valid (exists in catalog)
+ */
+function isValidReference(ref: string, validRefs: Set<string>, decorContext: string): boolean {
+  const upperRef = ref.toUpperCase();
+  
+  // Direct match
+  if (validRefs.has(upperRef)) return true;
+  
+  // Check if ref is contained in any valid ref (partial match)
+  for (const validRef of validRefs) {
+    if (validRef.includes(upperRef) || upperRef.includes(validRef)) return true;
+  }
+  
+  // Check if the reference appears anywhere in the context (fallback)
+  if (decorContext.toUpperCase().includes(upperRef)) return true;
+  
+  return false;
 }
 
 /**
@@ -478,17 +514,19 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
   if (result.decorReferences && result.decorReferences.length > 0) {
     const originalCount = result.decorReferences.length;
     const originalLabels = result.decorLabels || [];
+    const invalidRefs: string[] = [];
     
     // Filter to keep only valid references
     const validatedRefs: string[] = [];
     const validatedLabels: string[] = [];
     
     for (let i = 0; i < result.decorReferences.length; i++) {
-      const ref = result.decorReferences[i].toUpperCase();
+      const ref = result.decorReferences[i];
+      const upperRef = ref.toUpperCase();
       
       // Check if reference exists in catalog
-      if (validRefs.has(ref)) {
-        validatedRefs.push(result.decorReferences[i]);
+      if (isValidReference(ref, validRefs, decorContext)) {
+        validatedRefs.push(ref);
         if (originalLabels[i]) {
           validatedLabels.push(originalLabels[i]);
         }
@@ -498,7 +536,7 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
         let found = false;
         for (const validRef of validRefs) {
           // Check if the ref is a substring or close match
-          if (validRef.includes(ref) || ref.includes(validRef)) {
+          if (validRef.includes(upperRef) || upperRef.includes(validRef)) {
             validatedRefs.push(validRef);
             if (originalLabels[i]) {
               validatedLabels.push(originalLabels[i]);
@@ -510,9 +548,24 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
         }
         
         if (!found) {
+          invalidRefs.push(ref);
           console.warn(`❌ REJECTED invented decor reference: ${ref} - not in catalog`);
         }
       }
+    }
+    
+    // If there are invalid references and status was "ok", change to need_clarification
+    if (invalidRefs.length > 0 && result.status === "ok") {
+      console.error(`🚫 Found ${invalidRefs.length} invented/invalid decor references: ${invalidRefs.join(', ')}`);
+      
+      result.status = "need_clarification";
+      result.clarificationQuestions = [
+        `Je ne trouve pas les décors suivants dans le catalogue DICA: ${invalidRefs.join(', ')}`,
+        "Pourriez-vous préciser quels décors du catalogue DICA vous souhaitez utiliser ?",
+        "Voici quelques références disponibles que vous pourriez utiliser à la place."
+      ];
+      result.validationWarnings = [`Références inventées détectées et rejetées: ${invalidRefs.join(', ')}`];
+      console.log(`⚠️ Status changed from "ok" to "need_clarification" due to invalid references`);
     }
     
     // Update result with validated references only
@@ -528,10 +581,11 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
       console.error(`🚨 CRITICAL: All ${originalCount} decor references were invented and filtered out!`);
     }
   } else if (result.status === "ok") {
-    console.warn(`⚠️ No decor references provided but status=ok - AI should have selected decors`);
+    // No decor references but status is ok - this might be acceptable for some queries
+    console.warn(`⚠️ No decor references provided but status=ok`);
   }
 
-  // Validate required fields for "ok" status (more permissive)
+  // Validate required fields for "ok" status
   if (result.status === "ok") {
     if (!result.finalPromptForImageModel || result.finalPromptForImageModel.length < 30) {
       console.warn("⚠️ finalPromptForImageModel is short or missing, but accepting");
@@ -544,14 +598,17 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
   // Validate clarification questions for "need_clarification"
   if (result.status === "need_clarification") {
     if (!result.clarificationQuestions || result.clarificationQuestions.length === 0) {
-      throw new Error("clarificationQuestions required for status=need_clarification");
+      result.clarificationQuestions = [
+        "Pourriez-vous préciser quels décors du catalogue DICA vous souhaitez utiliser ?",
+        "Je suis là pour vous aider avec les décors disponibles dans notre catalogue."
+      ];
     }
   }
 
   // Validate rejection reason for "reject"
   if (result.status === "reject") {
     if (!result.rejectionReason) {
-      throw new Error("rejectionReason required for status=reject");
+      result.rejectionReason = "Demande incompatible avec le catalogue DICA disponible.";
     }
   }
 

@@ -284,18 +284,41 @@ const Creative = () => {
       return acc;
     }, {} as Record<string, Decor[]>);
 
-    let context = `CATALOGUE DICA - ${decors.length} décors disponibles:\n`;
+    // Collect all valid reference codes
+    const allReferences = decors.map(d => d.reference_code);
+    
+    let context = `═══════════════════════════════════════════════════════════════════
+🔒 CATALOGUE OFFICIEL DICA - ${decors.length} DÉCORS AUTORISÉS
+═══════════════════════════════════════════════════════════════════
+
+⚠️ RÈGLE STRICTE: Tu ne peux utiliser QUE les décors listés ci-dessous.
+Toute référence non présente dans cette liste est INTERDITE.
+
+📋 LISTE DES RÉFÉRENCES AUTORISÉES (${allReferences.length} codes):
+${allReferences.join(', ')}
+
+═══════════════════════════════════════════════════════════════════
+📚 DÉTAIL DES DÉCORS PAR CATÉGORIE
+═══════════════════════════════════════════════════════════════════
+`;
     
     for (const [category, categoryDecors] of Object.entries(decorsByCategory)) {
       context += `\n📁 Catégorie ${category.toUpperCase()} (${categoryDecors.length} décors):\n`;
+      context += '─'.repeat(50) + '\n';
       categoryDecors.forEach(decor => {
-        context += `  • ${decor.name} (Réf: ${decor.reference_code})\n`;
-        context += `    Contextes d'usage: ${decor.usage_contexts.join(", ")}\n`;
-        if (decor.texture_image_url) {
-          context += `    Texture disponible: ${decor.texture_image_url}\n`;
-        }
+        context += `  ✓ ${decor.name}\n`;
+        context += `    → Référence EXACTE: (Réf: ${decor.reference_code})\n`;
+        context += `    → Contextes d'usage: ${decor.usage_contexts.join(", ")}\n`;
       });
+      context += '\n';
     }
+    
+    context += `
+═══════════════════════════════════════════════════════════════════
+🚫 RAPPEL FINAL: N'utilise JAMAIS une référence qui n'est pas dans 
+la liste ci-dessus. Si le client demande un décor non listé,
+propose-lui des alternatives parmi les ${decors.length} décors autorisés.
+═══════════════════════════════════════════════════════════════════`;
     
     console.log(`Contexte décors construit: ${decors.length} décors dans ${Object.keys(decorsByCategory).length} catégories`);
     return context;

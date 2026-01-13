@@ -34,7 +34,7 @@ function createDecorsHash(decors: Decor[]): string {
 }
 
 /**
- * Build the decor context string
+ * Build the decor context string with strict catalog enforcement
  */
 function buildDecorContext(decors: Decor[]): string | null {
   if (decors.length === 0) return null;
@@ -47,7 +47,19 @@ function buildDecorContext(decors: Decor[]): string | null {
     return acc;
   }, {} as Record<string, Decor[]>);
 
-  let context = '=== CATALOGUE DÉCORS DICA DISPONIBLES ===\n\n';
+  // Collect all valid reference codes for strict enforcement
+  const allReferences = decors.map(d => d.reference_code);
+
+  let context = `═══════════════════════════════════════════════════════════════════
+🔒 CATALOGUE OFFICIEL DICA - ${decors.length} DÉCORS AUTORISÉS
+═══════════════════════════════════════════════════════════════════
+
+⚠️ RÈGLE STRICTE: Utilise UNIQUEMENT les décors listés ci-dessous.
+
+📋 RÉFÉRENCES AUTORISÉES: ${allReferences.join(', ')}
+
+═══════════════════════════════════════════════════════════════════
+`;
 
   for (const [category, categoryDecors] of Object.entries(decorsByCategory)) {
     // Keep category lowercase as per test requirements
@@ -55,14 +67,15 @@ function buildDecorContext(decors: Decor[]): string | null {
     context += '─'.repeat(40) + '\n';
 
     for (const decor of categoryDecors) {
-      context += `• ${decor.name} (Réf: ${decor.reference_code})\n`;
+      context += `✓ ${decor.name} (Réf: ${decor.reference_code})\n`;
       context += `  Contextes: ${decor.usage_contexts.join(', ')}\n`;
-      context += `  Texture: ${decor.texture_image_url}\n`;
       context += '\n';
     }
 
     context += '\n';
   }
+
+  context += `🚫 INTERDIT: N'invente JAMAIS de référence non listée ci-dessus.\n`;
 
   return context;
 }
