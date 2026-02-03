@@ -674,7 +674,7 @@ const Admin = () => {
           <TabsContent value="decors">
             {/* Bulk Upload Section */}
             <div className="mb-8">
-              <BulkDecorUpload categories={categories} onComplete={loadDecors} />
+              <BulkDecorUpload onComplete={loadDecors} />
             </div>
 
             <div className="mb-8 flex items-center justify-between">

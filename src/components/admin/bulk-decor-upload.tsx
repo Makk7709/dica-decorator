@@ -1,9 +1,10 @@
 /**
  * Composant pour l'import en masse de décors
  * Permet de charger un dossier complet d'images et de créer automatiquement les décors
+ * Assigne directement aux catalogues contextualisés (Parois, Sol, Évasion, Compact, Autre)
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,16 +26,24 @@ interface FileToUpload {
   error?: string;
 }
 
-interface Category {
+interface Catalog {
   id: string;
-  name: string;
-  is_active: boolean;
+  code: string;
+  label: string;
+  project_type: string;
 }
 
 interface BulkDecorUploadProps {
-  categories: Category[];
   onComplete: () => void;
 }
+
+// Labels pour les types de projet
+const projectTypeLabels: Record<string, string> = {
+  ascenseur: "Ascenseur",
+  van: "Van",
+  terrasse: "Terrasse",
+  autre: "Autre",
+};
 
 /**
  * Extrait le code référence à partir du nom de fichier
@@ -53,12 +62,38 @@ const parseFileName = (fileName: string): { name: string; referenceCode: string 
   return { name: displayName, referenceCode };
 };
 
-export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps) => {
+export const BulkDecorUpload = ({ onComplete }: BulkDecorUploadProps) => {
   const [files, setFiles] = useState<FileToUpload[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [catalogs, setCatalogs] = useState<Catalog[]>([]);
+  const [selectedCatalogId, setSelectedCatalogId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
+
+  // Charger les catalogues
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("catalogs")
+          .select("id, code, label, project_type")
+          .eq("is_active", true)
+          .order("project_type")
+          .order("display_order");
+
+        if (error) throw error;
+        setCatalogs(data || []);
+      } catch (error) {
+        console.error("Error loading catalogs:", error);
+        toast.error("Erreur lors du chargement des catalogues");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCatalogs();
+  }, []);
 
   const handleFilesSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
@@ -98,7 +133,7 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const uploadSingleDecor = async (fileToUpload: FileToUpload): Promise<boolean> => {
+  const uploadSingleDecor = async (fileToUpload: FileToUpload, displayOrder: number): Promise<boolean> => {
     try {
       // 1. Upload image to storage
       const fileExt = fileToUpload.file.name.split('.').pop();
@@ -111,23 +146,36 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
       if (uploadError) throw uploadError;
 
       // 2. Get public URL
-      const { data } = supabase.storage
+      const { data: urlData } = supabase.storage
         .from('decor-textures')
         .getPublicUrl(fileName);
 
-      // 3. Create decor entry
-      const { error: insertError } = await supabase
+      // 3. Create decor entry (with generic category since we use catalogs now)
+      const { data: decorData, error: insertError } = await supabase
         .from('decors')
         .insert({
           name: fileToUpload.name,
           reference_code: fileToUpload.referenceCode,
-          category: selectedCategory,
-          texture_image_url: data.publicUrl,
-          usage_contexts: ['ascenseur'],
+          category: 'decor', // Generic category
+          texture_image_url: urlData.publicUrl,
+          usage_contexts: ['ascenseur'], // Default, will be determined by catalog
           is_active: true,
-        });
+        })
+        .select('id')
+        .single();
 
       if (insertError) throw insertError;
+
+      // 4. Link decor to selected catalog
+      const { error: linkError } = await supabase
+        .from('catalog_decor_links')
+        .insert({
+          catalog_id: selectedCatalogId,
+          decor_id: decorData.id,
+          display_order: displayOrder,
+        });
+
+      if (linkError) throw linkError;
 
       return true;
     } catch (error) {
@@ -137,8 +185,8 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
   };
 
   const handleBulkUpload = async () => {
-    if (!selectedCategory) {
-      toast.error("Sélectionnez une catégorie");
+    if (!selectedCatalogId) {
+      toast.error("Sélectionnez un catalogue");
       return;
     }
 
@@ -154,6 +202,7 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
 
     let successCount = 0;
     let errorCount = 0;
+    let displayOrder = 0;
 
     for (let i = 0; i < files.length; i++) {
       if (!files[i].selected) continue;
@@ -163,7 +212,8 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
         idx === i ? { ...f, status: 'uploading' } : f
       ));
 
-      const success = await uploadSingleDecor(files[i]);
+      const success = await uploadSingleDecor(files[i], displayOrder);
+      displayOrder++;
 
       // Update status based on result
       setFiles(prev => prev.map((f, idx) => 
@@ -181,7 +231,7 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
       }
 
       setUploadedCount(successCount + errorCount);
-      setProgress(((i + 1) / selectedFiles.length) * 100);
+      setProgress(((successCount + errorCount) / selectedFiles.length) * 100);
     }
 
     setIsUploading(false);
@@ -195,7 +245,17 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
   };
 
   const selectedCount = files.filter(f => f.selected).length;
-  const activeCategories = categories.filter(c => c.is_active);
+  const selectedCatalog = catalogs.find(c => c.id === selectedCatalogId);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -205,26 +265,31 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
           Import en masse
         </CardTitle>
         <CardDescription>
-          Sélectionnez un dossier d'images pour créer automatiquement les décors. 
+          Sélectionnez un dossier d'images pour créer automatiquement les décors et les assigner au catalogue choisi.
           Le nom du fichier sera utilisé comme référence (ex: 3040_BN_PF.jpg → référence "3040_BN_PF").
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Category Selection */}
+        {/* Catalog Selection */}
         <div className="space-y-2">
-          <Label>Catégorie pour tous les décors *</Label>
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-full max-w-xs">
-              <SelectValue placeholder="Sélectionner une catégorie" />
+          <Label>Catalogue de destination *</Label>
+          <Select value={selectedCatalogId} onValueChange={setSelectedCatalogId}>
+            <SelectTrigger className="w-full max-w-md bg-background">
+              <SelectValue placeholder="Sélectionner un catalogue" />
             </SelectTrigger>
-            <SelectContent>
-              {activeCategories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.name}>
-                  {cat.name}
+            <SelectContent className="bg-background border shadow-lg z-50">
+              {catalogs.map((catalog) => (
+                <SelectItem key={catalog.id} value={catalog.id}>
+                  {projectTypeLabels[catalog.project_type]}: {catalog.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {selectedCatalog && (
+            <p className="text-sm text-muted-foreground">
+              Les décors seront ajoutés au catalogue <strong>{selectedCatalog.label}</strong> ({projectTypeLabels[selectedCatalog.project_type]})
+            </p>
+          )}
         </div>
 
         {/* File Input */}
@@ -356,7 +421,7 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
             {/* Upload Button */}
             <Button
               onClick={handleBulkUpload}
-              disabled={isUploading || selectedCount === 0 || !selectedCategory}
+              disabled={isUploading || selectedCount === 0 || !selectedCatalogId}
               className="w-full"
               size="lg"
             >
@@ -368,7 +433,7 @@ export const BulkDecorUpload = ({ categories, onComplete }: BulkDecorUploadProps
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Importer {selectedCount} décor{selectedCount > 1 ? 's' : ''}
+                  Importer {selectedCount} décor{selectedCount > 1 ? 's' : ''} dans {selectedCatalog?.label || 'le catalogue'}
                 </>
               )}
             </Button>
