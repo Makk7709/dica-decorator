@@ -159,13 +159,29 @@ serve(async (req) => {
     
     console.log("Authenticated user:", user.id);
     // ========================================================================
-    const { photoUrl, textureUrl, photoId, decorId, useCase, renderCount = 1, format = "square", showReferences = false, originalWidth, originalHeight } = await req.json();
+    const { 
+      photoUrl, 
+      textureUrl, 
+      photoId, 
+      decorId, 
+      useCase, 
+      renderCount = 1, 
+      format = "square", 
+      showReferences = false, 
+      originalWidth, 
+      originalHeight,
+      // Nouveau: Support multi-décor (Parois + Sol pour ascenseur)
+      allDecors 
+    } = await req.json();
     
     // Get origin from request headers for constructing absolute URLs
     const requestOrigin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, '') || "";
     
     // Limit render count to avoid resource exhaustion
     const safeRenderCount = Math.min(renderCount, RESOURCE_LIMITS.maxRenderCount);
+    
+    // Déterminer si c'est un mode multi-décor (ascenseur avec Parois + Sol)
+    const isMultiDecorMode = allDecors && Array.isArray(allDecors) && allDecors.length > 1 && useCase === "ascenseur";
     
     console.log("Applying decor:", {
       photoUrl,
@@ -176,6 +192,8 @@ serve(async (req) => {
       renderCount: safeRenderCount,
       format,
       requestOrigin,
+      isMultiDecorMode,
+      allDecorsCount: allDecors?.length || 0,
     });
     
     if (renderCount > safeRenderCount) {
@@ -192,16 +210,85 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: decor, error: decorError } = await supabase
-      .from("decors")
-      .select("name, reference_code, category")
-      .eq("id", decorId)
-      .single();
-
-    if (decorError || !decor) {
-      console.error("Error fetching decor:", decorError);
-      throw new Error("Décor introuvable");
+    // Pour le mode multi-décor, on récupère les infos de tous les décors
+    interface DecorInfo {
+      id: string;
+      name: string;
+      reference_code: string;
+      category: string;
+      textureUrl: string;
+      surfaceType: 'walls' | 'floors' | 'general';
     }
+    
+    let decorsInfo: DecorInfo[] = [];
+    
+    if (isMultiDecorMode) {
+      // Mode multi-décor : récupérer les infos de tous les décors
+      console.log("Multi-decor mode: fetching info for all decors");
+      
+      for (const decorData of allDecors) {
+        const { data: decorInfo, error: decorInfoError } = await supabase
+          .from("decors")
+          .select("name, reference_code, category")
+          .eq("id", decorData.id)
+          .single();
+          
+        if (!decorInfoError && decorInfo) {
+          // Déterminer le type de surface basé sur le catalogId ou le nom
+          let surfaceType: 'walls' | 'floors' | 'general' = 'general';
+          const nameLower = (decorData.name || decorInfo.name || '').toLowerCase();
+          const refLower = (decorData.referenceCode || decorInfo.reference_code || '').toLowerCase();
+          
+          // Heuristique pour déterminer walls vs floors basée sur le catalog_decor_links
+          // Pour l'instant, on utilise l'ordre: premier = walls, deuxième = floors
+          const decorIndex = allDecors.indexOf(decorData);
+          if (decorIndex === 0) {
+            surfaceType = 'walls';
+          } else if (decorIndex === 1) {
+            surfaceType = 'floors';
+          }
+          
+          decorsInfo.push({
+            id: decorData.id,
+            name: decorInfo.name,
+            reference_code: decorInfo.reference_code,
+            category: decorInfo.category,
+            textureUrl: decorData.textureUrl,
+            surfaceType,
+          });
+        }
+      }
+      
+      console.log("Decors info loaded:", decorsInfo.map(d => ({ name: d.name, surface: d.surfaceType })));
+    } else {
+      // Mode simple décor
+      const { data: decor, error: decorError } = await supabase
+        .from("decors")
+        .select("name, reference_code, category")
+        .eq("id", decorId)
+        .single();
+
+      if (decorError || !decor) {
+        console.error("Error fetching decor:", decorError);
+        throw new Error("Décor introuvable");
+      }
+      
+      decorsInfo.push({
+        id: decorId,
+        name: decor.name,
+        reference_code: decor.reference_code,
+        category: decor.category,
+        textureUrl: textureUrl,
+        surfaceType: 'general',
+      });
+    }
+    
+    // Décor principal (pour compatibilité avec le reste du code)
+    const decor = {
+      name: decorsInfo[0]?.name || '',
+      reference_code: decorsInfo[0]?.reference_code || '',
+      category: decorsInfo[0]?.category || '',
+    };
 
     // ========================================================================
     // Build Multi-Layer Prompt for Intelligent Surface Mapping
@@ -284,7 +371,53 @@ RÈGLE #4: ALIGNEMENT DU GRAIN
     let surfaceRules = "";
     switch (useCase) {
       case "ascenseur":
-        surfaceRules = `═══════════════════════════════════════════════════════════════════
+        // Mode multi-décor : Parois + Sol
+        if (isMultiDecorMode && decorsInfo.length >= 2) {
+          const wallDecor = decorsInfo.find(d => d.surfaceType === 'walls');
+          const floorDecor = decorsInfo.find(d => d.surfaceType === 'floors');
+          
+          surfaceRules = `╔═══════════════════════════════════════════════════════════════════╗
+║ 🚨 MODE MULTI-DÉCOR: PAROIS + SOL DISTINCTS                      ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+⚠️ ATTENTION: Tu as DEUX textures différentes à appliquer:
+
+═══════════════════════════════════════════════════════════════════
+🧱 TEXTURE #1 - PAROIS/MURS (Image 2)
+═══════════════════════════════════════════════════════════════════
+Décor: ${wallDecor?.name || 'N/A'} (réf ${wallDecor?.reference_code || 'N/A'})
+
+APPLIQUER CETTE TEXTURE SUR:
+• Panneaux muraux verticaux
+• Surfaces de portes/battants  
+• Sections murales (soubassements, fond de cabine)
+• Cloisons et parois verticales
+
+═══════════════════════════════════════════════════════════════════
+🏠 TEXTURE #2 - SOL (Image 3)
+═══════════════════════════════════════════════════════════════════
+Décor: ${floorDecor?.name || 'N/A'} (réf ${floorDecor?.reference_code || 'N/A'})
+
+APPLIQUER CETTE TEXTURE SUR:
+• Le sol / plancher de la cabine
+• Les surfaces horizontales au niveau du sol
+
+═══════════════════════════════════════════════════════════════════
+❌ SURFACES INTERDITES (ne JAMAIS modifier):
+═══════════════════════════════════════════════════════════════════
+• Plafonds et luminaires
+• Éléments techniques (boutons, interrupteurs, prises)
+• Barres de maintien, poignées, quincaillerie
+• Miroirs et surfaces vitrées
+• Indicateurs et signalétique
+• Structures apparentes
+
+RÈGLE ABSOLUE: Chaque texture va sur sa surface respective.
+NE PAS mélanger les textures. NE PAS inventer de surfaces.
+═══════════════════════════════════════════════════════════════════`;
+        } else {
+          // Mode simple décor pour ascenseur
+          surfaceRules = `═══════════════════════════════════════════════════════════════════
 IDENTIFICATION DES SURFACES - PAS DE SUGGESTION D'ESPACE
 ═══════════════════════════════════════════════════════════════════
 
@@ -312,6 +445,7 @@ RÈGLE ABSOLUE: Travaille UNIQUEMENT sur la photo fournie. Si c'est un bureau,
 reste sur le bureau. Si c'est une cuisine, reste sur la cuisine. NE JAMAIS inventer 
 un autre type d'espace.
 ═══════════════════════════════════════════════════════════════════`;
+        }
         break;
       case "van":
         surfaceRules = `═══════════════════════════════════════════════════════════════════
@@ -593,7 +727,29 @@ ${formatInstructions}
 Si UNE seule réponse est NON → Améliorer ou refuser le rendu.
 ═══════════════════════════════════════════════════════════════════
 
-${showReferences ? `
+${showReferences ? (isMultiDecorMode ? `
+═══════════════════════════════════════════════════════════════════
+🏷️ ANNOTATIONS RÉFÉRENCES DICA - MODE MULTI-DÉCOR
+═══════════════════════════════════════════════════════════════════
+
+Tu DOIS ajouter sur l'image les références des décors appliqués:
+
+DÉCORS À ANNOTER:
+${decorsInfo.map((d, i) => `• ${d.surfaceType === 'walls' ? 'PAROIS' : d.surfaceType === 'floors' ? 'SOL' : 'DÉCOR'}: ${d.name} (réf ${d.reference_code})`).join('\n')}
+
+FORMAT D'ANNOTATION:
+• Texte élégant, police sans-serif moderne (style catalogue)
+• Fond semi-transparent derrière le texte pour lisibilité
+• Position: coin inférieur gauche
+• Couleur: blanc ou noir selon le contraste avec l'arrière-plan
+• Afficher les deux références l'une sous l'autre
+
+L'annotation doit être:
+- Professionnelle et discrète
+- Lisible sans dominer l'image
+- Intégrée harmonieusement au rendu
+═══════════════════════════════════════════════════════════════════
+` : `
 ═══════════════════════════════════════════════════════════════════
 🏷️ ANNOTATIONS RÉFÉRENCES DICA - OBLIGATOIRE
 ═══════════════════════════════════════════════════════════════════
@@ -610,23 +766,12 @@ FORMAT D'ANNOTATION:
 • Position: coin inférieur gauche ou près de la surface décorée
 • Couleur: blanc ou noir selon le contraste avec l'arrière-plan
 
-EXEMPLE DE RENDU:
-┌─────────────────────────────┐
-│                             │
-│    [IMAGE DU RENDU]         │
-│                             │
-│  ┌───────────────────────┐  │
-│  │ ${decor.name}         │  │
-│  │ Réf: ${decor.reference_code} │  │
-│  └───────────────────────┘  │
-└─────────────────────────────┘
-
 L'annotation doit être:
 - Professionnelle et discrète
 - Lisible sans dominer l'image
 - Intégrée harmonieusement au rendu
 ═══════════════════════════════════════════════════════════════════
-` : ''}`;
+`) : ''}`;
 
     console.log(`Calling Gemini API (${GEMINI_CONFIG.model})...`);
 
@@ -636,8 +781,88 @@ L'annotation doit être:
     
     let photoBase64: string | null = null;
     let photoMimeType = "image/jpeg";
-    let textureBase64: string | null = null;
-    let textureMimeType = "image/jpeg";
+    
+    // Structure pour stocker les textures (supporte multi-décor)
+    interface TextureData {
+      base64: string;
+      mimeType: string;
+      decorInfo: DecorInfo;
+    }
+    const textures: TextureData[] = [];
+
+    // Helper function to fetch a texture
+    async function fetchTexture(url: string): Promise<{ base64: string; mimeType: string } | null> {
+      let textureLoaded = false;
+      let base64 = "";
+      let mimeType = "image/jpeg";
+      
+      // Extract filename from texture URL path
+      const textureFilename = url.split('/').pop() || '';
+      
+      // Strategy 1: Try Supabase Storage bucket (most reliable)
+      const supabaseStorageUrl = `https://urkftxznsynmvkskytih.supabase.co/storage/v1/object/public/decor-textures/${textureFilename}`;
+      console.log("Trying Supabase Storage URL:", supabaseStorageUrl);
+      
+      try {
+        const storageResponse = await fetchWithTimeout(supabaseStorageUrl, undefined, 10000);
+        const storageContentType = storageResponse.headers.get("content-type") ?? "";
+        
+        if (storageResponse.ok && storageContentType.startsWith("image/")) {
+          const arrayBuffer = await storageResponse.arrayBuffer();
+          base64 = arrayBufferToBase64(arrayBuffer);
+          mimeType = storageContentType;
+          textureLoaded = true;
+          console.log(`Texture loaded from Supabase Storage (${arrayBuffer.byteLength} bytes)`);
+        } else {
+          console.warn("Supabase Storage failed:", storageResponse.status, storageContentType);
+        }
+      } catch (e) {
+        console.warn("Supabase Storage fetch error:", e instanceof Error ? e.message : e);
+      }
+      
+      // Strategy 2: Try origin-based URL if Supabase Storage failed
+      if (!textureLoaded && !url.startsWith("http") && requestOrigin) {
+        const originUrl = `${requestOrigin}${url}`;
+        console.log("Trying origin-based URL:", originUrl);
+        
+        try {
+          const originResponse = await fetchWithTimeout(originUrl, undefined, 10000);
+          const originContentType = originResponse.headers.get("content-type") ?? "";
+          
+          if (originResponse.ok && originContentType.startsWith("image/")) {
+            const arrayBuffer = await originResponse.arrayBuffer();
+            base64 = arrayBufferToBase64(arrayBuffer);
+            mimeType = originContentType;
+            textureLoaded = true;
+            console.log(`Texture loaded from origin URL (${arrayBuffer.byteLength} bytes)`);
+          }
+        } catch (e) {
+          console.warn("Origin URL fetch error:", e instanceof Error ? e.message : e);
+        }
+      }
+      
+      // Strategy 3: Try the original URL (might be absolute already)
+      if (!textureLoaded && url.startsWith("http")) {
+        console.log("Trying original absolute URL:", url);
+        
+        try {
+          const response = await fetchWithTimeout(url);
+          const contentType = response.headers.get("content-type") ?? "";
+          
+          if (response.ok && contentType.startsWith("image/")) {
+            const arrayBuffer = await response.arrayBuffer();
+            base64 = arrayBufferToBase64(arrayBuffer);
+            mimeType = contentType;
+            textureLoaded = true;
+            console.log(`Texture loaded from original URL (${arrayBuffer.byteLength} bytes)`);
+          }
+        } catch (e) {
+          console.warn("Original URL fetch error:", e instanceof Error ? e.message : e);
+        }
+      }
+      
+      return textureLoaded ? { base64, mimeType } : null;
+    }
 
     // Fetch original photo with timeout and size check
     try {
@@ -653,7 +878,6 @@ L'annotation doit être:
           
           if (size > RESOURCE_LIMITS.maxImageSize) {
             console.warn(`Photo size (${size} bytes) exceeds limit. Using URL reference instead.`);
-            // Don't convert to base64, Gemini can sometimes accept URLs
           } else {
             const arrayBuffer = await photoResponse.arrayBuffer();
             photoBase64 = arrayBufferToBase64(arrayBuffer);
@@ -669,85 +893,24 @@ L'annotation doit être:
       }
     }
 
-    // Fetch decor texture as reference with timeout
-    // Strategy: Try Supabase Storage first (most reliable), then fallback to other URLs
+    // Fetch all decor textures
     try {
-      if (textureUrl) {
-        let absoluteTextureUrl = textureUrl;
-        let textureLoaded = false;
+      for (const decorInfo of decorsInfo) {
+        console.log(`Fetching texture for ${decorInfo.name} (${decorInfo.surfaceType})...`);
+        const textureData = await fetchTexture(decorInfo.textureUrl);
         
-        // Extract filename from texture URL path
-        const textureFilename = textureUrl.split('/').pop() || '';
-        
-        // Strategy 1: Try Supabase Storage bucket (most reliable)
-        const supabaseStorageUrl = `https://urkftxznsynmvkskytih.supabase.co/storage/v1/object/public/decor-textures/${textureFilename}`;
-        console.log("Trying Supabase Storage URL:", supabaseStorageUrl);
-        
-        try {
-          const storageResponse = await fetchWithTimeout(supabaseStorageUrl, undefined, 10000);
-          const storageContentType = storageResponse.headers.get("content-type") ?? "";
-          
-          if (storageResponse.ok && storageContentType.startsWith("image/")) {
-            const arrayBuffer = await storageResponse.arrayBuffer();
-            textureBase64 = arrayBufferToBase64(arrayBuffer);
-            textureMimeType = storageContentType;
-            textureLoaded = true;
-            console.log(`Texture loaded from Supabase Storage (${arrayBuffer.byteLength} bytes)`);
-          } else {
-            console.warn("Supabase Storage failed:", storageResponse.status, storageContentType);
-          }
-        } catch (e) {
-          console.warn("Supabase Storage fetch error:", e instanceof Error ? e.message : e);
-        }
-        
-        // Strategy 2: Try origin-based URL if Supabase Storage failed (use request origin)
-        if (!textureLoaded && !textureUrl.startsWith("http") && requestOrigin) {
-          const originUrl = `${requestOrigin}${textureUrl}`;
-          console.log("Trying origin-based URL:", originUrl);
-          
-          try {
-            const originResponse = await fetchWithTimeout(originUrl, undefined, 10000);
-            const originContentType = originResponse.headers.get("content-type") ?? "";
-            
-            if (originResponse.ok && originContentType.startsWith("image/")) {
-              const arrayBuffer = await originResponse.arrayBuffer();
-              textureBase64 = arrayBufferToBase64(arrayBuffer);
-              textureMimeType = originContentType;
-              textureLoaded = true;
-              console.log(`Texture loaded from origin URL (${arrayBuffer.byteLength} bytes)`);
-            } else {
-              console.warn("Origin URL failed:", originResponse.status, originContentType);
-            }
-          } catch (e) {
-            console.warn("Origin URL fetch error:", e instanceof Error ? e.message : e);
-          }
-        }
-        
-        // Strategy 3: Try the original URL (might be absolute already)
-        if (!textureLoaded && textureUrl.startsWith("http")) {
-          absoluteTextureUrl = textureUrl;
-          console.log("Trying original absolute URL:", absoluteTextureUrl);
-          
-          const response = await fetchWithTimeout(absoluteTextureUrl);
-          const contentType = response.headers.get("content-type") ?? "";
-          
-          if (response.ok && contentType.startsWith("image/")) {
-            const arrayBuffer = await response.arrayBuffer();
-            textureBase64 = arrayBufferToBase64(arrayBuffer);
-            textureMimeType = contentType;
-            textureLoaded = true;
-            console.log(`Texture loaded from original URL (${arrayBuffer.byteLength} bytes)`);
-          }
-        }
-        
-        if (!textureLoaded) {
-          console.error("CRITICAL: All texture fetch strategies failed for:", textureFilename);
-          console.error("Please upload texture to Supabase Storage bucket 'decor-textures'");
-          // Return error immediately - cannot generate render without texture
+        if (textureData) {
+          textures.push({
+            base64: textureData.base64,
+            mimeType: textureData.mimeType,
+            decorInfo,
+          });
+        } else {
+          console.error(`CRITICAL: Failed to load texture for ${decorInfo.name}`);
           return new Response(
             JSON.stringify({
               success: false,
-              error: `Texture introuvable: ${textureFilename}. Veuillez contacter l'administrateur pour vérifier le catalogue de décors.`,
+              error: `Texture introuvable: ${decorInfo.name}. Veuillez contacter l'administrateur pour vérifier le catalogue de décors.`,
             }),
             {
               status: 400,
@@ -756,16 +919,14 @@ L'annotation doit être:
           );
         }
       }
+      
+      console.log(`Loaded ${textures.length} texture(s) successfully`);
     } catch (e) {
-      console.error("Error fetching/converting texture:", e);
-      if (e instanceof Error && e.name === "AbortError") {
-        console.error("Texture fetch timed out");
-      }
-      // Return error for texture fetch failures
+      console.error("Error fetching textures:", e);
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Impossible de charger la texture du décor. Veuillez réessayer.",
+          error: "Impossible de charger les textures des décors. Veuillez réessayer.",
         }),
         {
           status: 500,
@@ -780,6 +941,7 @@ L'annotation doit être:
     
     const requestParts: any[] = [{ text: prompt }];
     
+    // Add photo first
     if (photoBase64) {
       requestParts.push({
         inlineData: {
@@ -789,13 +951,20 @@ L'annotation doit être:
       });
     }
     
-    if (textureBase64) {
+    // Add all textures (in order: walls first, then floors for multi-decor)
+    const sortedTextures = textures.sort((a, b) => {
+      const order = { walls: 0, floors: 1, general: 2 };
+      return order[a.decorInfo.surfaceType] - order[b.decorInfo.surfaceType];
+    });
+    
+    for (const texture of sortedTextures) {
       requestParts.push({
         inlineData: {
-          mimeType: textureMimeType,
-          data: textureBase64,
+          mimeType: texture.mimeType,
+          data: texture.base64,
         },
       });
+      console.log(`Added texture for ${texture.decorInfo.surfaceType}: ${texture.decorInfo.name}`);
     }
 
     // Build Gemini API URL
