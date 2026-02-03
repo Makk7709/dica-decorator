@@ -58,32 +58,40 @@ const fetchCatalogsByProjectType = async (projectType: ProjectType): Promise<Cat
  * Récupère les décors d'un catalogue spécifique
  */
 const fetchDecorsByCatalog = async (catalogId: string): Promise<CatalogDecor[]> => {
-  const { data, error } = await supabase
+  // Récupérer les liens du catalogue
+  const { data: links, error: linksError } = await supabase
     .from("catalog_decor_links")
-    .select(`
-      display_order,
-      decors:decor_id (
-        id,
-        name,
-        reference_code,
-        texture_image_url,
-        category
-      )
-    `)
+    .select("decor_id, display_order")
     .eq("catalog_id", catalogId)
     .order("display_order", { ascending: true });
 
-  if (error) throw error;
+  if (linksError) throw linksError;
+  if (!links || links.length === 0) return [];
 
-  // Transformer la réponse pour aplatir la structure
-  return (data || []).map((link: any) => ({
-    id: link.decors.id,
-    name: link.decors.name,
-    reference_code: link.decors.reference_code,
-    texture_image_url: link.decors.texture_image_url,
-    category: link.decors.category,
-    display_order: link.display_order,
-  }));
+  // Récupérer les décors correspondants
+  const decorIds = links.map(l => l.decor_id);
+  const { data: decors, error: decorsError } = await supabase
+    .from("decors")
+    .select("id, name, reference_code, texture_image_url, category")
+    .in("id", decorIds)
+    .eq("is_active", true);
+
+  if (decorsError) throw decorsError;
+
+  // Créer une map pour l'ordre d'affichage
+  const orderMap = new Map(links.map(l => [l.decor_id, l.display_order]));
+  
+  // Mapper et trier les décors selon l'ordre du catalogue
+  return (decors || [])
+    .map(decor => ({
+      id: decor.id,
+      name: decor.name,
+      reference_code: decor.reference_code,
+      texture_image_url: decor.texture_image_url,
+      category: decor.category,
+      display_order: orderMap.get(decor.id) || 0,
+    }))
+    .sort((a, b) => a.display_order - b.display_order);
 };
 
 /**
