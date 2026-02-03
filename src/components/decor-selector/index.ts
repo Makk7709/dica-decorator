@@ -1,1 +1,1 @@
-export { DecorSelectorDialog } from './DecorSelectorDialog';
+export { DecorSelectorDialog, type DecorSelection } from './DecorSelectorDialog';

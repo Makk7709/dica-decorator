@@ -1,9 +1,9 @@
 /**
  * Composant de sélection de décors contextualisé par type de projet
- * Affiche les catalogues appropriés (Parois/Sol pour Ascenseur, Évasion pour Van, etc.)
+ * Support de la sélection multi-catalogue (ex: Parois + Sol pour Ascenseur)
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,15 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Sparkles, Info, AlertTriangle } from "lucide-react";
-import { useCatalogsWithDecors, hasConfiguredCatalogs, type ProjectType, type CatalogDecor } from "@/hooks/use-catalogs";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Sparkles, Info, AlertTriangle, Check, X } from "lucide-react";
+import { useCatalogsWithDecors, hasConfiguredCatalogs, type ProjectType, type CatalogDecor, type Catalog } from "@/hooks/use-catalogs";
+
+// Type pour la sélection par catalogue
+export type DecorSelection = Record<string, CatalogDecor | null>;
 
 interface DecorSelectorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectType: ProjectType;
-  selectedDecor: CatalogDecor | null;
-  onSelectDecor: (decor: CatalogDecor) => void;
+  // Support multi-sélection par catalogue
+  decorSelection: DecorSelection;
+  onDecorSelectionChange: (selection: DecorSelection) => void;
   onGenerate: () => void;
   isGenerating: boolean;
   // Options de génération
@@ -32,12 +37,20 @@ interface DecorSelectorDialogProps {
   originalDimensions?: { width: number; height: number } | null;
 }
 
+// Labels pour les types de projet
+const projectTypeLabels: Record<ProjectType, string> = {
+  ascenseur: "Ascenseur",
+  van: "Van",
+  terrasse: "Terrasse",
+  autre: "Autre",
+};
+
 export const DecorSelectorDialog = ({
   open,
   onOpenChange,
   projectType,
-  selectedDecor,
-  onSelectDecor,
+  decorSelection,
+  onDecorSelectionChange,
   onGenerate,
   isGenerating,
   renderCount,
@@ -67,25 +80,108 @@ export const DecorSelectorDialog = ({
   const hasCatalogs = hasConfiguredCatalogs(catalogs, decorsByCatalog);
   const totalDecors = Object.values(decorsByCatalog).reduce((sum, decors) => sum + decors.length, 0);
 
-  // Labels pour les types de projet
-  const projectTypeLabels: Record<ProjectType, string> = {
-    ascenseur: "Ascenseur",
-    van: "Van",
-    terrasse: "Terrasse",
-    autre: "Autre",
+  // Compter les sélections valides
+  const selectedCount = useMemo(() => {
+    return Object.values(decorSelection).filter(Boolean).length;
+  }, [decorSelection]);
+
+  // Vérifier si au moins un décor est sélectionné
+  const hasSelection = selectedCount > 0;
+
+  // Handler pour sélectionner/désélectionner un décor dans un catalogue
+  const handleSelectDecor = (catalogId: string, decor: CatalogDecor) => {
+    const currentSelection = decorSelection[catalogId];
+    const isSelected = currentSelection?.id === decor.id;
+    
+    onDecorSelectionChange({
+      ...decorSelection,
+      [catalogId]: isSelected ? null : decor,
+    });
+  };
+
+  // Handler pour retirer une sélection
+  const handleRemoveSelection = (catalogId: string) => {
+    onDecorSelectionChange({
+      ...decorSelection,
+      [catalogId]: null,
+    });
+  };
+
+  // Trouver le catalogue correspondant à un ID
+  const getCatalogById = (catalogId: string): Catalog | undefined => {
+    return catalogs.find(c => c.id === catalogId);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Choisir un décor</DialogTitle>
+          <DialogTitle className="text-2xl">Choisir vos décors</DialogTitle>
           <DialogDescription className="text-base">
             Catalogues {projectTypeLabels[projectType]} • {totalDecors} décors disponibles
+            {catalogs.length > 1 && " • Sélectionnez un décor par catalogue"}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4">
+          {/* Récapitulatif de la sélection */}
+          {catalogs.length > 0 && (
+            <div className="p-4 border rounded-lg bg-muted/30">
+              <Label className="text-sm font-medium mb-3 block">Votre sélection</Label>
+              <div className="flex flex-wrap gap-3">
+                {catalogs.map((catalog) => {
+                  const selectedDecor = decorSelection[catalog.id];
+                  const decorsCount = decorsByCatalog[catalog.id]?.length || 0;
+                  
+                  if (decorsCount === 0) return null;
+                  
+                  return (
+                    <div
+                      key={catalog.id}
+                      className={`flex items-center gap-2 p-2 rounded-lg border transition-all ${
+                        selectedDecor 
+                          ? "bg-primary/10 border-primary" 
+                          : "bg-background border-dashed border-muted-foreground/30"
+                      }`}
+                    >
+                      {selectedDecor ? (
+                        <>
+                          <img
+                            src={selectedDecor.texture_image_url}
+                            alt={selectedDecor.name}
+                            className="w-10 h-10 rounded object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground">{catalog.label}</p>
+                            <p className="text-sm font-semibold truncate max-w-[150px]">{selectedDecor.name}</p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleRemoveSelection(catalog.id)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2 px-2 py-1">
+                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
+                            <span className="text-muted-foreground text-lg">?</span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground">{catalog.label}</p>
+                            <p className="text-sm text-muted-foreground italic">Non sélectionné</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
@@ -128,7 +224,7 @@ export const DecorSelectorDialog = ({
             </div>
 
             {/* Option références DICA */}
-            <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
+            <div className="col-span-2 flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
               <input
                 type="checkbox"
                 id="show-references"
@@ -183,17 +279,24 @@ export const DecorSelectorDialog = ({
               <TabsList className={`grid w-full h-auto ${catalogs.length === 1 ? 'grid-cols-1' : catalogs.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 {catalogs.map((catalog) => {
                   const decorsCount = decorsByCatalog[catalog.id]?.length || 0;
+                  const isSelected = !!decorSelection[catalog.id];
                   return (
                     <TabsTrigger 
                       key={catalog.id} 
                       value={catalog.id} 
-                      className="py-3"
+                      className="py-3 relative"
                       disabled={decorsCount === 0}
                     >
+                      {isSelected && (
+                        <Check className="h-4 w-4 mr-1 text-primary" />
+                      )}
                       {catalog.label}
-                      <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${decorsCount === 0 ? 'bg-muted text-muted-foreground' : 'bg-primary/10'}`}>
+                      <Badge 
+                        variant={isSelected ? "default" : "secondary"} 
+                        className="ml-2"
+                      >
                         {decorsCount}
-                      </span>
+                      </Badge>
                     </TabsTrigger>
                   );
                 })}
@@ -201,9 +304,11 @@ export const DecorSelectorDialog = ({
 
               {catalogs.map((catalog) => {
                 const decors = decorsByCatalog[catalog.id] || [];
+                const selectedDecorInCatalog = decorSelection[catalog.id];
+                
                 return (
                   <TabsContent key={catalog.id} value={catalog.id} className="mt-6">
-                    <div className="max-h-[35vh] overflow-y-auto pr-2">
+                    <div className="max-h-[30vh] overflow-y-auto pr-2">
                       {decors.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                           <p className="text-lg text-muted-foreground">
@@ -216,34 +321,42 @@ export const DecorSelectorDialog = ({
                           )}
                         </div>
                       ) : (
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                          {decors.map((decor) => (
-                            <Card
-                              key={decor.id}
-                              className={`cursor-pointer transition-all hover:shadow-lg ${
-                                selectedDecor?.id === decor.id 
-                                  ? "ring-2 ring-primary shadow-lg" 
-                                  : "hover:border-primary/50"
-                              }`}
-                              onClick={() => onSelectDecor(decor)}
-                            >
-                              <CardContent className="p-3">
-                                <div className="relative mb-2 overflow-hidden rounded-lg">
-                                  <img
-                                    src={decor.texture_image_url}
-                                    alt={decor.name}
-                                    className="h-32 w-full object-cover transition-transform hover:scale-105"
-                                  />
-                                </div>
-                                <h3 className="font-semibold text-sm leading-tight mb-1">
-                                  {decor.name}
-                                </h3>
-                                <p className="text-xs text-muted-foreground">
-                                  {decor.reference_code}
-                                </p>
-                              </CardContent>
-                            </Card>
-                          ))}
+                        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                          {decors.map((decor) => {
+                            const isSelected = selectedDecorInCatalog?.id === decor.id;
+                            return (
+                              <Card
+                                key={decor.id}
+                                className={`cursor-pointer transition-all hover:shadow-lg ${
+                                  isSelected 
+                                    ? "ring-2 ring-primary shadow-lg bg-primary/5" 
+                                    : "hover:border-primary/50"
+                                }`}
+                                onClick={() => handleSelectDecor(catalog.id, decor)}
+                              >
+                                <CardContent className="p-2">
+                                  <div className="relative mb-2 overflow-hidden rounded-lg">
+                                    {isSelected && (
+                                      <div className="absolute top-1 right-1 z-10 bg-primary text-primary-foreground rounded-full p-1">
+                                        <Check className="h-3 w-3" />
+                                      </div>
+                                    )}
+                                    <img
+                                      src={decor.texture_image_url}
+                                      alt={decor.name}
+                                      className="h-24 w-full object-cover transition-transform hover:scale-105"
+                                    />
+                                  </div>
+                                  <h3 className="font-medium text-xs leading-tight mb-0.5 truncate">
+                                    {decor.name}
+                                  </h3>
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                    {decor.reference_code}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -254,28 +367,39 @@ export const DecorSelectorDialog = ({
           )}
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t bg-background">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annuler
-          </Button>
-          <Button
-            onClick={onGenerate}
-            disabled={!selectedDecor || isGenerating}
-            size="lg"
-            className="btn-primary-premium"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Génération...
-              </>
+        <div className="flex justify-between items-center gap-2 pt-4 border-t bg-background">
+          <div className="text-sm text-muted-foreground">
+            {selectedCount > 0 ? (
+              <span className="text-foreground font-medium">
+                {selectedCount} décor{selectedCount > 1 ? 's' : ''} sélectionné{selectedCount > 1 ? 's' : ''}
+              </span>
             ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                {renderCount > 1 ? `Générer ${renderCount} rendus` : "Générer le rendu"}
-              </>
+              <span>Sélectionnez au moins un décor</span>
             )}
-          </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={onGenerate}
+              disabled={!hasSelection || isGenerating}
+              size="lg"
+              className="btn-primary-premium"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Génération...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {renderCount > 1 ? `Générer ${renderCount} rendus` : "Générer le rendu"}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
