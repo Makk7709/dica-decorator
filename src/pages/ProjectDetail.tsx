@@ -16,8 +16,8 @@ import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 import { ResellerBrochureExportButton } from "@/components/ui/reseller-brochure-export-button";
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
 import { SafeImage } from "@/components/ui/safe-image";
-import { DecorSelectorDialog } from "@/components/decor-selector";
-import { type CatalogDecor, type ProjectType } from "@/hooks/use-catalogs";
+import { DecorSelectorDialog, type DecorSelection } from "@/components/decor-selector";
+import { type CatalogDecor, type ProjectType, type Catalog } from "@/hooks/use-catalogs";
 
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
@@ -69,7 +69,7 @@ const ProjectDetail = () => {
   const [renders, setRenders] = useState<{ [photoId: string]: RenderResult[] }>({});
   const [creativeImports, setCreativeImports] = useState<CreativeImport[]>([]); // Créations Assistant IA
   const [selectedPhoto, setSelectedPhoto] = useState<ProjectPhoto | null>(null);
-  const [selectedDecor, setSelectedDecor] = useState<Decor | null>(null);
+  const [decorSelection, setDecorSelection] = useState<DecorSelection>({});
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDecorDialog, setShowDecorDialog] = useState(false);
@@ -403,23 +403,41 @@ const ProjectDetail = () => {
   };
 
   const handleGenerateRender = async () => {
-    if (!selectedPhoto || !selectedDecor || !user || !project) return;
+    // Récupérer les décors sélectionnés
+    const selectedDecors = Object.values(decorSelection).filter(Boolean) as CatalogDecor[];
+    
+    if (!selectedPhoto || selectedDecors.length === 0 || !user || !project) return;
 
     setIsGenerating(true);
 
     try {
+      // Pour chaque décor sélectionné, générer le rendu
+      // On utilise le premier décor comme décor principal (pour parois principalement)
+      // et on passe tous les décors au backend
+      const primaryDecor = selectedDecors[0];
+      
+      // Construire les informations de tous les décors sélectionnés
+      const allDecors = selectedDecors.map(d => ({
+        id: d.id,
+        name: d.name,
+        referenceCode: d.reference_code,
+        textureUrl: d.texture_image_url,
+      }));
+
       const { data, error } = await supabase.functions.invoke("apply-decor", {
         body: {
           photoUrl: selectedPhoto.original_image_url,
-          textureUrl: selectedDecor.texture_image_url,
+          textureUrl: primaryDecor.texture_image_url,
           photoId: selectedPhoto.id,
-          decorId: selectedDecor.id,
+          decorId: primaryDecor.id,
           useCase: project.use_case,
           renderCount,
           format: renderFormat,
           showReferences,
           originalWidth: renderFormat === "original" ? originalDimensions?.width : undefined,
           originalHeight: renderFormat === "original" ? originalDimensions?.height : undefined,
+          // Nouvelle propriété : tous les décors pour application multi-surface
+          allDecors: allDecors.length > 1 ? allDecors : undefined,
         },
       });
 
@@ -429,7 +447,7 @@ const ProjectDetail = () => {
       toast.success(`${count} avec succès !`);
       setShowDecorDialog(false);
       setSelectedPhoto(null);
-      setSelectedDecor(null);
+      setDecorSelection({});
       
       // Small delay to ensure database has propagated the new render
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -1221,8 +1239,8 @@ const ProjectDetail = () => {
           open={showDecorDialog}
           onOpenChange={setShowDecorDialog}
           projectType={project.use_case as ProjectType}
-          selectedDecor={selectedDecor as CatalogDecor | null}
-          onSelectDecor={(decor) => setSelectedDecor(decor as any)}
+          decorSelection={decorSelection}
+          onDecorSelectionChange={setDecorSelection}
           onGenerate={handleGenerateRender}
           isGenerating={isGenerating}
           renderCount={renderCount}
