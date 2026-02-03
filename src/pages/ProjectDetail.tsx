@@ -5,12 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, Info, RotateCcw, Home, ImageIcon, Maximize2, X, SplitSquareHorizontal, FileText, Share2, MoreVertical } from "lucide-react";
+import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, RotateCcw, Home, ImageIcon, Maximize2, X, SplitSquareHorizontal, FileText, Share2, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/premium-layout";
 import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
@@ -20,6 +16,8 @@ import { ShareLinkDialog } from "@/components/ui/share-link-dialog";
 import { ResellerBrochureExportButton } from "@/components/ui/reseller-brochure-export-button";
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
 import { SafeImage } from "@/components/ui/safe-image";
+import { DecorSelectorDialog } from "@/components/decor-selector";
+import { type CatalogDecor, type ProjectType } from "@/hooks/use-catalogs";
 
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
@@ -1217,185 +1215,25 @@ const ProjectDetail = () => {
           </div>
         )}
 
-      {/* Decor Selection Dialog */}
-      <Dialog open={showDecorDialog} onOpenChange={setShowDecorDialog}>
-        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-2xl">Choisir un décor</DialogTitle>
-            <DialogDescription className="text-base">
-              Sélectionnez un décor DICA à appliquer sur votre photo
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto space-y-4">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                En fonction de la qualité des images sources, il est parfois nécessaire de faire plusieurs générations pour obtenir le résultat attendu.
-              </AlertDescription>
-            </Alert>
-
-            {/* Generation Parameters */}
-            <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
-              <div className="space-y-2">
-                <Label htmlFor="render-count">Nombre de rendus</Label>
-                <Select value={renderCount.toString()} onValueChange={(v) => setRenderCount(parseInt(v))}>
-                  <SelectTrigger id="render-count">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 rendu</SelectItem>
-                    <SelectItem value="2">2 rendus</SelectItem>
-                    <SelectItem value="3">3 rendus</SelectItem>
-                    <SelectItem value="4">4 rendus</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="render-format">Format / Taille</Label>
-                <Select value={renderFormat} onValueChange={(v: any) => setRenderFormat(v)}>
-                  <SelectTrigger id="render-format">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="square">Carré (1024×1024)</SelectItem>
-                    <SelectItem value="portrait">Portrait (768×1344)</SelectItem>
-                    <SelectItem value="landscape">Paysage (1344×768)</SelectItem>
-                    <SelectItem value="original">
-                      Format original {originalDimensions ? `(${originalDimensions.width}×${originalDimensions.height})` : ""}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Option références DICA */}
-              <div className="flex items-center space-x-3 p-3 rounded-lg bg-muted/50">
-                <input
-                  type="checkbox"
-                  id="show-references"
-                  checked={showReferences}
-                  onChange={(e) => setShowReferences(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <div className="flex-1">
-                  <Label htmlFor="show-references" className="cursor-pointer font-medium">
-                    Afficher les références DICA
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Ajoute le nom et code du décor sur l'image (ex: "Inox Brossé 3020BN")
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <Tabs defaultValue="metal" className="w-full">
-              <TabsList className="grid w-full grid-cols-5 h-auto">
-                <TabsTrigger value="metal" className="py-3">
-                  Métal
-                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                    {decors.filter(d => d.category.toLowerCase() === 'metal').length}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="unis" className="py-3">
-                  Unis
-                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                    {decors.filter(d => d.category.toLowerCase() === 'unis').length}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="marbre" className="py-3">
-                  Marbre
-                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                    {decors.filter(d => d.category.toLowerCase() === 'marbre').length}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="bois" className="py-3">
-                  Bois
-                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                    {decors.filter(d => d.category.toLowerCase() === 'bois').length}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="deco" className="py-3">
-                  Déco
-                  <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs">
-                    {decors.filter(d => d.category.toLowerCase() === 'deco').length}
-                  </span>
-                </TabsTrigger>
-              </TabsList>
-
-              {['metal', 'unis', 'marbre', 'bois', 'deco'].map((category) => (
-                <TabsContent key={category} value={category} className="mt-6">
-                  <div className="max-h-[35vh] overflow-y-auto pr-2">
-                    {decors.filter(d => d.category.toLowerCase() === category).length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <p className="text-lg text-muted-foreground">
-                          Aucun décor disponible dans cette catégorie
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        {decors
-                          .filter(d => d.category.toLowerCase() === category)
-                          .map((decor) => (
-                            <Card
-                              key={decor.id}
-                              className={`cursor-pointer transition-all hover:shadow-lg ${
-                                selectedDecor?.id === decor.id 
-                                  ? "ring-2 ring-primary shadow-lg" 
-                                  : "hover:border-primary/50"
-                              }`}
-                              onClick={() => setSelectedDecor(decor)}
-                            >
-                              <CardContent className="p-3">
-                                <div className="relative mb-2 overflow-hidden rounded-lg">
-                                  <img
-                                    src={decor.texture_image_url}
-                                    alt={decor.name}
-                                    className="h-32 w-full object-cover transition-transform hover:scale-105"
-                                  />
-                                </div>
-                                <h3 className="font-semibold text-sm leading-tight mb-1">
-                                  {decor.name}
-                                </h3>
-                                <p className="text-xs text-muted-foreground">
-                                  {decor.reference_code}
-                                </p>
-                              </CardContent>
-                            </Card>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t bg-background">
-            <Button variant="outline" onClick={() => setShowDecorDialog(false)}>
-              Annuler
-            </Button>
-            <Button
-              onClick={handleGenerateRender}
-              disabled={!selectedDecor || isGenerating}
-              size="lg"
-              className="btn-primary-premium"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Génération...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  {renderCount > 1 ? `Générer ${renderCount} rendus` : "Générer le rendu"}
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Decor Selection Dialog - Contextualisé par type de projet */}
+      {project && (
+        <DecorSelectorDialog
+          open={showDecorDialog}
+          onOpenChange={setShowDecorDialog}
+          projectType={project.use_case as ProjectType}
+          selectedDecor={selectedDecor as CatalogDecor | null}
+          onSelectDecor={(decor) => setSelectedDecor(decor as any)}
+          onGenerate={handleGenerateRender}
+          isGenerating={isGenerating}
+          renderCount={renderCount}
+          onRenderCountChange={setRenderCount}
+          renderFormat={renderFormat}
+          onRenderFormatChange={setRenderFormat}
+          showReferences={showReferences}
+          onShowReferencesChange={setShowReferences}
+          originalDimensions={originalDimensions}
+        />
+      )}
 
       {/* Dialog pour agrandir l'image */}
       <Dialog open={!!zoomedImage} onOpenChange={(open) => !open && setZoomedImage(null)}>

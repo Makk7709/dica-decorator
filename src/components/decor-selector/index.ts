@@ -1,0 +1,1 @@
+export { DecorSelectorDialog } from './DecorSelectorDialog';
