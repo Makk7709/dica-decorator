@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalog_decor_links: {
+        Row: {
+          catalog_id: string
+          created_at: string
+          decor_id: string
+          display_order: number
+          id: string
+        }
+        Insert: {
+          catalog_id: string
+          created_at?: string
+          decor_id: string
+          display_order?: number
+          id?: string
+        }
+        Update: {
+          catalog_id?: string
+          created_at?: string
+          decor_id?: string
+          display_order?: number
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_decor_links_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "catalogs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_decor_links_decor_id_fkey"
+            columns: ["decor_id"]
+            isOneToOne: false
+            referencedRelation: "decors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      catalogs: {
+        Row: {
+          code: Database["public"]["Enums"]["catalog_code"]
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          label: string
+          project_type: Database["public"]["Enums"]["usage_context"]
+          updated_at: string
+        }
+        Insert: {
+          code: Database["public"]["Enums"]["catalog_code"]
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          label: string
+          project_type: Database["public"]["Enums"]["usage_context"]
+          updated_at?: string
+        }
+        Update: {
+          code?: Database["public"]["Enums"]["catalog_code"]
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          label?: string
+          project_type?: Database["public"]["Enums"]["usage_context"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       creative_favorites: {
         Row: {
           created_at: string
@@ -379,6 +454,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "client"
+      catalog_code:
+        | "elevator_walls"
+        | "elevator_floors"
+        | "van_evasion"
+        | "terrace_compact"
+        | "other_all"
       usage_context: "ascenseur" | "van" | "terrasse" | "autre"
     }
     CompositeTypes: {
@@ -508,6 +589,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "client"],
+      catalog_code: [
+        "elevator_walls",
+        "elevator_floors",
+        "van_evasion",
+        "terrace_compact",
+        "other_all",
+      ],
       usage_context: ["ascenseur", "van", "terrasse", "autre"],
     },
   },
