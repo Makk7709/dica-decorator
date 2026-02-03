@@ -11,12 +11,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck, Building2, BarChart3, Palette } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck, Building2, BarChart3, Palette, Layers } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ResellerBrandingSettings } from "@/components/admin/reseller-branding-settings";
 import { ResellerBranding } from "@/types/plaquette.types";
 import { UserProjectsDialog } from "@/components/admin/user-projects-dialog";
+import { CatalogManagement } from "@/components/admin/catalog-management";
 
 type UsageContext = Database['public']['Enums']['usage_context'];
 
@@ -495,10 +496,14 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="mb-8">
+          <TabsList className="mb-8 flex-wrap">
             <TabsTrigger value="users">
               <Users className="mr-2 h-4 w-4" />
               Utilisateurs
+            </TabsTrigger>
+            <TabsTrigger value="catalogs">
+              <Layers className="mr-2 h-4 w-4" />
+              Catalogues
             </TabsTrigger>
             <TabsTrigger value="decors">Décors</TabsTrigger>
             <TabsTrigger value="categories">Catégories</TabsTrigger>
@@ -653,6 +658,16 @@ const Admin = () => {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="catalogs">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold">Catalogues par Type de Projet</h2>
+              <p className="text-muted-foreground">
+                Assignez les décors aux catalogues contextualisés (Parois/Sol pour Ascenseur, Évasion pour Van, Compact pour Terrasse)
+              </p>
+            </div>
+            <CatalogManagement />
           </TabsContent>
 
           <TabsContent value="decors">
