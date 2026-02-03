@@ -18,6 +18,7 @@ import { ResellerBrandingSettings } from "@/components/admin/reseller-branding-s
 import { ResellerBranding } from "@/types/plaquette.types";
 import { UserProjectsDialog } from "@/components/admin/user-projects-dialog";
 import { CatalogManagement } from "@/components/admin/catalog-management";
+import { BulkDecorUpload } from "@/components/admin/bulk-decor-upload";
 
 type UsageContext = Database['public']['Enums']['usage_context'];
 
@@ -671,6 +672,11 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="decors">
+            {/* Bulk Upload Section */}
+            <div className="mb-8">
+              <BulkDecorUpload categories={categories} onComplete={loadDecors} />
+            </div>
+
             <div className="mb-8 flex items-center justify-between">
               <div>
                 <h2 className="text-3xl font-bold">Catalogue Décors</h2>
