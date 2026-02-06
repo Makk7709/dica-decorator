@@ -1045,10 +1045,10 @@ const ProjectDetail = () => {
 
                 {/* Photo Image */}
                 <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">
-                  <SafeImage
+                 <SafeImage
                     src={photo.original_image_url}
                     alt="Photo projet"
-                    className="w-full aspect-[4/3] object-cover"
+                    className="w-full object-contain max-h-[500px]"
                     loading="lazy"
                   />
                 </div>
@@ -1332,8 +1332,8 @@ const ProjectDetail = () => {
                   decorName: comparisonMode.decorName,
                   decorCode: comparisonMode.decorCode,
                 }}
-                aspectRatio="4/3"
-                className="w-full"
+                aspectRatio="auto"
+                className="w-full max-h-[80vh]"
               />
             )}
 
