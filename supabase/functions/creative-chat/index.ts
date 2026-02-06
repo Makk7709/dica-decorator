@@ -335,121 +335,52 @@ ${orchestrationResult.finalPromptForImageModel}
 
 1. PROFESSIONAL QUALITY STANDARDS (NON-NEGOTIABLE):
 
-   ⚠️ CRITICAL: Generate images of REAL SPACES (kitchen, van, office, etc.), NOT images inside a photo studio!
+   ⚠️ CRITICAL: Generate images of REAL SPACES, NOT images inside a photo studio!
    "Professional quality" means HIGH-QUALITY IMAGE, not "image taken in a photography studio".
    
    📸 PHOTOGRAPHY SETUP:
-   - Shot with professional full-frame camera (Phase One, Hasselblad level)
-   - 24mm architectural lens, f/8 aperture for maximum depth of field
-   - ISO 100 for absolute clean details, no noise
+   - Shot with professional full-frame camera, 24mm architectural lens, f/8, ISO 100
    - NATURAL LIGHTING appropriate for the space: daylight through windows, ambient room lighting
-   - NO VISIBLE STUDIO EQUIPMENT, NO photography backdrops, NO studio environment
+   - NO VISIBLE STUDIO EQUIPMENT, NO photography backdrops
    
    🎨 IMAGE QUALITY:
    - Photorealistic image of a REAL SPACE that exists in the real world
-   - Commercial catalog photography aesthetic (AD Magazine, Architectural Digest level)
-   - Color-graded for luxury commercial quality, natural color accuracy
+   - Commercial catalog photography aesthetic (AD Magazine level)
    - Sharp focus across ENTIRE frame, professional post-production
-   - NO artificial CGI appearance, NO fake-looking renders
    
-   ✨ REALISM:
-   - The space must be a REAL environment (actual kitchen, actual van interior, actual office)
-   - NOT a photo studio with white/gray backdrop
-   - Natural lighting interaction with surfaces appropriate for the space type
-   - Depth and dimension through natural and ambient lighting
-   - Result must look like a REAL SPACE photographed by a professional, ON LOCATION
-
 2. DICA PANEL APPLICATION (ABSOLUTE ACCURACY):
    - Panels must be clearly visible and prominent (minimum 40% of image)
-   - Apply EXACT texture and colors from DICA catalog - ZERO color shifts or modifications
-   - When user specifies a COLOR, use the EXACT DICA decor matching that color:
-     * "rouge" → 3178_SPA (DICA Red Unis)
-     * "vert olive" → 3179_SPA (DICA Olive Green Unis)  
-     * "noir" → 3020_BN (DICA Black Unis)
-     * "blanc" → 800_SATIN (DICA White Satin)
-   - Respect material properties STRICTLY (metal reflections, wood grain direction, marble veining, etc.)
-   - Material authenticity is CRITICAL - textures must look like real physical materials
-
-   🚨 CRITICAL DISTINCTION - REQUEST TYPE:
-   IF request mentions "catalogue", "couverture", "éventail", "sélection de décors", "moodboard", "échantillons":
-   → Generate FLAT-LAY COMPOSITION of MATERIAL SAMPLES/SWATCHES
-   → Decors mentioned are TEXTURES TO DISPLAY, NOT objects to build
-   → "Inox Mat" = brushed steel SAMPLE PANEL, NOT an elevator made of steel!
-   → Style: elegant arrangement of rectangular panels/swatches on neutral background
-   → Each decor = a physical sample panel showing its texture and color
-
-   📐 PANEL/COUNTERTOP THICKNESS (CRITICAL - DO NOT EXAGGERATE):
-   ⚠️ THICKNESS values are in MILLIMETERS - very thin in reality!
-   * 8-10mm = ULTRA-THIN, like ceramic tile thickness (~1cm)
-   * 12-16mm = THIN, like smartphone thickness (~1.5cm)
-   * 18-19mm = STANDARD furniture panel (~2cm, book cover thickness)
-   * 22-25mm = MEDIUM (~2.5cm)
-   * 30-38mm = THICK (~3-4cm, closed laptop thickness)
-   * 50mm+ = VERY THICK (~5cm+, industrial)
-   
-   🚨 CRITICAL ERROR TO AVOID:
-   NEVER generate a thin panel INSIDE a thick frame/border!
-   "Plateau 10mm" = ONE SINGLE UNIFORM panel of 10mm TOTAL thickness
-   NOT a thin marble surface with thick wood frame around it!
-   The ENTIRE tabletop must be the specified thickness, viewed from side edge.
-   
-   🔧 EDGE BANDING (chant) - decorative strip on panel edge:
-   * "chant 1-2mm" = thin edge banding FINISH on the panel border (not additional thickness)
-   * "chant bois" = wood-finish edge band on panel side (same total thickness)
-   Edge banding is a FINISH on the edge, NOT an additional frame!
+   - Apply EXACT texture and colors from DICA catalog - ZERO color shifts
+   - Respect material properties based on the decor finish type
+   - Use PAROI decors on walls/panels, SOL decors on floors
 
 3. SPACE FIDELITY:
    - Create exactly: ${detectedSpace.toUpperCase()}
    - Never change space type from user request
    - Maintain realistic proportions and perspective
-   - Preserve existing lighting and shadows
 
 4. COMPOSITION & PROFESSIONALISM:
    - PREMIUM COMMERCIAL PHOTOGRAPHY composition
-   - Strategic angles showcasing DICA panels prominently and beautifully
-   - Professional architectural framing with balanced composition
-   - Result suitable for luxury client presentations and AD Magazine editorial
-   - High-end, sophisticated visual result that sells the space
+   - Strategic angles showcasing DICA panels prominently
+   - Result suitable for luxury client presentations
 
 ${showReferences ? `
 ═══════════════════════════════════════════════════════════════════
 🏷️ REFERENCE ANNOTATIONS - REQUIRED
 ═══════════════════════════════════════════════════════════════════
 
-You MUST add DICA decor references on the image.
-
-ANNOTATION FORMAT (professional catalog style):
-• Font: elegant modern sans-serif
-• Background: semi-transparent (black or white depending on contrast)
-• Position: bottom of image or near decorated surfaces
-• Size: readable but not dominant
-
-ANNOTATION STRUCTURE:
-┌─────────────────────────────┐
-│  Decor Name                 │
-│  (Ref: REFERENCE_CODE)      │
-└─────────────────────────────┘
-
-EXAMPLES:
-• "Inox Brossé 3020BN"
-• "Uni Olive FC (Ref: 3179_SPA_FC)"
-• "Marble décor - Laiton Brossé 3012 FC"
-
-If multiple decors are visible, annotate EACH of them.
-Annotations must be professional and harmoniously integrated.
+Add DICA decor reference annotations on the image:
+- Font: elegant modern sans-serif
+- Background: semi-transparent
+- Position: bottom of image or near decorated surfaces
+- Format: "Decor Name (Ref: REFERENCE_CODE)"
+- If multiple decors are visible, annotate EACH of them.
 ═══════════════════════════════════════════════════════════════════
 ` : ''}
 
 ✨ EXPECTED RESULT: 
 Professional architectural photography of a REAL ${detectedSpace} space featuring DICA panels.
-⚠️ CRITICAL: This must be an image of a REAL ${detectedSpace.toUpperCase()}, NOT a photo studio!
-Quality level: COMMERCIAL CATALOG PHOTOGRAPHY (Architectural Digest, AD Magazine editorial standard).
-The ${detectedSpace} must look like an ACTUAL REAL SPACE that exists in the real world, photographed ON LOCATION by a professional photographer.
-NO photo studio environment, NO white/gray backdrops, NO visible photography equipment.
-Panels must be clearly visible, prominently showcased, and applied with EXACT colors and specifications requested by user.
-If user specified edge thickness or color, it MUST be visible and accurate.
-Natural lighting appropriate for a ${detectedSpace} (daylight through windows, ambient lighting).
-Result must enable client to immediately envision their future REAL project with absolute realism.
+Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
 ═══════════════════════════════════════════════════════════════════`;
 
       console.log("Full orchestrated prompt length:", basePrompt.length, "characters");

@@ -42,13 +42,9 @@ export async function orchestrateDicaPrompt(
   console.log("- Source images:", input.sourceImages?.length || 0);
   console.log("- Decor context length:", input.decorContext.length);
 
-  // Build system prompt for orchestrator
   const systemPrompt = buildOrchestratorSystemPrompt();
-  
-  // Build user message with all context
   const userMessage = buildOrchestratorUserMessage(input);
 
-  // Call Lovable AI for orchestration
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -57,7 +53,7 @@ export async function orchestrateDicaPrompt(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash", // Fast model for orchestration
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage }
@@ -83,7 +79,7 @@ export async function orchestrateDicaPrompt(
                   decorReferences: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Codes de référence des décors DICA à utiliser (ex: 3040_BN_PF)"
+                    description: "Codes de référence EXACTS des décors DICA à utiliser, copiés du catalogue"
                   },
                   decorLabels: {
                     type: "array",
@@ -96,7 +92,7 @@ export async function orchestrateDicaPrompt(
                   },
                   finalPromptForImageModel: {
                     type: "string",
-                    description: "Prompt propre et structuré pour Nano Banana (si status=ok)"
+                    description: "Prompt propre et structuré en anglais pour la génération d'image (si status=ok)"
                   },
                   clarificationQuestions: {
                     type: "array",
@@ -137,7 +133,6 @@ export async function orchestrateDicaPrompt(
     const data = await response.json();
     console.log("Orchestrator raw response:", JSON.stringify(data, null, 2));
 
-    // Parse tool call response
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function?.name !== "validate_dica_request") {
       throw new Error("Invalid orchestrator response format");
@@ -145,7 +140,6 @@ export async function orchestrateDicaPrompt(
 
     const result = JSON.parse(toolCall.function.arguments) as OrchestratorResult;
     
-    // Validate result structure
     validateOrchestratorResult(result, input.decorContext);
     
     console.log("✅ Orchestration result:", {
@@ -158,7 +152,6 @@ export async function orchestrateDicaPrompt(
     return result;
   } catch (error: any) {
     console.error("❌ Orchestration error:", error);
-    // Return safe fallback result
     return {
       status: "reject",
       projectType: "unknown",
@@ -170,264 +163,95 @@ export async function orchestrateDicaPrompt(
 }
 
 /**
- * Build system prompt for orchestrator
+ * Build system prompt for orchestrator — 100% dynamique, aucun exemple hardcodé
  */
 function buildOrchestratorSystemPrompt(): string {
   return `Tu es le "DICA Prompt Orchestrator", un expert IA spécialisé dans la validation et structuration des demandes pour le catalogue DICA.
 
 🎯 TA MISSION:
-Valider que les demandes utilisateurs utilisent UNIQUEMENT les décors du catalogue DICA et structurer les prompts en respectant STRICTEMENT les références fournies.
+Transformer toute demande utilisateur en un prompt de génération d'image de haute qualité, en utilisant UNIQUEMENT les décors du catalogue DICA fourni.
 
-⚠️ PRINCIPE FONDAMENTAL: RESPECT ABSOLU DU CATALOGUE DICA
-- Tu n'utilises QUE les décors qui existent dans le catalogue fourni
-- Tu ne peux JAMAIS inventer de couleur, texture ou référence non listée
-- Si l'utilisateur mentionne un décor qui n'existe pas → status="need_clarification" ou "reject"
-- Les références de décors DOIVENT correspondre EXACTEMENT à celles du catalogue
+⚠️ PRINCIPE FONDAMENTAL: OPTIMISER ET JAMAIS BLOQUER
+Tu retournes status="ok" dans ~95% des cas. Tu combles intelligemment les détails manquants. Tu ne bloques que si c'est absolument impossible.
 
-🔒 CONTRAINTES STRICTES ET NON-NÉGOCIABLES:
+🔒 2 CONTRAINTES STRICTES ET NON-NÉGOCIABLES:
 
-⛔⛔⛔ RÈGLE CRITIQUE SUR LES RÉFÉRENCES ⛔⛔⛔
-
-Tu DOIS utiliser les références EXACTEMENT comme elles apparaissent dans le catalogue.
-Le système de validation va REJETER toute référence modifiée ou inventée.
-
-FORMAT OBLIGATOIRE DES RÉFÉRENCES:
-- Les références ont le format: NUMERO_TYPE_FINITION (ex: "3040_BN_FC", "668_SHIKY_FC")
-- COPIE-COLLE les références exactement depuis le catalogue
-- N'abrège PAS (ex: "3040_BN" au lieu de "3040_BN_FC" sera REJETÉ)
-- N'invente PAS de nouveaux suffixes
-
-EXEMPLES D'ERREURS QUI SERONT REJETÉES:
-❌ "3040_BN" → manque le suffixe _FC ou _PF
-❌ "800_SATIN_FC" → le bon est "800_SATIN" sans suffixe
-❌ "INOX_3022" → format inversé, le bon est "3022_MAT_FC"
-❌ "BOIS_CHENE" → inventé, utilise les vraies références
-❌ "FU210" → incomplet, le bon est "FU210_FC"
-
-EXEMPLES DE RÉFÉRENCES CORRECTES:
-✅ "3022_MAT_FC" = Inox Mat
-✅ "3040_BN_FC" = Inox Brossé
-✅ "800_SATIN" = Blanc Satin (sans suffixe)
-✅ "668_SHIKY_FC" = Bois Shiky
-✅ "FU210_FC" = Bois Chêne
-
-1. DÉCORS CATALOGUE DICA UNIQUEMENT - VALIDATION STRICTE
-   - Utilise EXCLUSIVEMENT les décors LISTÉS dans le catalogue fourni
-   - JAMAIS inventer de couleurs, textures ou références hors catalogue
-   - Si l'utilisateur mentionne une couleur/style, cherche le décor DICA EXACT correspondant DANS LE CATALOGUE
-   - Si aucun décor correspondant n'existe dans le catalogue → DEMANDE CLARIFICATION
-   - CHAQUE référence utilisée DOIT apparaître TEXTUELLEMENT dans le catalogue fourni
-   - En cas de doute, utilise status="need_clarification" pour demander à l'utilisateur de choisir parmi les décors existants
+1. DÉCORS CATALOGUE DICA UNIQUEMENT
+   - Utilise EXCLUSIVEMENT les décors LISTÉS dans le catalogue fourni dans le message utilisateur
+   - COPIE-COLLE les reference_code EXACTEMENT comme ils apparaissent dans le catalogue
+   - JAMAIS inventer, modifier, abréger ou recomposer une référence
+   - Si l'utilisateur mentionne une couleur/style, trouve le décor DICA le plus proche DANS le catalogue
+   - Si aucun décor ne correspond → sélectionne le plus approprié du catalogue automatiquement
 
 2. EXACTITUDE VISUELLE DES DÉCORS
-   - Respecte STRICTEMENT les propriétés matériaux de chaque décor:
-     * Metal: lignes de brossage visibles, reflets directionnels, jamais grain/mat
-     * Unis: surface lisse sans grain, lumière diffuse, jamais reflets métalliques
-     * Marbre: veines minérales réalistes, léger brillant jamais métallique
-     * Bois: veinage orienté, lumière chaleureuse non-métallique
-     * Déco: motifs originaux préservés sans brillant non désiré
-   - Les textures et couleurs des décors doivent être appliquées EXACTEMENT comme dans le catalogue
-   - Ne jamais modifier l'apparence intrinsèque d'un décor
+   Les propriétés matériaux doivent être respectées selon le type de finition indiqué dans le nom/référence:
+   - Finitions BRILLANT: surface brillante avec reflets
+   - Finitions SATIN: surface satinée douce
+   - Finitions WOOD/FOREST/KYNEA: veinage bois naturel, lumière chaleureuse
+   - Finitions TOUCH: texture tactile subtile
+   - Finitions SPA: surface lisse uniforme
+   - Finitions SHIKY: texture décorative spéciale
+   - Finitions MAGMA: effet minéral profond
+   - Finitions PLAMKY: effet matière texturée
+   - Finitions WRAKY: texture sol robuste
+   - Finitions GRIP: texture sol antidérapante
+   - Finitions ALU: effet aluminium brossé
+   - Finitions PLUS: surface unie premium
 
-3. SPÉCIFICATIONS TECHNIQUES ÉPAISSEURS ET CHANTS - TRADUCTION VISUELLE PRÉCISE:
+📋 LOGIQUE DE VALIDATION:
 
-   ⚠️ DISTINCTION CRITIQUE - NE PAS CONFONDRE:
-   * ÉPAISSEUR DE PLATEAU/PANNEAU = hauteur totale du plateau vu de côté (ex: "plateau 10mm" = plateau TRÈS FIN)
-   * CHANT/EDGE BANDING = bande décorative sur la tranche du panneau (finition des bords)
-   
-   🚨 ERREUR FRÉQUENTE À ÉVITER ABSOLUMENT:
-   NE JAMAIS générer un plateau avec un CADRE ou BORDURE ÉPAISSE autour d'un plateau fin !
-   Un "plateau 10mm" signifie UN SEUL plateau uniforme de 10mm d'épaisseur TOTALE, pas un plateau fin avec un cadre épais autour.
-   
-   📐 ÉPAISSEURS DE PLATEAU/PLAN DE TRAVAIL (ÉCHELLE RÉALISTE):
-   ATTENTION: Les épaisseurs de plateau sont TRÈS FINES en réalité !
-   
-   * Plateau 8-10mm = "SINGLE UNIFORM panel, TOTAL thickness 8-10mm (like a ceramic tile or thin tablet), NO frame, NO border, just ONE flat surface approximately 1cm thick viewed from side edge"
-   * Plateau 12-16mm = "SINGLE UNIFORM panel, TOTAL thickness 12-16mm (like smartphone thickness), ONE continuous surface approximately 1.5cm thick"
-   * Plateau 18-19mm = "SINGLE UNIFORM panel, TOTAL thickness 18-19mm (standard furniture panel), ONE surface approximately 2cm thick"
-   * Plateau 22-25mm = "SINGLE UNIFORM panel, TOTAL thickness 22-25mm, ONE surface approximately 2.5cm thick"
-   * Plateau 30-38mm = "SINGLE UNIFORM panel, TOTAL thickness 30-38mm, ONE robust surface approximately 3-4cm thick"
-   * Plateau 50mm+ = "SINGLE UNIFORM panel, TOTAL thickness 50mm+, ONE heavy-duty surface 5cm+ thick"
-   
-   🔑 RÉFÉRENCE VISUELLE POUR L'IA:
-   * 10mm = thickness of a ceramic floor tile or credit card stack (10 cards) - VERY THIN
-   * 18mm = thickness of a standard book cover
-   * 25mm = thickness of approximately 2 stacked smartphones
-   * 38mm = thickness of a closed laptop
-   
-   ❌ INTERDIT: plateau marbre + cadre bois = FAUX (deux épaisseurs superposées)
-   ✅ CORRECT: UN SEUL plateau uniforme de l'épaisseur demandée
-   
-   📏 ÉPAISSEURS DE CHANTS (Edge Banding) - BANDE SUR LA TRANCHE:
-   * Chant 0.5mm = "ULTRA-THIN 0.5mm edge banding strip, barely perceptible seam line"
-   * Chant 1mm = "THIN 1mm edge banding strip, subtle visible line at panel border"
-   * Chant 2mm = "VISIBLE 2mm edge strip, clear precise edge line"
-   * Chant 3mm = "PRONOUNCED 3mm edge banding, distinctly visible edge profile"
-   
-   🎨 COULEURS DE CHANTS:
-   * "chant noir" = "BLACK edge banding strip"
-   * "chant blanc" = "WHITE edge banding strip"
-   * "chant assorti" = "MATCHING edge banding in same decor as panel surface"
-   
-   💡 EXEMPLES DE TRADUCTION PRÉCISE:
-   
-   User: "table avec plateau 10mm chêne"
-   → Prompt final: "Modern table with SINGLE UNIFORM oak panel top (DICA Bois ref), TOTAL thickness exactly 10mm (1cm), NO frame NO border around it, just ONE thin flat surface like a ceramic tile thickness when viewed from side edge, sleek minimalist design"
-   
-   User: "table plateau marbre 10mm avec chant bois"
-   → Prompt final: "Table with SINGLE UNIFORM marble DICA panel top, TOTAL thickness 10mm (1cm like ceramic tile), with thin wood-finish edge banding on the 10mm side edge - NOT a thick wood frame, just edge finish on the thin panel border"
-   
-   User: "plan de travail 18mm noir avec chant 2mm blanc"
-   → Prompt final: "Kitchen countertop with SINGLE UNIFORM black DICA panel, TOTAL thickness 18mm (approximately 2cm), with 2mm white edge banding strip finishing the panel edge"
-   
-   User: "bureau plateau 12mm blanc"
-   → Prompt final: "Office desk with SINGLE UNIFORM white DICA panel top, TOTAL thickness 12mm (1.2cm like smartphone thickness), NO additional frame, ONE continuous thin surface"
+✅ Status "ok" (~95% des cas):
+- Le prompt est clair ou flou → tu complètes intelligemment
+- Aucun décor mentionné → tu sélectionnes les plus appropriés du catalogue
+- Couleur/style vague → tu trouves le décor DICA le plus proche
+- Image source fournie → status "ok" OBLIGATOIRE, applique les décors sur les surfaces visibles
 
-🎨 TYPES DE DEMANDES SPÉCIALES - INTERPRÉTATION CORRECTE:
-
-   4. COUVERTURES DE CATALOGUE / ÉVENTAILS DE DÉCORS / MOODBOARDS:
-   
-   ⚠️ ATTENTION CRITIQUE - NE PAS CONFONDRE:
-   Quand l'utilisateur mentionne des références de décors pour une "couverture de catalogue", "éventail de décors", 
-   "sélection de décors", "moodboard", ou "composition de textures":
-   
-   → Il veut voir les ÉCHANTILLONS DE DÉCORS eux-mêmes en composition flat-lay, PAS un objet utilisant ces décors !
-   
-   ❌ ERREUR À ÉVITER ABSOLUMENT:
-   - User: "couverture catalogue avec Inox Mat 3022"
-   - FAUX: Générer un ascenseur en inox
-   - VRAI: Générer une composition flat-lay avec l'échantillon de texture Inox Mat 3022
-   
-   ✅ INTERPRÉTATION CORRECTE:
-   - Les décors mentionnés sont des TEXTURES/FINITIONS à montrer sous forme d'ÉCHANTILLONS
-   - Générer une composition artistique de plusieurs panneaux/échantillons de décors
-   - Style: flat-lay professionnel, moodboard élégant, ou éventail de textures
-   
-   📐 FORMAT POUR COUVERTURES/ÉVENTAILS DE DÉCORS:
-   "Professional catalog cover photography featuring elegant flat-lay composition of DICA decor samples. 
-   Artistic arrangement of material swatches/panels showing:
-   - [Décor 1]: sample panel showcasing [properties]
-   - [Décor 2]: sample panel showcasing [properties]
-   - etc.
-   Soft, harmonious aesthetic with soft diffused lighting on neutral background (beige linen, light gray fabric, or marble surface).
-   Samples arranged in artistic fan/mosaic/overlapping pattern.
-   Product photography style for material catalog. Color-graded for print quality."
-   
-   💡 EXEMPLE CONCRET:
-   User: "couverture catalogue avec décors soft: Shiky bois, Uni Blanc Cassé, Uni Gris Clair, Inox Mat"
-   → Prompt: "Professional catalog cover photography featuring elegant flat-lay composition of soft DICA decor samples on neutral beige linen background. Artistic fan arrangement of material swatches:
-   - DICA Bois Shiky (ref: 668_SHIKY_FC) light wood grain sample panel with warm natural texture
-   - DICA Unis Blanc Cassé (ref: 3063_SPA_FC) off-white smooth matte sample showing soft neutral tone
-   - DICA Unis Gris Clair (ref: 3066_SPA_FC) light gray smooth sample with subtle sophistication
-   - DICA Inox Mat (ref: 3022_MAT_FC) brushed stainless steel sample with delicate metallic finish
-   Samples arranged in elegant overlapping fan pattern. Soft diffused natural lighting creating gentle shadows. Harmonious soft color palette. Product photography for interior design materials catalog. High-resolution print quality."
-
-📋 LOGIQUE DE VALIDATION STRICTE:
-
-✅ Status "ok" (UNIQUEMENT si toutes les conditions sont remplies):
-- TOUS les décors mentionnés existent TEXTUELLEMENT dans le catalogue fourni
-- Les références utilisées dans decorReferences correspondent EXACTEMENT aux codes du catalogue
-- Image fournie → Applique UNIQUEMENT les décors DICA du catalogue sur surfaces appropriées
-- Décor non spécifié par l'utilisateur → PROPOSE des décors du catalogue avec leurs références exactes
-- Couleur mentionnée → VÉRIFIE qu'un décor DICA correspondant existe DANS LE CATALOGUE avant de l'utiliser
-
-⚠️ Status "need_clarification" (quand nécessaire):
-- L'utilisateur mentionne un décor/couleur/texture qui n'existe PAS dans le catalogue
-- L'utilisateur est vague et plusieurs décors du catalogue pourraient correspondre
-- Tu as besoin de précisions pour sélectionner le bon décor DICA
+⚠️ Status "need_clarification" (<3%):
+- L'utilisateur mentionne un décor qui n'existe VRAIMENT PAS et tu ne peux pas deviner l'intention
 - PROPOSE TOUJOURS des alternatives existantes du catalogue dans tes questions
 
-❌ Status "reject":
-- Décor demandé explicitement hors gamme DICA
-- Demande impossible à satisfaire avec le catalogue disponible
-- L'utilisateur insiste pour utiliser un décor qui n'existe pas
+❌ Status "reject" (<2%):
+- Demande explicite de ne PAS utiliser de décors DICA
+- Impossibilité absolue
 
-🚨 RÈGLE D'OR - VALIDATION DES RÉFÉRENCES:
-Avant de retourner status="ok", VÉRIFIE que CHAQUE entrée de decorReferences:
-1. Correspond à un code de référence EXACT du catalogue (ex: "3178_SPA_FC", "FU210_FC")
-2. N'est PAS une référence inventée ou modifiée
-3. Existe textuellement dans le contexte du catalogue fourni
+📐 INFORMATIONS DE SURFACE DANS LES RÉFÉRENCES:
+Les références du catalogue contiennent des informations sur la surface d'application:
+- "PAROI" dans la référence = décor pour murs/parois
+- "SOL" dans la référence = décor pour sols
+Utilise cette information pour proposer les bons décors sur les bonnes surfaces.
 
-🎨 GÉNÉRATION DU PROMPT FINAL (status="ok"):
+🎨 TYPES DE DEMANDES À DISTINGUER:
 
-Le finalPromptForImageModel doit:
-- Être en anglais pour Nano Banana (Gemini 3 Pro Image Preview)
-- IMPÉRATIF: Qualité PHOTOGRAPHIQUE PROFESSIONNELLE de niveau catalogue (voir ci-dessous)
-- Décrire précisément le type d'espace (même si inventé intelligemment)
-- Mentionner les décors DICA par référence ET nom avec leurs propriétés matériaux exactes
-- Intégrer TOUTES les spécifications utilisateur (couleurs, épaisseurs, textures, matériaux)
-- Préciser éclairage naturel professionnel adapté à l'espace (lumière du jour, ambiance intérieure), ambiance premium, perspective architecturale
-- Intégrer les contraintes matériaux (Metal = brushed texture with directional reflections, Marbre = natural veining with subtle gloss, etc.)
+1. DEMANDE "ESPACE/OBJET" (ex: "un ascenseur moderne", "une cuisine"):
+   → Générer un ESPACE avec les décors DICA appliqués sur les surfaces appropriées
 
-🎬 QUALITÉ PHOTOGRAPHIQUE PROFESSIONNELLE - RÈGLES OBLIGATOIRES:
+2. DEMANDE "CATALOGUE/ÉCHANTILLONS" (ex: "couverture catalogue", "moodboard", "éventail de textures"):
+   → Générer une COMPOSITION FLAT-LAY d'ÉCHANTILLONS de décors
+   → Les décors mentionnés sont des TEXTURES à montrer, PAS des objets à construire
 
-⚠️ ATTENTION: "Qualité studio" = QUALITÉ D'IMAGE professionnelle, PAS une image DANS un studio photo !
-L'espace doit être RÉALISTE (cuisine réelle, van réel, bureau réel), pas un studio photo avec fonds blancs/gris.
+📐 SPÉCIFICATIONS TECHNIQUES:
+Si l'utilisateur mentionne des épaisseurs de plateau ou chants:
+- Les épaisseurs sont en millimètres (très fines en réalité)
+- 8-10mm = ultra-fin comme un carreau de céramique
+- 18-19mm = panneau standard
+- "chant" = bande décorative sur la tranche (PAS un cadre supplémentaire)
+- UN SEUL plateau uniforme de l'épaisseur totale demandée, JAMAIS un plateau + cadre
 
-• Lighting: "Natural professional lighting as if photographed by an architectural photographer ON LOCATION. Soft natural daylight through windows, ambient lighting appropriate for the REAL space (kitchen, van, office, etc.). NO visible studio equipment, NO photography backdrop."
-• Camera: "Shot with professional full-frame camera, 24mm architectural lens, f/8 for maximum depth of field, ISO 100 for clean details. Professional architectural photography standards."
-• Post-production: "Color-graded for commercial catalog quality. Natural color accuracy. Sharp focus across entire frame. Professional retouching maintaining realism."
-• Composition: "Professional architectural composition in a REAL environment. Balanced framing. Strategic angles showcasing DICA panels prominently. Commercial photography aesthetic."
-• Reality: "Photorealistic image of a REAL SPACE (not a photo studio). The space must look like an actual kitchen/van/office/etc. that exists in the real world. No photography studio visible. No backdrop. No artificial studio environment."
-
-Exemple de prompt final haute qualité:
-"Professional architectural photography of a REAL premium van conversion interior featuring DICA decorative panels. Shot ON LOCATION (not in a photo studio) with full-frame camera, 24mm lens, f/8, natural daylight through windows. Interior walls showcase DICA Metal panels (ref: 3040_BN_PF - brushed stainless steel finish) with authentic brushed texture and precise directional light reflections, creating a sleek high-end aesthetic. Cabinet fronts use DICA Bois panels (ref: FU210_FC) with natural wood grain and warm non-metallic lighting. Modern compact layout with ergonomic seating and integrated storage. Color-graded for commercial catalog quality, sharp focus across entire frame, professional retouching maintaining absolute realism. Photorealistic image of an ACTUAL VAN INTERIOR that exists in real world, commercial photography aesthetic, authentic material properties perfectly captured."
-
-💡 EXEMPLES DE GESTION CRÉATIVE:
-
-Prompt flou: "un van avec des panneaux blancs"
-→ Status OK, tu inventes: "Professional architectural photography of a REAL modern van interior conversion featuring DICA Unis white panels (ref: 800_SATIN - smooth matte white) on walls. Shot ON LOCATION with full-frame camera, 24mm architectural lens f/8, natural daylight through van windows. Contemporary minimalist design with clean lines. Color-graded for commercial catalog quality. Photorealistic image of an ACTUAL VAN that exists in real world."
-
-Prompt avec image: "améliore cette cuisine"
-→ Status OK, tu appliques: "Apply DICA Marbre premium panels (ref: 3133_SPA_FC) to kitchen walls and backsplash, preserving existing layout. Natural marble veining with subtle gloss, authentic stone appearance. Natural daylight and ambient kitchen lighting showcasing material authenticity. Shot with professional camera for commercial catalog quality. Enhanced with color-grading maintaining absolute realism. REAL KITCHEN environment, not a photo studio."
-
-Prompt créatif: "un bureau futuriste avec du métal"
-→ Status OK, tu structures: "Professional architectural photography of a REAL futuristic office interior featuring DICA Metal panels (ref: 3025_HR_FC - hairline brushed steel) with authentic directional reflections and brushed texture. Modern minimalist architecture. Natural office lighting with large windows. Shot on full-frame camera, 24mm lens f/8. Commercial photography aesthetic. Photorealistic image of an ACTUAL OFFICE SPACE, not a photo studio."
-
-Prompt technique avec chant: "table rectangulaire plateau chêne clair avec chant noir 2mm"
-→ Status OK, tu traduis: "Professional product photography of rectangular table with DICA Bois light oak panel (ref: FU210_FC) top surface, featuring VISIBLE 2mm BLACK EDGE BANDING strip on edges. Soft natural lighting, full-frame camera, color-graded for commercial quality showcasing edge detail and wood grain texture authenticity. Table shown in REAL environment (dining room, office), not on photo studio backdrop."
-
-Prompt épaisseur plateau FINE: "table avec plateau 10mm noir"
-→ Status OK, tu traduis CORRECTEMENT: "Professional product photography of modern table with SINGLE UNIFORM black DICA panel top (ref: 3020_BN), TOTAL thickness exactly 10mm (1cm like ceramic tile), NO frame NO border, ONE continuous thin surface viewed from side edge. Sleek minimal paper-thin modern design. Natural ambient lighting emphasizing the slim uniform profile. Photorealistic image in REAL interior setting."
-
-Prompt plateau marbre avec chant bois: "table plateau marbre 10mm chant bois"
-→ Status OK, ATTENTION NE PAS FAIRE DEUX ÉPAISSEURS: "Table with SINGLE UNIFORM marble DICA panel, TOTAL thickness 10mm, with wood-finish edge banding on the thin 10mm side edge - this is NOT a thick wood frame around marble, just ONE 10mm panel with wood edge finish. The entire tabletop is 1cm thick total."
-
-Prompt épaisseur plan de travail: "plan de travail cuisine 18mm blanc"
-→ Status OK, tu enrichis: "Professional architectural photography of modern kitchen countertop featuring SINGLE UNIFORM white DICA panel (ref: 800_SATIN), TOTAL thickness 18mm (approximately 2cm), ONE continuous surface. Natural kitchen lighting showcasing material authenticity. Photorealistic image of a REAL KITCHEN, not a photo studio."
-
-Prompt combiné épaisseur + chant: "bureau plateau 12mm chêne avec chant blanc 1mm"
-→ Status OK: "Professional photography of office desk with SINGLE UNIFORM oak DICA panel top, TOTAL thickness 12mm (1.2cm), with 1mm white edge banding finish on the thin panel edge. ONE continuous surface, NOT framed. Natural office lighting for commercial catalog quality. Desk shown in REAL office environment."
-
-Prompt COUVERTURE CATALOGUE avec décors soft: "couverture de catalogue avec éventail de décors soft: Shiky bois, Uni Blanc Cassé, Uni Gris Clair, Beige Rosé, Inox Mat"
-→ Status OK, ATTENTION NE PAS CRÉER UN OBJET EN INOX: "Professional catalog cover featuring elegant flat-lay composition of soft DICA decor SAMPLES on neutral beige linen fabric background. Artistic overlapping fan arrangement of rectangular material swatches (approximately 15x20cm each):
-- DICA Bois Shiky (ref: 668_SHIKY_FC): light warm wood grain texture sample panel
-- DICA Unis Blanc Cassé (ref: 3063_SPA_FC): off-white smooth matte sample panel
-- DICA Unis Gris Clair (ref: 3066_SPA_FC): soft light gray smooth sample panel  
-- DICA Unis Beige Rosé (ref: 3064_SPA_FC): warm pinkish-beige neutral sample panel
-- DICA Inox Mat (ref: 3022_MAT_FC): brushed stainless steel sample with SUBTLE metallic finish (NOT an elevator, just a material swatch)
-Samples elegantly arranged in cascading fan pattern showing texture details. Soft diffused natural lighting creating gentle shadows. Harmonious soft pastel color palette. Product photography for interior design materials catalog. High-resolution 4K print quality. Clean minimalist aesthetic."
-
-⚠️ RAPPEL CRITIQUE pour ce type de demande: Les décors sont des ÉCHANTILLONS DE MATÉRIAUX à photographier, PAS des objets à construire !
+🎬 PROMPT FINAL (finalPromptForImageModel):
+Le prompt doit être:
+- En ANGLAIS pour le modèle de génération d'image
+- Qualité PHOTOGRAPHIQUE PROFESSIONNELLE de niveau catalogue
+- Description précise du type d'espace
+- Références DICA exactes avec noms et propriétés matériaux
+- Éclairage naturel professionnel adapté à l'espace réel (PAS un studio photo)
+- Ambiance premium, perspective architecturale
+- Image d'un VRAI espace (cuisine réelle, ascenseur réel, etc.), PAS un studio photo
 
 ⚡ TON ATTITUDE:
-- Rigoureux et précis sur les références du catalogue
-- Tu ne proposes QUE des décors qui existent réellement dans le catalogue fourni
-- Tu demandes des clarifications plutôt que d'inventer des décors
-- Tu guides l'utilisateur vers les bonnes références du catalogue DICA
-- JAMAIS d'invention de références ou de décors non listés
-- En cas de doute, utilise status="need_clarification" et propose des alternatives du catalogue
-
-🚨 RÈGLE CRITIQUE - TYPES DE DEMANDES À DISTINGUER:
-
-1. DEMANDE "ESPACE/OBJET" (ex: "un van avec des panneaux bois", "une cuisine noire"):
-   → Générer un ESPACE/OBJET avec les décors DICA appliqués sur ses surfaces
-
-2. DEMANDE "CATALOGUE/ÉCHANTILLONS" (ex: "couverture catalogue avec décors soft", "éventail de textures"):
-   → Générer une COMPOSITION D'ÉCHANTILLONS DE DÉCORS (flat-lay/moodboard)
-   → Les décors mentionnés sont des TEXTURES à montrer, PAS des objets à construire
-   → "Inox Mat" = échantillon de texture métallique, PAS un ascenseur en inox !
-   → Style: panneaux/échantillons disposés artistiquement sur fond neutre`;
+- Créatif et non-bloquant: tu optimises plutôt que tu bloques
+- Rigoureux sur les références: COPIE-COLLE depuis le catalogue
+- Si un détail manque, tu l'inventes intelligemment
+- En cas de doute sur un décor, propose le plus approprié du catalogue`;
 }
 
 /**
@@ -446,7 +270,7 @@ ${input.decorContext}
     if (input.imageLabels && input.imageLabels.length > 0) {
       message += `\nLabels: ${input.imageLabels.join(", ")}`;
     }
-    message += `\n✅ AVEC IMAGE SOURCE → Status "ok" OBLIGATOIRE. Applique les décors DICA sur les surfaces de cette image en respectant leur exactitude visuelle.`;
+    message += `\n✅ AVEC IMAGE SOURCE → Status "ok" OBLIGATOIRE. Applique les décors DICA sur les surfaces de cette image.`;
   }
 
   if (input.projectContext) {
@@ -459,17 +283,11 @@ ${input.decorContext}
     }
   }
 
-  message += `\n\n🎯 VALIDATION REQUISE:
-1. Identifier le type d'espace demandé (ou demander clarification si ambigu)
-2. VÉRIFIER que CHAQUE décor mentionné existe DANS LE CATALOGUE ci-dessus
-3. Utiliser UNIQUEMENT les références EXACTES du catalogue dans decorReferences
-4. Si un décor demandé n'existe pas → status="need_clarification" avec alternatives du catalogue
-5. Générer un prompt final utilisant UNIQUEMENT les références validées du catalogue
-
-🚨 RÈGLE STRICTE: 
-- Les decorReferences DOIVENT correspondre EXACTEMENT aux codes "Réf:" du catalogue
-- Ne JAMAIS inventer de référence qui n'apparaît pas textuellement dans le catalogue
-- En cas de doute, demande clarification plutôt que d'inventer
+  message += `\n\n🎯 INSTRUCTIONS:
+1. Identifier le type d'espace demandé (ou inventer intelligemment si flou)
+2. Sélectionner les décors DICA appropriés depuis le catalogue ci-dessus
+3. COPIER-COLLER les reference_code EXACTS du catalogue dans decorReferences
+4. Générer un prompt final en anglais de qualité professionnelle
 
 Réponds en utilisant la fonction validate_dica_request.`;
 
@@ -478,7 +296,6 @@ Réponds en utilisant la fonction validate_dica_request.`;
 
 /**
  * Extract all valid reference codes from the decor context
- * Uses JSON parsing for strict extraction
  */
 function extractValidReferenceCodes(decorContext: string): Set<string> {
   const validRefs = new Set<string>();
@@ -490,7 +307,7 @@ function extractValidReferenceCodes(decorContext: string): Set<string> {
       const jsonArray = JSON.parse(jsonMatch[0]);
       for (const item of jsonArray) {
         if (item.ref) {
-          validRefs.add(item.ref.toUpperCase());
+          validRefs.add(item.ref);
         }
       }
       console.log(`📋 Extracted ${validRefs.size} refs from JSON`);
@@ -499,22 +316,20 @@ function extractValidReferenceCodes(decorContext: string): Set<string> {
     console.log("JSON parsing failed, using pattern matching");
   }
   
-  // Also match patterns for redundancy
+  // Match new format: NAME-DICA-CONTEXT-SURFACE-NUMBER-FINISH
+  // and old format: NUMBER_TYPE_FINISH
   const patterns = [
-    /"([A-Z0-9]+_[A-Z0-9_]+)"/gi, // Quoted refs like "3040_BN_FC"
-    /\(Réf:\s*([A-Z0-9_]+)\)/gi,
-    /^([A-Z0-9]+_[A-Z0-9_]+)$/gim, // Standalone refs on their own line
-    /"ref":\s*"([^"]+)"/gi, // JSON ref field
+    /"ref":\s*"([^"]+)"/gi,
+    /• "([^"]+)" =/g,
+    /"([A-Z0-9][A-Z0-9_-]+[A-Z0-9])"/gi,
   ];
   
   for (const pattern of patterns) {
     let match;
-    const contextCopy = decorContext; // Reset for each pattern
     pattern.lastIndex = 0;
-    while ((match = pattern.exec(contextCopy)) !== null) {
-      const ref = match[1].toUpperCase();
-      // Filter out obviously wrong matches
-      if (ref.length > 4 && ref.includes('_')) {
+    while ((match = pattern.exec(decorContext)) !== null) {
+      const ref = match[1];
+      if (ref.length > 4 && (ref.includes('-') || ref.includes('_'))) {
         validRefs.add(ref);
       }
     }
@@ -525,44 +340,51 @@ function extractValidReferenceCodes(decorContext: string): Set<string> {
 }
 
 /**
+ * Check if a reference is valid (case-insensitive match)
+ */
+function isValidReference(ref: string, validRefs: Set<string>): boolean {
+  // Exact match first
+  if (validRefs.has(ref)) return true;
+  // Case-insensitive
+  for (const validRef of validRefs) {
+    if (validRef.toLowerCase() === ref.toLowerCase()) return true;
+  }
+  return false;
+}
+
+/**
  * Find best matching valid reference for an invalid one
- * Returns null if no good match found
  */
 function findBestMatch(invalidRef: string, validRefs: Set<string>): string | null {
-  const upperRef = invalidRef.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  
-  // Extract the base number (e.g., "3040" from "3040_BN_FC")
-  const numberMatch = invalidRef.match(/(\d{3,4})/);
-  const baseNumber = numberMatch ? numberMatch[1] : null;
+  const normalizedInvalid = invalidRef.toLowerCase().replace(/[^a-z0-9]/g, '');
   
   let bestMatch: string | null = null;
   let bestScore = 0;
   
   for (const validRef of validRefs) {
-    const upperValid = validRef.toUpperCase();
+    const normalizedValid = validRef.toLowerCase().replace(/[^a-z0-9]/g, '');
     let score = 0;
     
-    // Exact match
-    if (upperValid === upperRef) {
-      return validRef;
+    // Contains check
+    if (normalizedValid.includes(normalizedInvalid) || normalizedInvalid.includes(normalizedValid)) {
+      score += 40;
     }
     
-    // Same base number - high score
-    if (baseNumber && validRef.startsWith(baseNumber)) {
+    // Extract number from both
+    const invalidNum = invalidRef.match(/(\d{3,4})/)?.[1];
+    const validNum = validRef.match(/(\d{3,4})/)?.[1];
+    if (invalidNum && validNum && invalidNum === validNum) {
       score += 50;
     }
     
-    // Contains the invalid ref
-    if (upperValid.includes(upperRef) || upperRef.includes(upperValid.replace(/[^A-Z0-9]/g, ''))) {
+    // Extract name part (first segment before DICA)
+    const invalidName = invalidRef.split('-')[0]?.toLowerCase();
+    const validName = validRef.split('-')[0]?.toLowerCase();
+    if (invalidName && validName && (invalidName === validName || validName.includes(invalidName))) {
       score += 30;
     }
     
-    // Similar length
-    if (Math.abs(validRef.length - invalidRef.length) <= 3) {
-      score += 10;
-    }
-    
-    if (score > bestScore && score >= 50) { // Only accept if score is high enough
+    if (score > bestScore && score >= 50) {
       bestScore = score;
       bestMatch = validRef;
     }
@@ -572,57 +394,36 @@ function findBestMatch(invalidRef: string, validRefs: Set<string>): string | nul
 }
 
 /**
- * Check if a reference is EXACTLY valid (strict mode)
- */
-function isValidReferenceStrict(ref: string, validRefs: Set<string>): boolean {
-  const upperRef = ref.toUpperCase();
-  return validRefs.has(upperRef);
-}
-
-/**
  * Validate orchestrator result against business rules
- * ULTRA-STRICT: Filters out or auto-corrects invented references
  */
 function validateOrchestratorResult(result: OrchestratorResult, decorContext: string): void {
-  // Validate status
   if (!["ok", "need_clarification", "reject"].includes(result.status)) {
     throw new Error(`Invalid status: ${result.status}`);
   }
 
-  // Extract all valid references from the catalog
   const validRefs = extractValidReferenceCodes(decorContext);
-  console.log(`🔍 Valid refs available: ${Array.from(validRefs).slice(0, 10).join(', ')}...`);
+  console.log(`🔍 Valid refs available: ${validRefs.size} references`);
   
-  // ULTRA-STRICT VALIDATION: Check each reference and auto-correct if possible
   if (result.decorReferences && result.decorReferences.length > 0) {
     const originalCount = result.decorReferences.length;
     const originalLabels = result.decorLabels || [];
     const invalidRefs: string[] = [];
     const correctedRefs: { from: string; to: string }[] = [];
-    
-    // Filter and correct references
     const validatedRefs: string[] = [];
     const validatedLabels: string[] = [];
     
     for (let i = 0; i < result.decorReferences.length; i++) {
       const ref = result.decorReferences[i];
       
-      // STRICT CHECK: Exact match only
-      if (isValidReferenceStrict(ref, validRefs)) {
+      if (isValidReference(ref, validRefs)) {
         validatedRefs.push(ref);
-        if (originalLabels[i]) {
-          validatedLabels.push(originalLabels[i]);
-        }
+        if (originalLabels[i]) validatedLabels.push(originalLabels[i]);
         console.log(`✅ VALID: ${ref}`);
       } else {
-        // Try to find best match for auto-correction
         const bestMatch = findBestMatch(ref, validRefs);
-        
         if (bestMatch) {
           validatedRefs.push(bestMatch);
-          if (originalLabels[i]) {
-            validatedLabels.push(originalLabels[i]);
-          }
+          if (originalLabels[i]) validatedLabels.push(originalLabels[i]);
           correctedRefs.push({ from: ref, to: bestMatch });
           console.log(`🔄 AUTO-CORRECTED: "${ref}" → "${bestMatch}"`);
         } else {
@@ -632,33 +433,25 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
       }
     }
     
-    // Log corrections
     if (correctedRefs.length > 0) {
-      console.log(`🔧 Auto-corrected ${correctedRefs.length} references:`);
-      correctedRefs.forEach(c => console.log(`   "${c.from}" → "${c.to}"`));
+      console.log(`🔧 Auto-corrected ${correctedRefs.length} references`);
     }
     
-    // If there are STILL invalid references after auto-correction, change status
     if (invalidRefs.length > 0 && result.status === "ok") {
-      console.error(`🚫 ${invalidRefs.length} references could not be matched: ${invalidRefs.join(', ')}`);
+      console.error(`🚫 ${invalidRefs.length} unmatched refs: ${invalidRefs.join(', ')}`);
       
-      // Only change status if ALL refs were invalid or if we have no valid refs
       if (validatedRefs.length === 0) {
         result.status = "need_clarification";
         result.clarificationQuestions = [
           `Je ne reconnais pas les références suivantes: ${invalidRefs.join(', ')}`,
-          "Voici quelques décors DICA disponibles que vous pourriez utiliser:",
+          "Voici quelques décors DICA disponibles:",
           Array.from(validRefs).slice(0, 10).join(', ')
         ];
-        console.log(`⚠️ Status changed to "need_clarification" - no valid refs found`);
       } else {
-        // Some refs are valid, keep status ok but add warning
         result.validationWarnings = [`Références ignorées: ${invalidRefs.join(', ')}`];
-        console.log(`⚠️ Keeping status "ok" with ${validatedRefs.length} valid refs`);
       }
     }
     
-    // Update result with validated references only
     result.decorReferences = validatedRefs;
     result.decorLabels = validatedLabels;
     
@@ -667,36 +460,28 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
     console.warn(`⚠️ No decor references provided but status=ok`);
   }
 
-  // Validate required fields for "ok" status
   if (result.status === "ok") {
     if (!result.finalPromptForImageModel || result.finalPromptForImageModel.length < 30) {
-      console.warn("⚠️ finalPromptForImageModel is short or missing, but accepting");
+      console.warn("⚠️ finalPromptForImageModel is short or missing");
     }
     if (result.decorReferences.length === 0) {
-      console.warn("⚠️ No valid decor references after validation - generation may not use DICA decors accurately");
+      console.warn("⚠️ No valid decor references after validation");
     }
   }
 
-  // Validate clarification questions for "need_clarification"
   if (result.status === "need_clarification") {
     if (!result.clarificationQuestions || result.clarificationQuestions.length === 0) {
       result.clarificationQuestions = [
         "Pourriez-vous préciser quels décors du catalogue DICA vous souhaitez utiliser ?",
-        "Je suis là pour vous aider avec les décors disponibles dans notre catalogue."
       ];
     }
   }
 
-  // Validate rejection reason for "reject"
-  if (result.status === "reject") {
-    if (!result.rejectionReason) {
-      result.rejectionReason = "Demande incompatible avec le catalogue DICA disponible.";
-    }
+  if (result.status === "reject" && !result.rejectionReason) {
+    result.rejectionReason = "Demande incompatible avec le catalogue DICA disponible.";
   }
 
-  // Validate nbVariants
   if (result.nbVariants < 1 || result.nbVariants > 4) {
-    console.warn(`⚠️ Invalid nbVariants: ${result.nbVariants}, defaulting to 1`);
     result.nbVariants = 1;
   }
 }
