@@ -69,6 +69,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const [position, setPosition] = useState(initialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoaded, setIsLoaded] = useState({ before: false, after: false });
+  const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
 
   // Configure service
   useEffect(() => {
@@ -180,7 +181,13 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleInteractionEnd]);
 
   // Image load handlers
-  const handleBeforeLoad = () => setIsLoaded(prev => ({ ...prev, before: true }));
+  const handleBeforeLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (aspectRatio === 'auto' && !naturalAspect) {
+      setNaturalAspect(img.naturalWidth / img.naturalHeight);
+    }
+    setIsLoaded(prev => ({ ...prev, before: true }));
+  };
   const handleAfterLoad = () => setIsLoaded(prev => ({ ...prev, after: true }));
 
   // Calculate clip paths
@@ -190,12 +197,17 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const ariaProps = service.getAriaAttributes();
 
   // Aspect ratio class
-  const aspectRatioClass = {
-    'square': 'aspect-square',
-    '4/3': 'aspect-[4/3]',
-    '16/9': 'aspect-video',
-    'auto': '',
-  }[aspectRatio];
+  const aspectRatioStyle = aspectRatio === 'auto' && naturalAspect
+    ? { aspectRatio: `${naturalAspect}` }
+    : undefined;
+
+  const aspectRatioClass = aspectRatio === 'auto'
+    ? ''
+    : {
+        'square': 'aspect-square',
+        '4/3': 'aspect-[4/3]',
+        '16/9': 'aspect-video',
+      }[aspectRatio];
 
   const bothLoaded = isLoaded.before && isLoaded.after;
 
@@ -209,6 +221,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         isDragging && 'cursor-grabbing',
         className
       )}
+      style={aspectRatioStyle}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onKeyDown={handleKeyDown}
