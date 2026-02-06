@@ -243,7 +243,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <img
           src={beforeImage}
           alt={beforeLabel}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           onLoad={handleBeforeLoad}
           draggable={false}
         />
@@ -257,7 +257,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <img
           src={afterImage}
           alt={afterLabel}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           onLoad={handleAfterLoad}
           draggable={false}
         />
