@@ -476,19 +476,21 @@ reste sur le bureau. NE JAMAIS inventer un autre type d'espace.
 ═══════════════════════════════════════════════════════════════════`;
         break;
       case "terrasse":
-        // Logique conditionnelle pour les décors COMPACTOP
-        const isCompactop = decor.name && decor.name.toUpperCase().includes("COMPACTOP");
-        const tranches = isCompactop 
-          ? `⚠️ SPÉCIFIQUE POUR COMPACTOP:
+        // Logique conditionnelle : chants blancs uniquement pour CARRARE COMPACTOP
+        const isCarrareCompactop = decor.name && decor.name.toUpperCase().includes("CARRARE") && decor.name.toUpperCase().includes("COMPACTOP");
+        const tranches = isCarrareCompactop 
+          ? `⚠️ SPÉCIFIQUE POUR CARRARE COMPACTOP:
 Les tranches/chants des tables DOIVENT être en BLANC UNI pour simuler l'âme blanche 
-du matériau Compactop. C'est une propriété visuelle caractéristique de ce produit.
-→ Plateau: DÉCOR (texture Compactop appliquée)
+du matériau Carrare Compactop. C'est une propriété visuelle caractéristique de ce produit.
+→ Plateau: DÉCOR (texture Carrare Compactop appliquée)
 → Tranches: BLANC UNI (âme blanche caractéristique)`
           : `⚠️ PRÉCISION IMPORTANTE SUR LES TRANCHES:
 Les tranches (chants/côtés/épaisseurs) des tables sont les bords verticaux 
-visibles sur le pourtour du plateau. Elles doivent rester INTACTES.
+visibles sur le pourtour du plateau. Elles doivent rester en NOIR.
 Le décor ne s'applique QUE sur la face HORIZONTALE SUPÉRIEURE (le dessus 
-où l'on pose les objets), JAMAIS sur les bords latéraux du plateau.`;
+où l'on pose les objets), JAMAIS sur les bords latéraux du plateau.
+→ Plateau: DÉCOR appliqué
+→ Tranches: NOIR (chant noir conservé)`;
 
         surfaceRules = `╔═══════════════════════════════════════════════════════════════════╗
 ║ 🚨🚨🚨 TERRASSE: DÉCOR SUR PLATEAUX DE TABLES UNIQUEMENT 🚨🚨🚨 ║
@@ -520,7 +522,7 @@ C'EST TOUT. RIEN D'AUTRE.
 ❌❌❌ INTERDICTION ABSOLUE - NE JAMAIS APPLIQUER SUR: ❌❌❌
 ═══════════════════════════════════════════════════════════════════
 
-${isCompactop ? '🚫 CHAISES = INTERDIT (dossiers, assises, accoudoirs)' : '🚫 TRANCHES/CHANTS DE TABLES = INTERDIT (les côtés/bords/épaisseurs visibles des plateaux)'}
+${isCarrareCompactop ? '🚫 CHAISES = INTERDIT (dossiers, assises, accoudoirs)' : '🚫 TRANCHES/CHANTS DE TABLES = DOIVENT RESTER NOIRS (les côtés/bords/épaisseurs visibles des plateaux restent en noir)'}
 🚫 CHAISES = INTERDIT (dossiers, assises, accoudoirs)
 🚫 PIEDS DE TABLES = INTERDIT (structure métallique/bois)
 🚫 MURS = INTERDIT (façades, cloisons, parois)
@@ -545,9 +547,9 @@ SI TU APPLIQUES LE DÉCOR SUR LE SOL → ERREUR GRAVE
 AVANT de générer, vérifie:
 □ J'ai identifié les TABLES dans la photo → OUI
 □ Je vais appliquer le décor UNIQUEMENT sur les DESSUS de tables → OUI
-${isCompactop 
+${isCarrareCompactop 
   ? `□ Les TRANCHES/CHANTS des tables sont en BLANC UNI (âme blanche) → OUI`
-  : `□ Les TRANCHES/CHANTS des tables restent intacts (pas de décor sur les bords) → OUI`}
+  : `□ Les TRANCHES/CHANTS des tables restent en NOIR (chant noir conservé) → OUI`}
 □ Les CHAISES restent 100% intactes sans aucun décor → OUI
 □ Les MURS restent 100% intacts sans aucun décor → OUI
 □ Le SOL reste 100% intact sans aucun décor → OUI
@@ -557,10 +559,10 @@ Si UNE réponse est NON → RECOMMENCE TA RÉFLEXION
 
 RAPPEL COMMERCIAL: Un restaurateur veut visualiser ses TABLES de 
 terrasse avec un nouveau revêtement. Il veut voir le DESSUS de ses 
-tables transformé, PAS ses chaises, PAS ses murs.${isCompactop ? `
+tables transformé, PAS ses chaises, PAS ses murs.${isCarrareCompactop ? `
 
 🎯 DÉCOR APPLIQUÉ: ${decor.name}
-Matériau Compactop détecté - Les chants seront en blanc uni (âme blanche).` : ''}
+Matériau Carrare Compactop détecté - Les chants seront en blanc uni (âme blanche).` : ''}
 ═══════════════════════════════════════════════════════════════════`;
         break;
       default:
