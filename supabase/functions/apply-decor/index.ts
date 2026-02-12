@@ -506,6 +506,7 @@ C'EST TOUT. RIEN D'AUTRE.
 ❌❌❌ INTERDICTION ABSOLUE - NE JAMAIS APPLIQUER SUR: ❌❌❌
 ═══════════════════════════════════════════════════════════════════
 
+🚫 TRANCHES/CHANTS DE TABLES = INTERDIT (les côtés/bords/épaisseurs visibles des plateaux)
 🚫 CHAISES = INTERDIT (dossiers, assises, accoudoirs)
 🚫 PIEDS DE TABLES = INTERDIT (structure métallique/bois)
 🚫 MURS = INTERDIT (façades, cloisons, parois)
@@ -518,6 +519,13 @@ C'EST TOUT. RIEN D'AUTRE.
 🚫 BÂTIMENT = INTERDIT (façade, fenêtres, portes)
 🚫 MOBILIER AUTRE = INTERDIT (banquettes, canapés, fauteuils)
 
+⚠️ PRÉCISION IMPORTANTE SUR LES TRANCHES:
+Les tranches (chants/côtés/épaisseurs) des tables sont les bords verticaux 
+visibles sur le pourtour du plateau. Elles doivent rester INTACTES.
+Le décor ne s'applique QUE sur la face HORIZONTALE SUPÉRIEURE (le dessus 
+où l'on pose les objets), JAMAIS sur les bords latéraux du plateau.
+🚫 MOBILIER AUTRE = INTERDIT (banquettes, canapés, fauteuils)
+
 SI TU APPLIQUES LE DÉCOR SUR UNE CHAISE → ERREUR GRAVE
 SI TU APPLIQUES LE DÉCOR SUR UN MUR → ERREUR GRAVE
 SI TU APPLIQUES LE DÉCOR SUR LE SOL → ERREUR GRAVE
@@ -528,6 +536,7 @@ SI TU APPLIQUES LE DÉCOR SUR LE SOL → ERREUR GRAVE
 AVANT de générer, vérifie:
 □ J'ai identifié les TABLES dans la photo → OUI
 □ Je vais appliquer le décor UNIQUEMENT sur les DESSUS de tables → OUI
+□ Les TRANCHES/CHANTS des tables restent intacts (pas de décor sur les bords) → OUI
 □ Les CHAISES restent 100% intactes sans aucun décor → OUI
 □ Les MURS restent 100% intacts sans aucun décor → OUI
 □ Le SOL reste 100% intact sans aucun décor → OUI
