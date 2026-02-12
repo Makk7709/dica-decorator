@@ -3,6 +3,7 @@ import { forwardRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface NavLinkCompatProps extends Omit<NavLinkProps, "className"> {
   className?: string;
@@ -28,6 +29,14 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
           if (targetPath === "/dashboard" || targetPath?.startsWith("/dashboard")) {
             queryClient.prefetchQuery({
               queryKey: ["projects", user.id],
+              queryFn: async () => {
+                const { data } = await supabase
+                  .from("projects")
+                  .select("*")
+                  .eq("user_id", user.id)
+                  .order("created_at", { ascending: false });
+                return data || [];
+              },
               staleTime: 1000 * 60 * 2,
             });
           }
@@ -35,6 +44,14 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
           if (targetPath?.startsWith("/project/") && targetPath !== "/project/new") {
             queryClient.prefetchQuery({
               queryKey: ["decors"],
+              queryFn: async () => {
+                const { data } = await supabase
+                  .from("decors")
+                  .select("*")
+                  .eq("is_active", true)
+                  .order("name", { ascending: true });
+                return data || [];
+              },
               staleTime: 1000 * 60 * 30,
             });
           }
