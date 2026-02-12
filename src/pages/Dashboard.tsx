@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { 
   PremiumLayout, 
@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { projectDeletionService } from "@/services/project-deletion.service";
 import { projectRenameService } from "@/services/project-rename.service";
 import { AppFooter } from "@/components/ui/app-footer";
+import { useProjects } from "@/hooks/use-projects";
 
 interface Project {
   id: string;
@@ -37,8 +38,8 @@ interface Project {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, userRole, signOut } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: projects = [], isLoading } = useProjects();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [deletionStats, setDeletionStats] = useState<any>(null);
@@ -49,29 +50,6 @@ const Dashboard = () => {
   
   // Onboarding
   const { showWelcome, completeWelcome } = useOnboarding();
-
-  useEffect(() => {
-    loadProjects();
-  }, [user]);
-
-  const loadProjects = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setProjects(data || []);
-    } catch (error: any) {
-      toast.error("Erreur lors du chargement des projets");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -131,8 +109,8 @@ const Dashboard = () => {
       if (result.success) {
         toast.success(`Projet "${projectToDelete.title}" supprimé avec succès`);
         
-        // Retirer le projet de la liste localement
-        setProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
+        // Invalider le cache pour rafraîchir la liste
+        queryClient.invalidateQueries({ queryKey: ["projects"] });
         
         // Fermer le dialog
         setDeleteDialogOpen(false);
@@ -146,7 +124,7 @@ const Dashboard = () => {
         } else if (result.error?.code === 'NOT_FOUND') {
           toast.error("Ce projet n'existe plus");
           // Recharger la liste
-          loadProjects();
+          queryClient.invalidateQueries({ queryKey: ["projects"] });
         } else {
           toast.error(errorMessage);
         }
@@ -199,14 +177,8 @@ const Dashboard = () => {
       if (result.success && result.newTitle) {
         toast.success(`Projet renommé en "${result.newTitle}"`);
         
-        // Mettre à jour la liste localement
-        setProjects(prev => 
-          prev.map(p => 
-            p.id === project.id 
-              ? { ...p, title: result.newTitle! }
-              : p
-          )
-        );
+        // Invalider le cache pour rafraîchir la liste
+        queryClient.invalidateQueries({ queryKey: ["projects"] });
         
         setEditingProjectId(null);
         setEditTitle("");
