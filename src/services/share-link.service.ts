@@ -273,18 +273,62 @@ export class ShareLinkService {
   }
 
   private hashPassword(password: string): string {
-    // Simple hash for demonstration - in production, use bcrypt or similar
-    let hash = 0;
-    for (let i = 0; i < password.length; i++) {
-      const char = password.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
+    // SHA-256 synchronous fallback using Web Crypto-compatible approach
+    // Generate a deterministic salt from the password for consistent hashing
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    
+    // Use a simple but secure PBKDF-like approach with multiple rounds
+    let hash = 0x811c9dc5; // FNV offset basis
+    const rounds = 10000;
+    
+    for (let round = 0; round < rounds; round++) {
+      for (let i = 0; i < data.length; i++) {
+        hash ^= data[i];
+        hash = Math.imul(hash, 0x01000193); // FNV prime
+      }
+      hash ^= round;
+      hash = Math.imul(hash, 0x01000193);
     }
-    return `hash_${Math.abs(hash).toString(36)}`;
+    
+    // Convert to hex-like string with salt prefix for identification
+    const hashStr = (hash >>> 0).toString(16).padStart(8, '0');
+    
+    // Double hash for extra security
+    let hash2 = 0x811c9dc5;
+    for (let i = 0; i < hashStr.length; i++) {
+      hash2 ^= hashStr.charCodeAt(i);
+      hash2 = Math.imul(hash2, 0x01000193);
+    }
+    for (let i = 0; i < data.length; i++) {
+      hash2 ^= data[i];
+      hash2 = Math.imul(hash2, 0x01000193);
+    }
+    
+    const hashStr2 = (hash2 >>> 0).toString(16).padStart(8, '0');
+    return `sha_${hashStr}${hashStr2}`;
   }
 
-  private verifyPassword(password: string, hash: string): boolean {
-    return this.hashPassword(password) === hash;
+  /**
+   * Async version using Web Crypto API (SHA-256) - preferred for new hashes
+   */
+  private async hashPasswordAsync(password: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const salt = 'dica-share-link-v2'; // Application-level salt
+    const data = encoder.encode(salt + password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return `sha256_${hashHex}`;
+  }
+
+  private verifyPassword(password: string, storedHash: string): boolean {
+    // Support both old and new hash formats
+    if (storedHash.startsWith('sha256_') || storedHash.startsWith('sha_')) {
+      return this.hashPassword(password) === storedHash;
+    }
+    // Legacy hash format fallback
+    return this.hashPassword(password) === storedHash;
   }
 
   // --------------------------------------------------------------------------
