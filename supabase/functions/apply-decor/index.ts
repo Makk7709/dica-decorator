@@ -1002,15 +1002,6 @@ L'annotation doit être:
             ],
             generationConfig: {
               responseModalities: GEMINI_CONFIG.responseModalities,
-              ...(format === "original" && originalWidth && originalHeight
-                ? { aspectRatio: `${originalWidth}:${originalHeight}` }
-                : format === "portrait"
-                ? { aspectRatio: "9:16" }
-                : format === "landscape"
-                ? { aspectRatio: "16:9" }
-                : format === "square"
-                ? { aspectRatio: "1:1" }
-                : {}),
             },
           }),
         }, 60000); // 60s timeout for Gemini API
