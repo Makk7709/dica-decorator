@@ -524,7 +524,6 @@ Les tranches (chants/côtés/épaisseurs) des tables sont les bords verticaux
 visibles sur le pourtour du plateau. Elles doivent rester INTACTES.
 Le décor ne s'applique QUE sur la face HORIZONTALE SUPÉRIEURE (le dessus 
 où l'on pose les objets), JAMAIS sur les bords latéraux du plateau.
-🚫 MOBILIER AUTRE = INTERDIT (banquettes, canapés, fauteuils)
 
 SI TU APPLIQUES LE DÉCOR SUR UNE CHAISE → ERREUR GRAVE
 SI TU APPLIQUES LE DÉCOR SUR UN MUR → ERREUR GRAVE
@@ -1003,6 +1002,15 @@ L'annotation doit être:
             ],
             generationConfig: {
               responseModalities: GEMINI_CONFIG.responseModalities,
+              ...(format === "original" && originalWidth && originalHeight
+                ? { aspectRatio: `${originalWidth}:${originalHeight}` }
+                : format === "portrait"
+                ? { aspectRatio: "9:16" }
+                : format === "landscape"
+                ? { aspectRatio: "16:9" }
+                : format === "square"
+                ? { aspectRatio: "1:1" }
+                : {}),
             },
           }),
         }, 60000); // 60s timeout for Gemini API
