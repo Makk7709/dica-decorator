@@ -103,10 +103,11 @@ const Auth = () => {
 
     try {
       await signUp(signupData.email, signupData.password);
-      toast.success("Compte créé ! Connexion automatique...");
-      // Connexion automatique après inscription
-      await signIn(signupData.email, signupData.password);
-      navigate("/dashboard");
+      toast.success("Compte créé ! Vérifiez votre email pour confirmer votre inscription.", {
+        duration: 8000,
+      });
+      // Reset le formulaire et revenir sur l'onglet connexion
+      setSignupData({ email: "", password: "", confirmPassword: "" });
     } catch {
       // Messages génériques pour éviter l'énumération
       toast.error("Impossible de créer le compte. Veuillez réessayer.");
