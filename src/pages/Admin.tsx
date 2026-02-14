@@ -265,10 +265,10 @@ const Admin = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("No session");
 
-      const { error } = await supabase.functions.invoke("get-users-admin", {
-        method: "DELETE",
+      const { data, error } = await supabase.functions.invoke("get-users-admin", {
+        method: "POST",
         headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { userId },
+        body: { action: "delete_user", userId },
       });
 
       if (error) throw error;
@@ -285,10 +285,10 @@ const Admin = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("No session");
 
-      const { error } = await supabase.functions.invoke("get-users-admin", {
-        method: "PATCH",
+      const { data, error } = await supabase.functions.invoke("get-users-admin", {
+        method: "POST",
         headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { userId, role: newRole },
+        body: { action: "update_role", userId, role: newRole },
       });
 
       if (error) throw error;

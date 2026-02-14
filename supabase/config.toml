@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.get-analytics]
 verify_jwt = false
+
+[functions.get-users-admin]
+verify_jwt = false
