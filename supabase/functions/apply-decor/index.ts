@@ -220,9 +220,8 @@ serve(async (req) => {
     }
 
     // Fetch decor information to get name and reference code
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Reuse supabaseAdmin created earlier for auth verification
+    const supabase = supabaseAdmin;
 
     // Pour le mode multi-décor, on récupère les infos de tous les décors
     interface DecorInfo {
