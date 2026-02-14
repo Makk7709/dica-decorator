@@ -8,6 +8,8 @@ interface AuthContextType extends AuthState {
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   userRole: "admin" | "client" | null;
+  isPasswordRecovery: boolean;
+  setIsPasswordRecovery: (value: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<"admin" | "client" | null>(null);
-  
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   // Cache pour éviter les appels répétés
   const roleCache = useRef<Map<string, "admin" | "client">>(new Map());
   const pendingRoleRequest = useRef<string | null>(null);
@@ -58,6 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        // Intercept password recovery event
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsPasswordRecovery(true);
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -104,10 +111,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     isLoading,
     userRole,
+    isPasswordRecovery,
+    setIsPasswordRecovery,
     signIn,
     signUp,
     signOut,
-  }), [user, session, isLoading, userRole, signIn, signUp, signOut]);
+  }), [user, session, isLoading, userRole, isPasswordRecovery, signIn, signUp, signOut]);
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -24,19 +24,22 @@ const passwordSchema = z
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn, signUp, isPasswordRecovery, setIsPasswordRecovery } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ email: "", password: "", confirmPassword: "" });
 
   useEffect(() => {
-    if (user) {
+    // Don't redirect if in password recovery mode
+    if (user && !isPasswordRecovery) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, isPasswordRecovery]);
 
   const handleForgotPassword = async () => {
     if (!loginData.email) {
@@ -59,6 +62,36 @@ const Auth = () => {
     } catch {
       // Message générique
       toast.success("Si ce compte existe, un email de réinitialisation a été envoyé.", { duration: 8000 });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      passwordSchema.parse(newPassword);
+    } catch (error: unknown) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0]?.message || "Mot de passe invalide");
+      }
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error("Les mots de passe ne correspondent pas");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success("Mot de passe mis à jour avec succès !");
+      setIsPasswordRecovery(false);
+      setNewPassword("");
+      setConfirmNewPassword("");
+      navigate("/dashboard");
+    } catch {
+      toast.error("Erreur lors de la mise à jour du mot de passe");
     } finally {
       setIsLoading(false);
     }
@@ -165,7 +198,55 @@ const Auth = () => {
               </p>
             </div>
 
-            {/* Tabs */}
+            {/* Password Recovery Form or Login/Signup Tabs */}
+            {isPasswordRecovery ? (
+              <form onSubmit={handleUpdatePassword} className="space-y-5">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Choisissez votre nouveau mot de passe.
+                </p>
+                <div className="space-y-2">
+                  <Label htmlFor="new-password" className="text-sm font-medium">Nouveau mot de passe</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Min. 8 caractères, majuscule, minuscule, chiffre et caractère spécial
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-new-password" className="text-sm font-medium">Confirmer le mot de passe</Label>
+                  <Input
+                    id="confirm-new-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    required
+                    className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full btn-primary-premium h-11 rounded-xl" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Mise à jour...
+                    </>
+                  ) : (
+                    "Mettre à jour le mot de passe"
+                  )}
+                </Button>
+              </form>
+            ) : (
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2 h-11 p-1 bg-muted/50 rounded-xl mb-6">
                 <TabsTrigger 
@@ -315,6 +396,7 @@ const Auth = () => {
                 </form>
               </TabsContent>
             </Tabs>
+            )}
           </div>
 
           {/* Footer */}
