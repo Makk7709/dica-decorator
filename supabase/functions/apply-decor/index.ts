@@ -4,7 +4,7 @@
 // Optimized for Supabase Edge Functions resource limits
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,31 +133,44 @@ serve(async (req) => {
     // Authentication Check - Verify user is logged in
     // ========================================================================
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("No authorization header provided");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Non autorisé - Authentification requise" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const authSupabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const authSupabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const { createClient: createAuthClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
-    const authSupabase = createAuthClient(authSupabaseUrl, authSupabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const token = authHeader.replace("Bearer ", "");
+    // Decode JWT to get user ID
+    let payload: Record<string, unknown> | null = null;
+    try {
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+        if (payload?.exp && (payload.exp as number) < Math.floor(Date.now() / 1000)) payload = null;
+      }
+    } catch { payload = null; }
     
-    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
+    if (!payload?.sub || typeof payload.sub !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Non autorisé - Token invalide" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: { user: verifiedUser }, error: authError } = await supabaseAdmin.auth.admin.getUserById(payload.sub as string);
     
-    if (authError || !user) {
-      console.error("Authentication failed:", authError?.message);
+    if (authError || !verifiedUser) {
       return new Response(
         JSON.stringify({ error: "Non autorisé - Token invalide" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
+    const user = verifiedUser;
     console.log("Authenticated user:", user.id);
     // ========================================================================
     const { 

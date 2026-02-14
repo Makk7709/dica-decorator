@@ -92,31 +92,43 @@ serve(async (req) => {
     // Authentication Check - Verify user is logged in
     // ========================================================================
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      console.error("No authorization header provided");
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Non autorisé - Authentification requise" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const token = authHeader.replace("Bearer ", "");
+    let payload: Record<string, unknown> | null = null;
+    try {
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+        if (payload?.exp && (payload.exp as number) < Math.floor(Date.now() / 1000)) payload = null;
+      }
+    } catch { payload = null; }
+    
+    if (!payload?.sub || typeof payload.sub !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Non autorisé - Token invalide" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
-    const authSupabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const { createClient } = await import("npm:@supabase/supabase-js@2");
+    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: { user: verifiedUser }, error: authError } = await supabaseAdmin.auth.admin.getUserById(payload.sub as string);
     
-    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
-    
-    if (authError || !user) {
-      console.error("Authentication failed:", authError?.message);
+    if (authError || !verifiedUser) {
       return new Response(
         JSON.stringify({ error: "Non autorisé - Token invalide" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
+    const user = verifiedUser;
     console.log("Authenticated user:", user.id);
     // ========================================================================
 
