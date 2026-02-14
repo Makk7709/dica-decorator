@@ -109,6 +109,71 @@ serve(async (req) => {
       );
     }
 
+    // ====== TOGGLE ACTIVE ======
+    if (action === "toggle_active") {
+      const { userId } = body;
+
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: "userId is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("is_active")
+        .eq("id", userId)
+        .single();
+
+      const newStatus = !(profile?.is_active ?? true);
+
+      const { error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update({ is_active: newStatus })
+        .eq("id", userId);
+
+      if (updateError) throw updateError;
+
+      console.log("User active toggled:", userId, "->", newStatus);
+      return new Response(
+        JSON.stringify({ success: true, is_active: newStatus }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ====== TOGGLE COBRANDING ======
+    if (action === "toggle_cobranding") {
+      const { userId } = body;
+
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: "userId is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("cobranding_enabled")
+        .eq("id", userId)
+        .single();
+
+      const newValue = !(profile?.cobranding_enabled ?? false);
+
+      const { error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update({ cobranding_enabled: newValue })
+        .eq("id", userId);
+
+      if (updateError) throw updateError;
+
+      return new Response(
+        JSON.stringify({ success: true, cobranding_enabled: newValue }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ====== UPDATE ROLE ======
     if (action === "update_role") {
       const { userId, role } = body;

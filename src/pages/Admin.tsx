@@ -230,10 +230,14 @@ const Admin = () => {
 
   const handleToggleUserActive = async (userId: string, isActive: boolean) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_active: !isActive })
-        .eq("id", userId);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("No session");
+
+      const { data, error } = await supabase.functions.invoke("get-users-admin", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { action: "toggle_active", userId },
+      });
 
       if (error) throw error;
       toast.success(isActive ? "Compte désactivé" : "Compte réactivé");
@@ -245,10 +249,14 @@ const Admin = () => {
 
   const handleToggleCoBranding = async (userId: string, currentValue: boolean) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ cobranding_enabled: !currentValue })
-        .eq("id", userId);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("No session");
+
+      const { data, error } = await supabase.functions.invoke("get-users-admin", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { action: "toggle_cobranding", userId },
+      });
 
       if (error) throw error;
       toast.success(!currentValue ? "Co-branding activé" : "Co-branding désactivé");
