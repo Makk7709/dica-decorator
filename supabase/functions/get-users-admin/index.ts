@@ -32,8 +32,12 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     console.log("Token length:", token.length);
     
-    // Validate user token with service role client
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    // Validate user token with getClaims
+    const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: claimsData, error: userError } = await authClient.auth.getClaims(token);
+    const userData = claimsData?.claims ? { user: { id: claimsData.claims.sub } } : { user: null };
     console.log("User validation:", { hasUser: !!userData?.user, error: userError?.message });
     
     if (userError || !userData.user) {
