@@ -266,6 +266,26 @@ const Admin = () => {
     }
   };
 
+  const handleConfirmUser = async (userId: string, email: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("No session");
+
+      const { data, error } = await supabase.functions.invoke("get-users-admin", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { action: "confirm_user", userId },
+      });
+
+      if (error) throw error;
+      toast.success(`Email confirmé pour ${email}`);
+      loadUsers();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la confirmation";
+      toast.error(message);
+    }
+  };
+
   const handleDeleteUser = async (userId: string, email: string) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement le compte de ${email} ? Cette action est irréversible.`)) return;
 
@@ -715,6 +735,17 @@ const Admin = () => {
                               <SelectItem value="admin">Administrateur</SelectItem>
                             </SelectContent>
                           </Select>
+
+                          {/* Confirm Email */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleConfirmUser(user.id, user.email)}
+                            title="Confirmer l'email manuellement"
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Confirmer
+                          </Button>
 
                           {/* View Projects */}
                           <Button

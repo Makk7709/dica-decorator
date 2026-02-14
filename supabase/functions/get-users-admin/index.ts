@@ -68,6 +68,30 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "list_users";
 
+    // ====== CONFIRM USER ======
+    if (action === "confirm_user") {
+      const { userId } = body;
+
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: "userId is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        email_confirm: true
+      });
+
+      if (confirmError) throw confirmError;
+
+      console.log("User email confirmed:", userId);
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ====== DELETE USER ======
     if (action === "delete_user") {
       const { userId } = body;
