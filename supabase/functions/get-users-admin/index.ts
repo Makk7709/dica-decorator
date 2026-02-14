@@ -1,10 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    // Check expiration
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
 async function authenticateAdmin(req: Request) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -17,14 +30,17 @@ async function authenticateAdmin(req: Request) {
   }
 
   const token = authHeader.replace("Bearer ", "");
+  const payload = decodeJwtPayload(token);
   
-  // Use service role client to validate the JWT
-  const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-  
-  console.log("Auth debug:", { hasUser: !!user, error: userError?.message });
+  if (!payload?.sub || typeof payload.sub !== "string") {
+    throw { status: 401, message: "Non autorisé - Token invalide" };
+  }
+
+  // Verify user exists via admin API
+  const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(payload.sub);
   
   if (userError || !user) {
-    throw { status: 401, message: "Non autorisé - Token invalide" };
+    throw { status: 401, message: "Non autorisé - Utilisateur introuvable" };
   }
 
   const userId = user.id;
