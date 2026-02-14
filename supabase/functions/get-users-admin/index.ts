@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,21 +12,20 @@ async function authenticateAdmin(req: Request) {
   const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    throw { status: 401, message: "Unauthorized - No auth header" };
+  if (!authHeader?.startsWith("Bearer ")) {
+    throw { status: 401, message: "Non autorisé - Header manquant" };
   }
 
-  const token = authHeader.replace("Bearer ", "");
   const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
     global: { headers: { Authorization: authHeader } },
   });
-  const { data: claimsData, error: userError } = await authClient.auth.getClaims(token);
+  const { data: { user }, error: userError } = await authClient.auth.getUser();
   
-  if (userError || !claimsData?.claims) {
-    throw { status: 401, message: "Unauthorized - Invalid token" };
+  if (userError || !user) {
+    throw { status: 401, message: "Non autorisé - Token invalide" };
   }
 
-  const userId = claimsData.claims.sub;
+  const userId = user.id;
 
   const { data: roleData, error: roleError } = await supabaseAdmin
     .from("user_roles")
@@ -35,7 +34,7 @@ async function authenticateAdmin(req: Request) {
     .single();
 
   if (roleError || roleData?.role !== "admin") {
-    throw { status: 403, message: "Forbidden: Admin access required" };
+    throw { status: 403, message: "Accès admin requis" };
   }
 
   return { supabaseAdmin, adminUserId: userId };

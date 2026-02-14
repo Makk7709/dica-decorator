@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,8 +36,8 @@ serve(async (req) => {
     const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claimsData, error: userError } = await authClient.auth.getClaims(token);
-    const userData = claimsData?.claims ? { user: { id: claimsData.claims.sub } } : { user: null };
+    const { data: { user }, error: userError } = await authClient.auth.getUser();
+    const userData = { user };
     console.log("User auth result:", { hasUser: !!userData.user, error: userError?.message });
     
     if (userError || !userData.user) {

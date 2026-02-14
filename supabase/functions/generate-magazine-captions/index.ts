@@ -43,14 +43,12 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.7.1");
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
     const authSupabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     
-    const token = authHeader.replace("Bearer ", "");
-    const { data, error: authError } = await authSupabase.auth.getClaims(token);
-    const user = data?.claims ? { id: data.claims.sub } : null;
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
     
     if (authError || !user) {
       console.error("Authentication failed:", authError?.message);

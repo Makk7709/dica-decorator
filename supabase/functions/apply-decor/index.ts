@@ -4,7 +4,7 @@
 // Optimized for Supabase Edge Functions resource limits
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -143,14 +143,12 @@ serve(async (req) => {
 
     const authSupabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const authSupabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const { createClient: createAuthClient } = await import("https://esm.sh/@supabase/supabase-js@2.7.1");
+    const { createClient: createAuthClient } = await import("https://esm.sh/@supabase/supabase-js@2.49.4");
     const authSupabase = createAuthClient(authSupabaseUrl, authSupabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     
-    const token = authHeader.replace("Bearer ", "");
-    const { data, error: authError } = await authSupabase.auth.getClaims(token);
-    const user = data?.claims ? { id: data.claims.sub } : null;
+    const { data: { user }, error: authError } = await authSupabase.auth.getUser();
     
     if (authError || !user) {
       console.error("Authentication failed:", authError?.message);
