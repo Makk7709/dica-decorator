@@ -16,10 +16,12 @@ async function authenticateAdmin(req: Request) {
     throw { status: 401, message: "Non autorisé - Header manquant" };
   }
 
-  const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user }, error: userError } = await authClient.auth.getUser();
+  const token = authHeader.replace("Bearer ", "");
+  
+  // Use service role client to validate the JWT
+  const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+  
+  console.log("Auth debug:", { hasUser: !!user, error: userError?.message });
   
   if (userError || !user) {
     throw { status: 401, message: "Non autorisé - Token invalide" };
