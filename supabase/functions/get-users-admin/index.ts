@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
@@ -11,7 +11,6 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
     const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-    // Check expiration
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch {
@@ -31,14 +30,13 @@ async function authenticateAdmin(req: Request) {
 
   const token = authHeader.replace("Bearer ", "");
   const payload = decodeJwtPayload(token);
-  
+
   if (!payload?.sub || typeof payload.sub !== "string") {
     throw { status: 401, message: "Non autorisé - Token invalide" };
   }
 
-  // Verify user exists via admin API
   const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(payload.sub);
-  
+
   if (userError || !user) {
     throw { status: 401, message: "Non autorisé - Utilisateur introuvable" };
   }
@@ -66,10 +64,14 @@ serve(async (req) => {
   try {
     const { supabaseAdmin, adminUserId } = await authenticateAdmin(req);
 
-    // ====== DELETE: Supprimer un utilisateur désactivé ======
-    if (req.method === "DELETE") {
-      const { userId } = await req.json();
-      
+    // For POST with action, parse the body
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || "list_users";
+
+    // ====== DELETE USER ======
+    if (action === "delete_user") {
+      const { userId } = body;
+
       if (!userId) {
         return new Response(
           JSON.stringify({ error: "userId is required" }),
@@ -77,7 +79,6 @@ serve(async (req) => {
         );
       }
 
-      // Prevent self-deletion
       if (userId === adminUserId) {
         return new Response(
           JSON.stringify({ error: "Vous ne pouvez pas supprimer votre propre compte" }),
@@ -85,7 +86,6 @@ serve(async (req) => {
         );
       }
 
-      // Check the user is deactivated first
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("is_active")
@@ -99,7 +99,6 @@ serve(async (req) => {
         );
       }
 
-      // Delete user from auth (cascades to profiles, roles, quotas via FK)
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
       if (deleteError) throw deleteError;
 
@@ -110,10 +109,10 @@ serve(async (req) => {
       );
     }
 
-    // ====== PATCH: Modifier le rôle d'un utilisateur ======
-    if (req.method === "PATCH") {
-      const { userId, role } = await req.json();
-      
+    // ====== UPDATE ROLE ======
+    if (action === "update_role") {
+      const { userId, role } = body;
+
       if (!userId || !role || !["admin", "client"].includes(role)) {
         return new Response(
           JSON.stringify({ error: "userId and role (admin/client) are required" }),
@@ -121,7 +120,6 @@ serve(async (req) => {
         );
       }
 
-      // Prevent self-demotion
       if (userId === adminUserId && role !== "admin") {
         return new Response(
           JSON.stringify({ error: "Vous ne pouvez pas retirer votre propre rôle admin" }),
@@ -143,7 +141,7 @@ serve(async (req) => {
       );
     }
 
-    // ====== GET: Lister les utilisateurs ======
+    // ====== LIST USERS (default) ======
     const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
     if (authError) throw authError;
 
