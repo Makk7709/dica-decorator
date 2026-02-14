@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck, Building2, BarChart3, Palette, Layers } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck, Building2, BarChart3, Palette, Layers, Shield, ShieldCheck } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ResellerBrandingSettings } from "@/components/admin/reseller-branding-settings";
@@ -52,6 +52,7 @@ interface UserData {
   quota_used: number;
   project_count: number;
   cobranding_enabled: boolean;
+  role: "admin" | "client";
 }
 
 const Admin = () => {
@@ -254,6 +255,48 @@ const Admin = () => {
       loadUsers();
     } catch {
       toast.error("Erreur lors de la mise à jour du co-branding");
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, email: string) => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer définitivement le compte de ${email} ? Cette action est irréversible.`)) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("No session");
+
+      const { error } = await supabase.functions.invoke("get-users-admin", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { userId },
+      });
+
+      if (error) throw error;
+      toast.success(`Compte ${email} supprimé définitivement`);
+      loadUsers();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la suppression";
+      toast.error(message);
+    }
+  };
+
+  const handleChangeRole = async (userId: string, newRole: "admin" | "client") => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("No session");
+
+      const { error } = await supabase.functions.invoke("get-users-admin", {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { userId, role: newRole },
+      });
+
+      if (error) throw error;
+      toast.success(`Rôle mis à jour : ${newRole === "admin" ? "Administrateur" : "Client"}`);
+      loadUsers();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la mise à jour du rôle";
+      toast.error(message);
     }
   };
 
@@ -556,6 +599,17 @@ const Admin = () => {
                             ) : (
                               <Badge variant="secondary" className="ml-auto lg:ml-0">Désactivé</Badge>
                             )}
+                            {user.role === "admin" ? (
+                              <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">
+                                <ShieldCheck className="mr-1 h-3 w-3" />
+                                Admin
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">
+                                <Shield className="mr-1 h-3 w-3" />
+                                Client
+                              </Badge>
+                            )}
                           </div>
                           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
                             <span>Inscrit: {new Date(user.created_at).toLocaleDateString("fr-FR")}</span>
@@ -640,6 +694,20 @@ const Admin = () => {
                             )}
                           </Button>
 
+                          {/* Change Role */}
+                          <Select
+                            value={user.role}
+                            onValueChange={(value: "admin" | "client") => handleChangeRole(user.id, value)}
+                          >
+                            <SelectTrigger className="w-[140px] h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="client">Client</SelectItem>
+                              <SelectItem value="admin">Administrateur</SelectItem>
+                            </SelectContent>
+                          </Select>
+
                           {/* View Projects */}
                           <Button
                             size="sm"
@@ -652,6 +720,18 @@ const Admin = () => {
                             <Eye className="mr-2 h-4 w-4" />
                             Voir projets
                           </Button>
+
+                          {/* Delete User (only if deactivated) */}
+                          {!user.is_active && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteUser(user.id, user.email)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Supprimer
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
