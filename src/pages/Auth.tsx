@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { PremiumLayout } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -36,6 +37,32 @@ const Auth = () => {
       navigate("/dashboard", { replace: true });
     }
   }, [user, navigate]);
+
+  const handleForgotPassword = async () => {
+    if (!loginData.email) {
+      toast.error("Veuillez d'abord saisir votre email");
+      return;
+    }
+    try {
+      emailSchema.parse(loginData.email);
+    } catch {
+      toast.error("Email invalide");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(loginData.email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      toast.success("Un email de réinitialisation a été envoyé. Vérifiez votre boîte mail.", { duration: 8000 });
+    } catch {
+      // Message générique
+      toast.success("Si ce compte existe, un email de réinitialisation a été envoyé.", { duration: 8000 });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,6 +233,16 @@ const Auth = () => {
                       "Se connecter"
                     )}
                   </Button>
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+                      disabled={isLoading}
+                    >
+                      Mot de passe oublié ?
+                    </button>
+                  </div>
                 </form>
               </TabsContent>
               
