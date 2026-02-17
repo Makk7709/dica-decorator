@@ -497,11 +497,19 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
 
       const data = await response.json();
       console.log("Lovable AI gateway response received");
+      console.log("Response keys:", JSON.stringify(Object.keys(data)));
+      console.log("Choice message keys:", JSON.stringify(data.choices?.[0]?.message ? Object.keys(data.choices[0].message) : "no message"));
+      console.log("Images array:", JSON.stringify(data.choices?.[0]?.message?.images?.length ?? "no images field"));
+      console.log("Content length:", data.choices?.[0]?.message?.content?.length ?? 0);
       
       // Parse response from Lovable AI gateway format
       const choice = data.choices?.[0]?.message;
       const imageUrl = choice?.images?.[0]?.image_url?.url || null;
       const text = choice?.content || "Voici votre visualisation :";
+      
+      if (!imageUrl) {
+        console.warn("⚠️ No image in response! Full response structure:", JSON.stringify(data).substring(0, 2000));
+      }
 
       // Build decor references for frontend display
       const decorReferences = showReferences && orchestrationResult.decorReferences.length > 0 
