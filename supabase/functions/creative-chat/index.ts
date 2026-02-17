@@ -3,7 +3,7 @@
 // Developed by KOREV AI for DICA France
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
+import { orchestrateDicaPrompt, type OrchestratorInput } from "./orchestrator.ts";
 import { orchestrateDicaPrompt, type OrchestratorInput } from "./orchestrator.ts";
 
 const corsHeaders = {
@@ -401,16 +401,15 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       console.log("Show references:", showReferences);
       console.log("Orchestrated decor references:", orchestrationResult.decorReferences);
 
-      // Build request parts
-      const requestParts: any[] = [{ text: basePrompt }];
+      // Build message content parts for Lovable AI gateway
+      const contentParts: any[] = [{ type: "text", text: basePrompt }];
 
       // ======================================================================
-      // Add decor texture reference images (to prevent the model from inventing)
+      // Add decor texture URLs as image references (no base64 needed!)
       // ======================================================================
       if (orchestrationResult.decorReferences.length > 0) {
-        // Limit to max 2 textures to avoid CPU timeout (base64 encoding is expensive)
         const limitedRefs = orchestrationResult.decorReferences.slice(0, 2);
-        console.log(`Fetching ${limitedRefs.length} decor texture images (limited from ${orchestrationResult.decorReferences.length})...`);
+        console.log(`Adding ${limitedRefs.length} decor texture URLs...`);
 
         const { data: decorRows, error: decorErr } = await supabaseAdmin
           .from("decors")
@@ -420,132 +419,94 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
 
         if (decorErr) {
           console.error("Error fetching decors:", decorErr);
-          throw new Error("Impossible de récupérer les textures des décors");
         }
 
         const byRef = new Map(
-          (decorRows || []).map((d) => [d.reference_code, d] as const)
+          (decorRows || []).map((d: any) => [d.reference_code, d] as const)
         );
 
-        const requestOrigin = req.headers.get("origin")
-          ?? (req.headers.get("referer") ? new URL(req.headers.get("referer")!).origin : null);
-
-        // Fetch all textures in parallel
-        const fetchPromises = limitedRefs.map(async (ref) => {
+        for (const ref of limitedRefs) {
           const row = byRef.get(ref);
-          if (!row?.texture_image_url) return null;
-
-          let resolvedTextureUrl: string | null = null;
-          if (row.texture_image_url.startsWith("http")) {
-            resolvedTextureUrl = row.texture_image_url;
-          } else if (requestOrigin) {
-            const encodedPath = row.texture_image_url.includes('%') 
-              ? row.texture_image_url
-              : row.texture_image_url.split('/').map((part: string) => encodeURIComponent(part)).join('/').replace(/%2F/g, '/');
-            resolvedTextureUrl = new URL(encodedPath, requestOrigin).toString();
+          if (!row?.texture_image_url) continue;
+          
+          let resolvedUrl = row.texture_image_url;
+          if (!resolvedUrl.startsWith("http")) {
+            const requestOrigin = req.headers.get("origin")
+              ?? (req.headers.get("referer") ? new URL(req.headers.get("referer")!).origin : null);
+            if (requestOrigin) {
+              resolvedUrl = new URL(resolvedUrl, requestOrigin).toString();
+            } else {
+              continue;
+            }
           }
-          if (!resolvedTextureUrl) return null;
-
-          try {
-            const imageResponse = await fetch(resolvedTextureUrl);
-            if (!imageResponse.ok) return null;
-            const arrayBuffer = await imageResponse.arrayBuffer();
-            const imageBase64 = base64Encode(arrayBuffer);
-            const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
-            console.log(`✓ Decor texture added (${ref})`);
-            return { inlineData: { mimeType: imageMimeType, data: imageBase64 } };
-          } catch (e) {
-            console.error("Error fetching decor texture", ref, e);
-            return null;
-          }
-        });
-
-        const results = await Promise.all(fetchPromises);
-        for (const r of results) {
-          if (r) requestParts.push(r);
+          
+          contentParts.push({
+            type: "image_url",
+            image_url: { url: resolvedUrl }
+          });
+          console.log(`✓ Decor texture URL added (${ref})`);
         }
       }
 
       // ======================================================================
-      // Add ALL source images (space photos, inspiration, etc.)
+      // Add source image URLs
       // ======================================================================
       if (allSourceImages.length > 0) {
-        console.log(`Fetching ${allSourceImages.length} source images for Gemini...`);
-
+        console.log(`Adding ${allSourceImages.length} source image URLs...`);
         for (let i = 0; i < allSourceImages.length; i++) {
-          const imageUrl = allSourceImages[i];
           const label = allImageLabels[i] || `Image ${i + 1}`;
-
-          try {
-            console.log(`Fetching image ${i + 1} (${label}):`, imageUrl);
-            const imageResponse = await fetch(imageUrl);
-            if (imageResponse.ok) {
-              const arrayBuffer = await imageResponse.arrayBuffer();
-              const imageBase64 = base64Encode(arrayBuffer);
-              const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
-
-              requestParts.push({
-                inlineData: {
-                  mimeType: imageMimeType,
-                  data: imageBase64,
-                },
-              });
-              console.log(`✓ Image ${i + 1} (${label}) added to request`);
-            }
-          } catch (e) {
-            console.error(`Error fetching image ${i + 1} (${label}):`, e);
-          }
+          contentParts.push({
+            type: "image_url",
+            image_url: { url: allSourceImages[i] }
+          });
+          console.log(`✓ Source image URL added (${label})`);
         }
       }
 
-      console.log(
-        `Sending request with ${orchestrationResult.decorReferences.length} decor textures + ${allSourceImages.length} source images`
-      );
+      console.log(`Sending request via Lovable AI gateway with ${contentParts.length - 1} images`);
 
-      // Call Gemini API for image generation
-      const geminiUrl = buildImageGenerationUrl(GOOGLE_AI_API_KEY);
-      
-      const response = await fetch(geminiUrl, {
+      // Call Lovable AI gateway for image generation
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contents: [
+          model: "google/gemini-3-pro-image-preview",
+          messages: [
             {
               role: "user",
-              parts: requestParts,
+              content: contentParts,
             },
           ],
-          generationConfig: {
-            responseModalities: GEMINI_CONFIG.imageResponseModalities,
-            // Configuration image 4K haute qualité
-            imageConfig: {
-              imageSize: "4K",        // Résolution 4K (4096px minimum)
-              aspectRatio: "16:9",    // Format paysage professionnel
-            },
-          },
+          modalities: ["image", "text"],
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Google AI error:", response.status, errorText);
+        console.error("Lovable AI gateway error:", response.status, errorText);
+        if (response.status === 429) {
+          throw new Error("Limite de requêtes atteinte, veuillez réessayer plus tard.");
+        }
+        if (response.status === 402) {
+          throw new Error("Crédits insuffisants. Veuillez recharger votre compte.");
+        }
         throw new Error(getErrorMessage(response.status));
       }
 
       const data = await response.json();
-      console.log("Gemini response received");
+      console.log("Lovable AI gateway response received");
       
-      // Parse response
-      const { imageBase64, textResponse } = parseImageResponse(data);
-      
-      const imageUrl = imageBase64 ? `data:image/png;base64,${imageBase64}` : null;
-      const text = textResponse || "Voici votre visualisation :";
+      // Parse response from Lovable AI gateway format
+      const choice = data.choices?.[0]?.message;
+      const imageUrl = choice?.images?.[0]?.image_url?.url || null;
+      const text = choice?.content || "Voici votre visualisation :";
 
       // Build decor references for frontend display
       const decorReferences = showReferences && orchestrationResult.decorReferences.length > 0 
-        ? orchestrationResult.decorReferences.map((ref, idx) => ({
+        ? orchestrationResult.decorReferences.map((ref: string, idx: number) => ({
             reference: ref,
             label: orchestrationResult.decorLabels?.[idx] || ref,
           }))
@@ -557,8 +518,8 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
         type: "image",
         imageUrl,
         text,
-        decorReferences, // Include decor references for frontend display
-        showReferences,  // Whether user wants to see references
+        decorReferences,
+        showReferences,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
