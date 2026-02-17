@@ -3,6 +3,7 @@
 // Developed by KOREV AI for DICA France
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { orchestrateDicaPrompt, type OrchestratorInput } from "./orchestrator.ts";
 
 const corsHeaders = {
@@ -407,8 +408,8 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       // Add decor texture reference images (to prevent the model from inventing)
       // ======================================================================
       if (orchestrationResult.decorReferences.length > 0) {
-        // Limit to max 4 textures to avoid CPU timeout
-        const limitedRefs = orchestrationResult.decorReferences.slice(0, 4);
+        // Limit to max 2 textures to avoid CPU timeout (base64 encoding is expensive)
+        const limitedRefs = orchestrationResult.decorReferences.slice(0, 2);
         console.log(`Fetching ${limitedRefs.length} decor texture images (limited from ${orchestrationResult.decorReferences.length})...`);
 
         const { data: decorRows, error: decorErr } = await supabaseAdmin
@@ -449,12 +450,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
             const imageResponse = await fetch(resolvedTextureUrl);
             if (!imageResponse.ok) return null;
             const arrayBuffer = await imageResponse.arrayBuffer();
-            const bytes = new Uint8Array(arrayBuffer);
-            let binary = "";
-            for (let i = 0; i < bytes.byteLength; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            const imageBase64 = btoa(binary);
+            const imageBase64 = base64Encode(arrayBuffer);
             const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
             console.log(`✓ Decor texture added (${ref})`);
             return { inlineData: { mimeType: imageMimeType, data: imageBase64 } };
@@ -485,12 +481,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
             const imageResponse = await fetch(imageUrl);
             if (imageResponse.ok) {
               const arrayBuffer = await imageResponse.arrayBuffer();
-              const bytes = new Uint8Array(arrayBuffer);
-              let binary = "";
-              for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-              }
-              const imageBase64 = btoa(binary);
+              const imageBase64 = base64Encode(arrayBuffer);
               const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
 
               requestParts.push({
