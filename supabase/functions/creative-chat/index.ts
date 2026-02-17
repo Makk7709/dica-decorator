@@ -4,7 +4,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { orchestrateDicaPrompt, type OrchestratorInput } from "./orchestrator.ts";
-import { orchestrateDicaPrompt, type OrchestratorInput } from "./orchestrator.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
