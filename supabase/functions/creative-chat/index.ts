@@ -409,7 +409,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       if (orchestrationResult.decorReferences.length > 0) {
         console.log(`Fetching ${orchestrationResult.decorReferences.length} decor texture images from database...`);
 
-        const { data: decorRows, error: decorErr } = await authSupabase
+        const { data: decorRows, error: decorErr } = await supabaseAdmin
           .from("decors")
           .select("reference_code,name,texture_image_url")
           .in("reference_code", orchestrationResult.decorReferences)
