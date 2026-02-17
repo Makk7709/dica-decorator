@@ -407,12 +407,14 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       // Add decor texture reference images (to prevent the model from inventing)
       // ======================================================================
       if (orchestrationResult.decorReferences.length > 0) {
-        console.log(`Fetching ${orchestrationResult.decorReferences.length} decor texture images from database...`);
+        // Limit to max 4 textures to avoid CPU timeout
+        const limitedRefs = orchestrationResult.decorReferences.slice(0, 4);
+        console.log(`Fetching ${limitedRefs.length} decor texture images (limited from ${orchestrationResult.decorReferences.length})...`);
 
         const { data: decorRows, error: decorErr } = await supabaseAdmin
           .from("decors")
           .select("reference_code,name,texture_image_url")
-          .in("reference_code", orchestrationResult.decorReferences)
+          .in("reference_code", limitedRefs)
           .eq("is_active", true);
 
         if (decorErr) {
@@ -424,68 +426,48 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
           (decorRows || []).map((d) => [d.reference_code, d] as const)
         );
 
-         const requestOrigin = req.headers.get("origin")
-           ?? (req.headers.get("referer") ? new URL(req.headers.get("referer")!).origin : null);
+        const requestOrigin = req.headers.get("origin")
+          ?? (req.headers.get("referer") ? new URL(req.headers.get("referer")!).origin : null);
 
-         for (const ref of orchestrationResult.decorReferences) {
-           const row = byRef.get(ref);
-           if (!row?.texture_image_url) {
-             console.warn("Missing texture_image_url for decor (skipping texture grounding):", ref);
-             continue;
-           }
+        // Fetch all textures in parallel
+        const fetchPromises = limitedRefs.map(async (ref) => {
+          const row = byRef.get(ref);
+          if (!row?.texture_image_url) return null;
 
-           // Accept relative URLs by resolving them against the request origin when possible.
-           // Also properly encode URLs with spaces
-           let resolvedTextureUrl: string | null = null;
-           
-           if (row.texture_image_url.startsWith("http")) {
-             resolvedTextureUrl = row.texture_image_url;
-           } else if (requestOrigin) {
-             // Encode spaces and special characters in the path
-             const encodedPath = row.texture_image_url.includes('%') 
-               ? row.texture_image_url // Already encoded
-               : row.texture_image_url.split('/').map((part: string) => encodeURIComponent(part)).join('/').replace(/%2F/g, '/');
-             resolvedTextureUrl = new URL(encodedPath, requestOrigin).toString();
-           }
+          let resolvedTextureUrl: string | null = null;
+          if (row.texture_image_url.startsWith("http")) {
+            resolvedTextureUrl = row.texture_image_url;
+          } else if (requestOrigin) {
+            const encodedPath = row.texture_image_url.includes('%') 
+              ? row.texture_image_url
+              : row.texture_image_url.split('/').map((part: string) => encodeURIComponent(part)).join('/').replace(/%2F/g, '/');
+            resolvedTextureUrl = new URL(encodedPath, requestOrigin).toString();
+          }
+          if (!resolvedTextureUrl) return null;
 
-           if (!resolvedTextureUrl) {
-             console.warn(
-               "Non-absolute texture_image_url without origin (skipping texture grounding):",
-               ref,
-               row.texture_image_url,
-             );
-             continue;
-           }
+          try {
+            const imageResponse = await fetch(resolvedTextureUrl);
+            if (!imageResponse.ok) return null;
+            const arrayBuffer = await imageResponse.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = "";
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            const imageBase64 = btoa(binary);
+            const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
+            console.log(`✓ Decor texture added (${ref})`);
+            return { inlineData: { mimeType: imageMimeType, data: imageBase64 } };
+          } catch (e) {
+            console.error("Error fetching decor texture", ref, e);
+            return null;
+          }
+        });
 
-           try {
-             const label = row.name || ref;
-             console.log(`Fetching decor texture (${label}):`, resolvedTextureUrl);
-             const imageResponse = await fetch(resolvedTextureUrl);
-             if (!imageResponse.ok) {
-               console.error("Failed fetching decor texture", ref, "status", imageResponse.status);
-               continue;
-             }
-
-             const arrayBuffer = await imageResponse.arrayBuffer();
-             const bytes = new Uint8Array(arrayBuffer);
-             let binary = "";
-             for (let i = 0; i < bytes.byteLength; i++) {
-               binary += String.fromCharCode(bytes[i]);
-             }
-             const imageBase64 = btoa(binary);
-             const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
-
-             requestParts.push({
-               inlineData: {
-                 mimeType: imageMimeType,
-                 data: imageBase64,
-               },
-             });
-             console.log(`✓ Decor texture added (${ref})`);
-           } catch (e) {
-             console.error("Error fetching decor texture", ref, e);
-           }
-         }
+        const results = await Promise.all(fetchPromises);
+        for (const r of results) {
+          if (r) requestParts.push(r);
+        }
       }
 
       // ======================================================================
