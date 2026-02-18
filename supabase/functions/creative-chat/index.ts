@@ -450,6 +450,17 @@ ${orchestrationResult.finalPromptForImageModel}
    - Apply EXACT texture and colors from DICA catalog - ZERO color shifts
    - Respect material properties based on the decor finish type
    - Use PAROI decors on walls/panels, SOL decors on floors
+   
+   🚫 CRITICAL - FORBIDDEN SURFACES (ALL CONTEXTS):
+   - NEVER apply DICA decor on: cushions, textiles, curtains, fabric seats, mattresses
+   - NEVER apply DICA decor on: glass, mirrors, lighting, vegetation, people, dishes
+   - DICA panels are RIGID LAMINATE surfaces: walls, cupboard doors, countertops, table tops, floors, decorative panels ONLY
+   
+   📏 CONTEXT-SPECIFIC SURFACE RULES:
+   - ELEVATOR: walls/panels + floor ONLY
+   - VAN: cupboards, storage furniture, countertops ONLY (never on cushions/textile/seats)
+   - TERRACE/COMPACTOP: table tops and kitchen countertops ONLY (never walls/floors/chairs)
+   - OTHER: walls, partitions, decorative panels, panel furniture
 
 3. SPACE FIDELITY:
    - Create exactly: ${detectedSpace.toUpperCase()}
