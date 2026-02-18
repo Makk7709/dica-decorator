@@ -28,6 +28,91 @@ export interface OrchestratorResult {
   technicalConstraints?: string[];
   rejectionReason?: string;
   validationWarnings?: string[];
+  recommendedFormat?: string;
+}
+
+// ============================================================================
+// Format Detection - Maps content types to optimal image dimensions
+// ============================================================================
+
+export interface ImageFormat {
+  width: number;
+  height: number;
+  label: string;
+  aspectRatio: string;
+}
+
+export const FORMAT_PRESETS: Record<string, ImageFormat> = {
+  "linkedin_post":      { width: 1200, height: 627,  label: "LinkedIn Post",           aspectRatio: "1.91:1" },
+  "linkedin_square":    { width: 1080, height: 1080, label: "LinkedIn Carré",           aspectRatio: "1:1" },
+  "linkedin_portrait":  { width: 1080, height: 1350, label: "LinkedIn Portrait",        aspectRatio: "4:5" },
+  "instagram_post":     { width: 1080, height: 1080, label: "Instagram Post",           aspectRatio: "1:1" },
+  "instagram_story":    { width: 1080, height: 1920, label: "Instagram Story",          aspectRatio: "9:16" },
+  "instagram_portrait": { width: 1080, height: 1350, label: "Instagram Portrait",       aspectRatio: "4:5" },
+  "facebook_post":      { width: 1200, height: 630,  label: "Facebook Post",            aspectRatio: "1.91:1" },
+  "kakemono":           { width: 800,  height: 2000, label: "Kakémono / Roll-up",       aspectRatio: "2:5" },
+  "affiche_a3":         { width: 1191, height: 1684, label: "Affiche A3 Portrait",      aspectRatio: "1:1.41" },
+  "affiche_paysage":    { width: 1684, height: 1191, label: "Affiche A3 Paysage",       aspectRatio: "1.41:1" },
+  "catalogue_cover":    { width: 1080, height: 1527, label: "Couverture Catalogue A4",  aspectRatio: "1:1.41" },
+  "catalogue_spread":   { width: 1920, height: 1080, label: "Double page Catalogue",    aspectRatio: "16:9" },
+  "banner_web":         { width: 1920, height: 600,  label: "Bannière Web",             aspectRatio: "3.2:1" },
+  "presentation_16_9":  { width: 1920, height: 1080, label: "Présentation 16:9",        aspectRatio: "16:9" },
+  "square":             { width: 1080, height: 1080, label: "Carré",                    aspectRatio: "1:1" },
+  "portrait":           { width: 1080, height: 1440, label: "Portrait",                 aspectRatio: "3:4" },
+  "landscape":          { width: 1440, height: 1080, label: "Paysage",                  aspectRatio: "4:3" },
+};
+
+/**
+ * Detect optimal format from user prompt keywords
+ */
+export function detectFormatFromPrompt(prompt: string): string | null {
+  const lower = prompt.toLowerCase();
+  
+  const formatPatterns: Array<{ keywords: string[]; format: string }> = [
+    // LinkedIn
+    { keywords: ["linkedin", "linked in"], format: "linkedin_post" },
+    // Instagram
+    { keywords: ["instagram", "insta", "ig"], format: "instagram_post" },
+    { keywords: ["story", "stories", "reel"], format: "instagram_story" },
+    // Facebook
+    { keywords: ["facebook", "fb"], format: "facebook_post" },
+    // Print formats
+    { keywords: ["kakemono", "kakémono", "roll-up", "rollup", "roll up", "totem"], format: "kakemono" },
+    { keywords: ["affiche", "poster"], format: "affiche_a3" },
+    // Catalog / brochure
+    { keywords: ["couverture catalogue", "cover catalogue", "couverture brochure"], format: "catalogue_cover" },
+    { keywords: ["catalogue", "brochure", "plaquette"], format: "catalogue_cover" },
+    { keywords: ["double page", "spread"], format: "catalogue_spread" },
+    // Web
+    { keywords: ["bannière", "banniere", "banner", "bandeau"], format: "banner_web" },
+    // Presentation
+    { keywords: ["présentation", "presentation", "slide", "diapo", "powerpoint", "ppt"], format: "presentation_16_9" },
+    // Generic
+    { keywords: ["carré", "carre", "square"], format: "square" },
+    { keywords: ["portrait", "vertical"], format: "portrait" },
+    { keywords: ["paysage", "landscape", "horizontal", "panoramique"], format: "landscape" },
+  ];
+
+  // Check for story/reel variant for instagram
+  if ((lower.includes("instagram") || lower.includes("insta")) && (lower.includes("story") || lower.includes("stories") || lower.includes("reel"))) {
+    return "instagram_story";
+  }
+  // Check for portrait variant for linkedin/instagram
+  if ((lower.includes("linkedin") || lower.includes("instagram")) && lower.includes("portrait")) {
+    return lower.includes("linkedin") ? "linkedin_portrait" : "instagram_portrait";
+  }
+  // Check for square variant for linkedin
+  if (lower.includes("linkedin") && (lower.includes("carré") || lower.includes("carre") || lower.includes("square"))) {
+    return "linkedin_square";
+  }
+
+  for (const { keywords, format } of formatPatterns) {
+    if (keywords.some(kw => lower.includes(kw))) {
+      return format;
+    }
+  }
+
+  return null; // No specific format detected = default square
 }
 
 /**
@@ -40,6 +125,13 @@ export async function orchestrateDicaPrompt(
   console.log("🎯 DICA Orchestrator - Starting validation");
   console.log("- User prompt:", input.userPrompt.substring(0, 100));
   console.log("- Source images:", input.sourceImages?.length || 0);
+
+  // Detect format from user prompt
+  const detectedFormat = detectFormatFromPrompt(input.userPrompt);
+  if (detectedFormat) {
+    const preset = FORMAT_PRESETS[detectedFormat];
+    console.log(`📐 Format détecté: ${preset.label} (${preset.width}x${preset.height})`);
+  }
   console.log("- Decor context length:", input.decorContext.length);
 
   const systemPrompt = buildOrchestratorSystemPrompt();
@@ -142,11 +234,17 @@ export async function orchestrateDicaPrompt(
     
     validateOrchestratorResult(result, input.decorContext);
     
+    // Attach detected format
+    if (detectedFormat) {
+      result.recommendedFormat = detectedFormat;
+    }
+
     console.log("✅ Orchestration result:", {
       status: result.status,
       projectType: result.projectType,
       decorReferences: result.decorReferences,
-      nbVariants: result.nbVariants
+      nbVariants: result.nbVariants,
+      recommendedFormat: result.recommendedFormat || "default (square)"
     });
 
     return result;
