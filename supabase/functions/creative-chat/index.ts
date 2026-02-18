@@ -3,7 +3,7 @@
 // Developed by KOREV AI for DICA France
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { orchestrateDicaPrompt, type OrchestratorInput } from "./orchestrator.ts";
+import { orchestrateDicaPrompt, type OrchestratorInput, FORMAT_PRESETS } from "./orchestrator.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -486,6 +486,22 @@ Add DICA decor reference annotations on the image:
 ═══════════════════════════════════════════════════════════════════
 ` : ''}
 
+${orchestrationResult.recommendedFormat ? `
+═══════════════════════════════════════════════════════════════════
+📐 IMAGE FORMAT - CRITICAL
+═══════════════════════════════════════════════════════════════════
+Format: ${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.label || orchestrationResult.recommendedFormat}
+Aspect ratio: ${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio}
+Dimensions: ${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.width}x${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.height}px
+
+YOU MUST generate an image that matches this EXACT aspect ratio.
+Compose the scene to work perfectly in ${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio} format.
+${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "9:16" || FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "2:5" ? "VERTICAL composition - tall and narrow." : ""}
+${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "1.91:1" || FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "16:9" || FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "3.2:1" ? "HORIZONTAL/WIDE composition - panoramic layout." : ""}
+${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "1:1" ? "SQUARE composition - centered and balanced." : ""}
+═══════════════════════════════════════════════════════════════════
+` : ''}
+
 ✨ EXPECTED RESULT: 
 Professional architectural photography of a REAL ${detectedSpace} space featuring DICA panels.
 Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
@@ -616,12 +632,25 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
 
       console.log("Returning image response with decor references:", decorReferences);
 
+      const formatInfo = orchestrationResult.recommendedFormat 
+        ? FORMAT_PRESETS[orchestrationResult.recommendedFormat] 
+        : null;
+
       return new Response(JSON.stringify({ 
         type: "image",
         imageUrl,
-        text,
+        text: formatInfo 
+          ? `${text}\n\n📐 Format: **${formatInfo.label}** (${formatInfo.width}×${formatInfo.height}px)`
+          : text,
         decorReferences,
         showReferences,
+        format: formatInfo ? { 
+          key: orchestrationResult.recommendedFormat, 
+          label: formatInfo.label, 
+          width: formatInfo.width, 
+          height: formatInfo.height,
+          aspectRatio: formatInfo.aspectRatio 
+        } : null,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
