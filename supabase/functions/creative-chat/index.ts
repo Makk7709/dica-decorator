@@ -132,12 +132,96 @@ serve(async (req) => {
     console.log("Authenticated user:", user.id);
     // ========================================================================
 
-    const { messages, decorContext, sourceImageUrls, imageLabels, showReferences = false } = await req.json();
+    const { messages, decorContext: _legacyDecorContext, sourceImageUrls, imageLabels, showReferences = false } = await req.json();
     console.log('Creative chat request received');
     console.log('- Messages:', messages.length);
-    console.log('- Decor context length:', decorContext?.length || 0, 'characters');
     console.log('- Source images URLs:', sourceImageUrls?.length || 0);
     console.log('- Image labels:', imageLabels || []);
+
+    // ========================================================================
+    // BUILD STRUCTURED DECOR CONTEXT FROM CATALOGS (replaces flat frontend list)
+    // ========================================================================
+    let decorContext: string;
+    try {
+      // Fetch all active catalogs with their linked decors
+      const { data: catalogs, error: catErr } = await supabaseAdmin
+        .from("catalogs")
+        .select("id, code, label, project_type, display_order")
+        .eq("is_active", true)
+        .order("project_type")
+        .order("display_order");
+      
+      if (catErr) throw catErr;
+
+      // For each catalog, fetch linked decors
+      const catalogSections: string[] = [];
+      const allDecorRefs: string[] = [];
+      
+      for (const cat of (catalogs || [])) {
+        const { data: links } = await supabaseAdmin
+          .from("catalog_decor_links")
+          .select("decor_id, display_order")
+          .eq("catalog_id", cat.id)
+          .order("display_order");
+        
+        if (!links || links.length === 0) continue;
+        
+        const decorIds = links.map((l: any) => l.decor_id);
+        const { data: decors } = await supabaseAdmin
+          .from("decors")
+          .select("id, name, reference_code, category, texture_image_url")
+          .in("id", decorIds)
+          .eq("is_active", true);
+        
+        if (!decors || decors.length === 0) continue;
+
+        // Map for ordering
+        const orderMap = new Map(links.map((l: any) => [l.decor_id, l.display_order]));
+        const sorted = decors.sort((a: any, b: any) => (orderMap.get(a.id) || 0) - (orderMap.get(b.id) || 0));
+
+        // Map project_type to gamme label
+        const gammeLabel = ({
+          ascenseur: `🏢 GAMME ASCENSEUR - ${cat.label}`,
+          van: `🚐 GAMME ÉVASION (VAN)`,
+          terrasse: `☀️ GAMME COMPACTOP (TERRASSE)`,
+          autre: `📦 GAMME AUTRE - Tous les décors`,
+        } as Record<string, string>)[cat.project_type] || cat.label;
+
+        let section = `\n${gammeLabel} (${sorted.length} décors):\n`;
+        for (const d of sorted) {
+          section += `  • "${d.reference_code}" = ${d.name} [${d.category}]\n`;
+          allDecorRefs.push(d.reference_code);
+        }
+        catalogSections.push(section);
+      }
+
+      decorContext = `════════════════════════════════════════════════════════════════
+🚨 CATALOGUE DICA - ORGANISÉ PAR GAMME (${allDecorRefs.length} décors)
+════════════════════════════════════════════════════════════════
+
+⛔ RÈGLE ABSOLUE: UNIQUEMENT les références ci-dessous.
+⛔ INVENTER une référence = ERREUR FATALE BLOQUÉE.
+
+🔒 RÈGLES DE SÉLECTION PAR GAMME:
+- Si le client parle de VAN / évasion / fourgon → utiliser UNIQUEMENT la GAMME ÉVASION
+- Si le client parle d'ASCENSEUR / cabine / élévateur → utiliser UNIQUEMENT la GAMME ASCENSEUR
+- Si le client parle de TERRASSE / table / restaurant / café → utiliser UNIQUEMENT la GAMME COMPACTOP
+- Si le client parle d'autre chose → utiliser la GAMME AUTRE (ou toutes si vide)
+
+📋 RÉFÉRENCES PAR GAMME:
+${catalogSections.join('\n')}
+
+⛔ COPIE les références EXACTEMENT. Ne modifie PAS, n'invente PAS.
+════════════════════════════════════════════════════════════════`;
+
+      console.log(`Contexte décors structuré: ${allDecorRefs.length} décors dans ${catalogSections.length} gammes`);
+    } catch (contextErr) {
+      console.error("Error building structured decor context:", contextErr);
+      // Fallback to frontend-provided context
+      decorContext = _legacyDecorContext || "Aucun décor disponible.";
+    }
+
+    console.log('- Decor context length:', decorContext?.length || 0, 'characters');
     
     // Collect all source images (current + history)
     const allSourceImages: string[] = [...(sourceImageUrls || [])];
