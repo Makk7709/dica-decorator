@@ -86,6 +86,33 @@ function getErrorMessage(statusCode: number): string {
 }
 
 /**
+ * Retry helper with exponential backoff for transient errors (503, 429)
+ */
+async function fetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  { timeout = 60000, maxRetries = 3, retryableStatuses = [503, 429] } = {}
+): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetchWithTimeout(url, options, timeout);
+    
+    if (!retryableStatuses.includes(response.status) || attempt === maxRetries) {
+      return response;
+    }
+    
+    // Consume body to avoid resource leak
+    await response.text();
+    
+    const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 8000);
+    console.log(`Retryable error ${response.status}, attempt ${attempt + 1}/${maxRetries}. Waiting ${Math.round(delay)}ms...`);
+    await new Promise(r => setTimeout(r, delay));
+  }
+  
+  // Should never reach here, but TypeScript needs it
+  throw new Error("Max retries exceeded");
+}
+
+/**
  * Fetch with timeout to prevent hanging
  */
 async function fetchWithTimeout(url: string, options?: RequestInit, timeout = RESOURCE_LIMITS.fetchTimeout): Promise<Response> {
@@ -1018,12 +1045,7 @@ L'annotation doit être:
       console.log(`Generating render ${i + 1}/${safeRenderCount}...`);
       
       try {
-        const geminiResponse = await fetchWithTimeout(geminiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+        const geminiRequestBody = JSON.stringify({
             contents: [
               {
                 role: "user",
@@ -1033,8 +1055,13 @@ L'annotation doit être:
             generationConfig: {
               responseModalities: GEMINI_CONFIG.responseModalities,
             },
-          }),
-        }, 60000); // 60s timeout for Gemini API
+          });
+
+        const geminiResponse = await fetchWithRetry(geminiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: geminiRequestBody,
+        }, { timeout: 60000, maxRetries: 3 });
 
         // Handle errors with detailed logging
         if (!geminiResponse.ok) {
