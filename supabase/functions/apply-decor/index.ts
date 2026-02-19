@@ -259,6 +259,9 @@ serve(async (req) => {
       throw new Error("GOOGLE_AI_API_KEY not configured");
     }
 
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    console.log("Lovable AI Gateway available:", !!LOVABLE_API_KEY);
+
     // Fetch decor information to get name and reference code
     // Reuse supabaseAdmin created earlier for auth verification
     const supabase = supabaseAdmin;
@@ -1045,7 +1048,7 @@ L'annotation doit être:
       console.log(`Added texture for ${texture.decorInfo.surfaceType}: ${texture.decorInfo.name}`);
     }
 
-    // Build Gemini API URL
+    // Build Gemini API URL (fallback only)
     const geminiUrl = buildGeminiUrl(GOOGLE_AI_API_KEY);
 
     // ========================================================================
@@ -1058,79 +1061,152 @@ L'annotation doit être:
       console.log(`Generating render ${i + 1}/${safeRenderCount}...`);
       
       try {
-        const geminiRequestBody = JSON.stringify({
-            contents: [
+        let imageBase64: string | null = null;
+        let textResponse: string | null = null;
+
+        // ================================================================
+        // PRIMARY: Use Lovable AI Gateway (better availability)
+        // ================================================================
+        if (LOVABLE_API_KEY) {
+          console.log("Using Lovable AI Gateway (primary)...");
+          
+          // Convert requestParts to OpenAI-compatible format
+          const contentParts: any[] = [];
+          for (const part of requestParts) {
+            if (part.text) {
+              contentParts.push({ type: "text", text: part.text });
+            }
+            if (part.inlineData) {
+              contentParts.push({
+                type: "image_url",
+                image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+              });
+            }
+          }
+
+          try {
+            const gatewayResponse = await fetchWithTimeout(
+              "https://ai.gateway.lovable.dev/v1/chat/completions",
               {
-                role: "user",
-                parts: requestParts,
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-3-pro-image-preview",
+                  messages: [{ role: "user", content: contentParts }],
+                  modalities: ["image", "text"],
+                }),
               },
-            ],
-            generationConfig: {
-              responseModalities: GEMINI_CONFIG.responseModalities,
-            },
+              55000 // 55s timeout - gateway handles its own retries
+            );
+
+            if (gatewayResponse.ok) {
+              const data = await gatewayResponse.json();
+              const choice = data.choices?.[0]?.message;
+              const gatewayImageUrl = choice?.images?.[0]?.image_url?.url || null;
+              textResponse = choice?.content || null;
+
+              if (gatewayImageUrl) {
+                // Extract base64 from data URL if needed
+                if (gatewayImageUrl.startsWith("data:")) {
+                  const commaIdx = gatewayImageUrl.indexOf(",");
+                  imageBase64 = commaIdx >= 0 ? gatewayImageUrl.substring(commaIdx + 1) : null;
+                } else {
+                  // It's a regular URL, use it directly
+                  imageBase64 = null; // will use gatewayImageUrl below
+                  const resultUrl = gatewayImageUrl;
+                  generatedUrls.push(resultUrl);
+                  console.log(`Image ${i + 1} generated via Gateway (URL), saving to database`);
+
+                  const { error: insertError } = await supabase
+                    .from("render_results")
+                    .insert({ project_photo_id: photoId, decor_id: decorId, result_image_url: resultUrl });
+                  if (insertError) {
+                    console.error("Error saving render result:", insertError);
+                    throw new Error("Erreur lors de la sauvegarde du rendu");
+                  }
+                  // Skip to quota increment below
+                  imageBase64 = "__ALREADY_SAVED__";
+                }
+              }
+              
+              if (imageBase64 && imageBase64 !== "__ALREADY_SAVED__") {
+                console.log(`Image ${i + 1} generated via Gateway successfully`);
+              } else if (!imageBase64) {
+                console.warn("Gateway returned no image, falling back to direct API...");
+              }
+            } else {
+              const errText = await gatewayResponse.text();
+              console.warn(`Gateway error ${gatewayResponse.status}: ${errText.substring(0, 200)}, falling back to direct API...`);
+            }
+          } catch (gatewayErr) {
+            console.warn(`Gateway call failed: ${gatewayErr}, falling back to direct API...`);
+          }
+        }
+
+        // ================================================================
+        // FALLBACK: Direct Google AI API
+        // ================================================================
+        if (!imageBase64) {
+          console.log("Using direct Google AI API (fallback)...");
+          
+          const geminiRequestBody = JSON.stringify({
+            contents: [{ role: "user", parts: requestParts }],
+            generationConfig: { responseModalities: GEMINI_CONFIG.responseModalities },
           });
 
-        let geminiResponse = await fetchWithRetry(geminiUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: geminiRequestBody,
-        }, { timeout: 30000, maxRetries: 1 });
-
-        // Fallback to gemini-2.5-flash if primary model is unavailable
-        if (geminiResponse.status === 503 || geminiResponse.status === 429) {
-          await geminiResponse.text(); // consume body
-          const fallbackUrl = buildFallbackGeminiUrl(apiKey);
-          console.log(`Primary model unavailable (${geminiResponse.status}), falling back to ${FALLBACK_MODEL}...`);
-          geminiResponse = await fetchWithTimeout(fallbackUrl, {
+          const geminiResponse = await fetchWithTimeout(geminiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: geminiRequestBody,
           }, 30000);
+
+          if (!geminiResponse.ok) {
+            const errorText = await geminiResponse.text();
+            console.error("Google AI error:", geminiResponse.status, errorText);
+            throw new Error(getErrorMessage(geminiResponse.status));
+          }
+
+          const geminiData = await geminiResponse.json();
+          const parsed = parseGeminiResponse(geminiData);
+          imageBase64 = parsed.imageBase64;
+          textResponse = parsed.textResponse;
+          
+          if (!imageBase64) {
+            console.error("No image data found in response");
+            throw new Error("Aucune image générée dans la réponse Gemini");
+          }
+          console.log(`Image ${i + 1} generated via direct API successfully`);
         }
 
-        // Handle errors with detailed logging
-        if (!geminiResponse.ok) {
-          const errorText = await geminiResponse.text();
-          console.error("Google AI error:", geminiResponse.status, errorText);
-          throw new Error(getErrorMessage(geminiResponse.status));
-        }
-
-        const geminiData = await geminiResponse.json();
-        console.log(`Gemini response ${i + 1} received successfully`);
-
-        // Parse response
-        const { imageBase64, textResponse } = parseGeminiResponse(geminiData);
+        // Save result if not already saved by gateway URL path
+        if (imageBase64 && imageBase64 !== "__ALREADY_SAVED__") {
+          const resultUrl = `data:image/png;base64,${imageBase64}`;
+          generatedUrls.push(resultUrl);
         
-        if (!imageBase64) {
-          console.error("No image data found in response");
-          throw new Error("Aucune image générée dans la réponse Gemini");
+          console.log(`Image ${i + 1} generated successfully, saving to database`);
+
+          // Save result to database
+          const { error: insertError } = await supabase
+            .from("render_results")
+            .insert({
+              project_photo_id: photoId,
+              decor_id: decorId,
+              result_image_url: resultUrl,
+            });
+
+          if (insertError) {
+            console.error("Error saving render result:", insertError);
+            throw new Error("Erreur lors de la sauvegarde du rendu");
+          }
+
+          console.log(`Render result ${i + 1} saved successfully`);
         }
-
-        // Return data URL directly
-        const resultUrl = `data:image/png;base64,${imageBase64}`;
-        generatedUrls.push(resultUrl);
-        
-        console.log(`Image ${i + 1} generated successfully, saving to database`);
-
-        // Save result to database
-        const { error: insertError } = await supabase
-          .from("render_results")
-          .insert({
-            project_photo_id: photoId,
-            decor_id: decorId,
-            result_image_url: resultUrl,
-          });
-
-        if (insertError) {
-          console.error("Error saving render result:", insertError);
-          throw new Error("Erreur lors de la sauvegarde du rendu");
-        }
-
-        console.log(`Render result ${i + 1} saved successfully`);
         
         // Increment user quota usage
         try {
-          // Get user_id from project_photos -> projects
           const { data: photoData } = await supabase
             .from("project_photos")
             .select("project_id")
@@ -1145,14 +1221,12 @@ L'annotation doit être:
               .single();
             
             if (projectData) {
-              // Increment quota_used for this user
               const { error: quotaError } = await supabase.rpc('increment_quota_used', {
                 p_user_id: projectData.user_id
               });
               
               if (quotaError) {
                 console.error("Error incrementing quota:", quotaError);
-                // Don't throw - we don't want to fail the generation if quota update fails
               } else {
                 console.log(`Quota incremented for user ${projectData.user_id}`);
               }
@@ -1160,7 +1234,6 @@ L'annotation doit être:
           }
         } catch (quotaError) {
           console.error("Error updating quota:", quotaError);
-          // Non-blocking error - generation was successful
         }
         
       } catch (renderError) {
