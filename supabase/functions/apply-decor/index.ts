@@ -91,25 +91,38 @@ function getErrorMessage(statusCode: number): string {
 async function fetchWithRetry(
   url: string, 
   options: RequestInit, 
-  { timeout = 60000, maxRetries = 3, retryableStatuses = [503, 429] } = {}
+  { timeout = 30000, maxRetries = 1, retryableStatuses = [503, 429] } = {}
 ): Promise<Response> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const response = await fetchWithTimeout(url, options, timeout);
-    
-    if (!retryableStatuses.includes(response.status) || attempt === maxRetries) {
-      return response;
+    try {
+      const response = await fetchWithTimeout(url, options, timeout);
+      
+      if (!retryableStatuses.includes(response.status) || attempt === maxRetries) {
+        return response;
+      }
+      
+      // Consume body to avoid resource leak
+      await response.text();
+      
+      const delay = Math.min(1500 * Math.pow(2, attempt) + Math.random() * 500, 4000);
+      console.log(`Retryable error ${response.status}, attempt ${attempt + 1}/${maxRetries}. Waiting ${Math.round(delay)}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.log(`Fetch error on attempt ${attempt + 1}/${maxRetries}: ${err}`);
+      await new Promise(r => setTimeout(r, 1500));
     }
-    
-    // Consume body to avoid resource leak
-    await response.text();
-    
-    const delay = Math.min(1000 * Math.pow(2, attempt) + Math.random() * 500, 8000);
-    console.log(`Retryable error ${response.status}, attempt ${attempt + 1}/${maxRetries}. Waiting ${Math.round(delay)}ms...`);
-    await new Promise(r => setTimeout(r, delay));
   }
   
   // Should never reach here, but TypeScript needs it
   throw new Error("Max retries exceeded");
+}
+
+/** Fallback model when primary is unavailable */
+const FALLBACK_MODEL = "gemini-2.5-flash";
+
+function buildFallbackGeminiUrl(apiKey: string): string {
+  return `${GEMINI_CONFIG.apiEndpoint}/${FALLBACK_MODEL}:generateContent?key=${apiKey}`;
 }
 
 /**
@@ -1057,11 +1070,23 @@ L'annotation doit être:
             },
           });
 
-        const geminiResponse = await fetchWithRetry(geminiUrl, {
+        let geminiResponse = await fetchWithRetry(geminiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: geminiRequestBody,
-        }, { timeout: 60000, maxRetries: 3 });
+        }, { timeout: 30000, maxRetries: 1 });
+
+        // Fallback to gemini-2.5-flash if primary model is unavailable
+        if (geminiResponse.status === 503 || geminiResponse.status === 429) {
+          await geminiResponse.text(); // consume body
+          const fallbackUrl = buildFallbackGeminiUrl(apiKey);
+          console.log(`Primary model unavailable (${geminiResponse.status}), falling back to ${FALLBACK_MODEL}...`);
+          geminiResponse = await fetchWithTimeout(fallbackUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: geminiRequestBody,
+          }, 30000);
+        }
 
         // Handle errors with detailed logging
         if (!geminiResponse.ok) {
