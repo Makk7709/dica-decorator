@@ -75,7 +75,7 @@ const ProjectDetail = () => {
   const [showDecorDialog, setShowDecorDialog] = useState(false);
   const [favoriteRenderIds, setFavoriteRenderIds] = useState<Set<string>>(new Set());
   const [renderCount, setRenderCount] = useState<number>(1);
-  const [renderFormat, setRenderFormat] = useState<"square" | "portrait" | "landscape" | "original">("square");
+  const [renderFormat, setRenderFormat] = useState<"square" | "portrait" | "landscape" | "original">("original");
   const [originalDimensions, setOriginalDimensions] = useState<{ width: number; height: number } | null>(null);
   const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
