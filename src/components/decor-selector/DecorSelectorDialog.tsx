@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Info, AlertTriangle, Check, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Sparkles, Info, AlertTriangle, Check, X, Search } from "lucide-react";
 import { useCatalogsWithDecors, hasConfiguredCatalogs, type ProjectType, type CatalogDecor, type Catalog } from "@/hooks/use-catalogs";
 
 // Type pour la sélection par catalogue
@@ -63,6 +64,7 @@ export const DecorSelectorDialog = ({
 }: DecorSelectorDialogProps) => {
   const { catalogs, decorsByCatalog, isLoading, error } = useCatalogsWithDecors(projectType);
   const [activeTab, setActiveTab] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Initialiser l'onglet actif au premier catalogue avec des décors
   useEffect(() => {
@@ -87,6 +89,19 @@ export const DecorSelectorDialog = ({
 
   // Vérifier si au moins un décor est sélectionné
   const hasSelection = selectedCount > 0;
+
+  // Filtrer les décors par recherche
+  const filteredDecorsByCatalog = useMemo(() => {
+    if (!searchQuery.trim()) return decorsByCatalog;
+    const q = searchQuery.toLowerCase().trim();
+    const filtered: Record<string, CatalogDecor[]> = {};
+    for (const [catalogId, decors] of Object.entries(decorsByCatalog)) {
+      filtered[catalogId] = decors.filter(
+        (d) => d.name.toLowerCase().includes(q) || d.reference_code.toLowerCase().includes(q)
+      );
+    }
+    return filtered;
+  }, [decorsByCatalog, searchQuery]);
 
   // Handler pour sélectionner/désélectionner un décor dans un catalogue
   const handleSelectDecor = (catalogId: string, decor: CatalogDecor) => {
@@ -275,17 +290,39 @@ export const DecorSelectorDialog = ({
 
           {/* Affichage des catalogues avec tabs */}
           {!isLoading && !error && hasCatalogs && catalogs.length > 0 && (
+            <div className="space-y-4">
+              {/* Barre de recherche */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un décor par nom ou référence..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className={`grid w-full h-auto ${catalogs.length === 1 ? 'grid-cols-1' : catalogs.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 {catalogs.map((catalog) => {
-                  const decorsCount = decorsByCatalog[catalog.id]?.length || 0;
+                  const decorsCount = filteredDecorsByCatalog[catalog.id]?.length || 0;
                   const isSelected = !!decorSelection[catalog.id];
                   return (
                     <TabsTrigger 
                       key={catalog.id} 
                       value={catalog.id} 
                       className="py-3 relative"
-                      disabled={decorsCount === 0}
+                      disabled={decorsCount === 0 && !searchQuery}
                     >
                       {isSelected && (
                         <Check className="h-4 w-4 mr-1 text-primary" />
@@ -303,7 +340,7 @@ export const DecorSelectorDialog = ({
               </TabsList>
 
               {catalogs.map((catalog) => {
-                const decors = decorsByCatalog[catalog.id] || [];
+                const decors = filteredDecorsByCatalog[catalog.id] || [];
                 const selectedDecorInCatalog = decorSelection[catalog.id];
                 
                 return (
@@ -312,13 +349,8 @@ export const DecorSelectorDialog = ({
                       {decors.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                           <p className="text-lg text-muted-foreground">
-                            Aucun décor dans ce catalogue
+                            {searchQuery ? `Aucun décor trouvé pour "${searchQuery}"` : "Aucun décor dans ce catalogue"}
                           </p>
-                          {catalog.description && (
-                            <p className="text-sm text-muted-foreground mt-2">
-                              {catalog.description}
-                            </p>
-                          )}
                         </div>
                       ) : (
                         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -364,6 +396,7 @@ export const DecorSelectorDialog = ({
                 );
               })}
             </Tabs>
+            </div>
           )}
         </div>
 
