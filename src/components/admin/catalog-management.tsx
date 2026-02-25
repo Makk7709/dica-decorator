@@ -11,7 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Loader2, Save, Search, CheckCircle, AlertTriangle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Save, Search, CheckCircle, AlertTriangle, Filter } from "lucide-react";
 import { toast } from "sonner";
 
 interface Catalog {
@@ -46,6 +47,7 @@ export const CatalogManagement = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [activeCatalog, setActiveCatalog] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [hasChanges, setHasChanges] = useState(false);
 
   // Charger les données
@@ -173,10 +175,15 @@ export const CatalogManagement = () => {
   // Filtrer les décors par recherche
   const filteredDecors = decors.filter(d => {
     const query = searchQuery.toLowerCase();
-    return d.name.toLowerCase().includes(query) || 
+    const matchesSearch = d.name.toLowerCase().includes(query) || 
            d.reference_code.toLowerCase().includes(query) ||
            d.category.toLowerCase().includes(query);
+    const matchesCategory = categoryFilter === "all" || d.category.toLowerCase() === categoryFilter.toLowerCase();
+    return matchesSearch && matchesCategory;
   });
+
+  // Extraire toutes les catégories uniques
+  const allCategories = [...new Set(decors.map(d => d.category))].sort();
 
   // Grouper par catégorie
   const decorsByCategory = filteredDecors.reduce((acc, decor) => {
@@ -261,6 +268,18 @@ export const CatalogManagement = () => {
                 className="pl-10"
               />
             </div>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les catégories</SelectItem>
+                {allCategories.map(cat => (
+                  <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button 
               onClick={saveChanges} 
               disabled={!hasChanges || isSaving}

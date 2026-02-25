@@ -417,7 +417,8 @@ RÈGLE #3: FIDÉLITÉ ABSOLUE DE LA TEXTURE
 → Finition: PRÉSERVÉE (mat reste mat, brillant reste brillant)
 
 RÈGLE #4: ALIGNEMENT DU GRAIN
-→ Bois: veinage selon orientation des panneaux originaux
+→ Bois: veinage TOUJOURS VERTICAL (de haut en bas), JAMAIS horizontal
+→ Les panneaux bois DICA ont un grain qui court du HAUT vers le BAS
 → Métal brossé: lignes de brossage dans la direction correcte
 → Marbre: veines continues sans rupture artificielle
 
@@ -682,10 +683,15 @@ Keep natural stone appearance with elegant veining.`;
     } else if (category.includes("bois")) {
       materialRules = `Material type: WOOD
 Visual properties to preserve:
-- Wood grain oriented to match existing panels
+- ⚠️ CRITICAL: Wood grain MUST be oriented VERTICALLY (top to bottom)
+- DICA wood panels have VERTICAL grain direction by default
+- The veining/grain lines run from TOP to BOTTOM of each panel, NEVER horizontally
+- If the panel is on a wall: grain runs floor-to-ceiling (vertical)
+- If the panel is on a door: grain runs top-to-bottom (vertical)
 - Warm, non-metallic light
 - Wood structure: NO icy or glossy effects
-Keep natural wood texture and warmth.`;
+- Preserve natural wood color warmth and tonal variations
+Keep natural wood texture with STRICT VERTICAL grain orientation.`;
     } else if (category.includes("déco") || category.includes("deco")) {
       materialRules = `Material type: DECORATIVE
 Visual properties to preserve:
