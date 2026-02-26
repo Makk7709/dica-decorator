@@ -65,6 +65,7 @@ export const DecorSelectorDialog = ({
   const { catalogs, decorsByCatalog, isLoading, error } = useCatalogsWithDecors(projectType);
   const [activeTab, setActiveTab] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   // Initialiser l'onglet actif au premier catalogue avec des décors
   useEffect(() => {
@@ -90,18 +91,30 @@ export const DecorSelectorDialog = ({
   // Vérifier si au moins un décor est sélectionné
   const hasSelection = selectedCount > 0;
 
-  // Filtrer les décors par recherche
+  // Extraire les catégories uniques de tous les décors
+  const allCategories = useMemo(() => {
+    const cats = new Set<string>();
+    for (const decors of Object.values(decorsByCatalog)) {
+      for (const d of decors) {
+        if (d.category) cats.add(d.category);
+      }
+    }
+    return Array.from(cats).sort();
+  }, [decorsByCatalog]);
+
+  // Filtrer les décors par recherche et catégorie
   const filteredDecorsByCatalog = useMemo(() => {
-    if (!searchQuery.trim()) return decorsByCatalog;
     const q = searchQuery.toLowerCase().trim();
     const filtered: Record<string, CatalogDecor[]> = {};
     for (const [catalogId, decors] of Object.entries(decorsByCatalog)) {
-      filtered[catalogId] = decors.filter(
-        (d) => d.name.toLowerCase().includes(q) || d.reference_code.toLowerCase().includes(q)
-      );
+      filtered[catalogId] = decors.filter((d) => {
+        const matchesSearch = !q || d.name.toLowerCase().includes(q) || d.reference_code.toLowerCase().includes(q) || (d.category && d.category.toLowerCase().includes(q));
+        const matchesCategory = categoryFilter === "all" || d.category === categoryFilter;
+        return matchesSearch && matchesCategory;
+      });
     }
     return filtered;
-  }, [decorsByCatalog, searchQuery]);
+  }, [decorsByCatalog, searchQuery, categoryFilter]);
 
   // Handler pour sélectionner/désélectionner un décor dans un catalogue
   const handleSelectDecor = (catalogId: string, decor: CatalogDecor) => {
@@ -277,23 +290,40 @@ export const DecorSelectorDialog = ({
           {!isLoading && !error && hasCatalogs && catalogs.length > 0 && (
             <div className="space-y-4">
               {/* Barre de recherche */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher un décor par nom ou référence..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                    onClick={() => setSearchQuery("")}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher par nom, référence ou matière..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {allCategories.length > 1 && (
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Matière" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes matières</SelectItem>
+                      {allCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
 
