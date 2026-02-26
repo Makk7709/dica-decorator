@@ -290,18 +290,36 @@ serve(async (req) => {
           .single();
           
         if (!decorInfoError && decorInfo) {
-          // Déterminer le type de surface basé sur le catalogId ou le nom
+          // Déterminer le type de surface via le catalogId (fiable)
           let surfaceType: 'walls' | 'floors' | 'general' = 'general';
-          const nameLower = (decorData.name || decorInfo.name || '').toLowerCase();
-          const refLower = (decorData.referenceCode || decorInfo.reference_code || '').toLowerCase();
           
-          // Heuristique pour déterminer walls vs floors basée sur le catalog_decor_links
-          // Pour l'instant, on utilise l'ordre: premier = walls, deuxième = floors
-          const decorIndex = allDecors.indexOf(decorData);
-          if (decorIndex === 0) {
-            surfaceType = 'walls';
-          } else if (decorIndex === 1) {
-            surfaceType = 'floors';
+          if (decorData.catalogId) {
+            // Récupérer le code du catalogue pour déterminer la surface
+            const { data: catalogData } = await supabase
+              .from("catalogs")
+              .select("code")
+              .eq("id", decorData.catalogId)
+              .single();
+            
+            if (catalogData) {
+              const code = catalogData.code;
+              console.log(`Decor ${decorInfo.name} -> catalog code: ${code}`);
+              if (code === 'elevator_walls') {
+                surfaceType = 'walls';
+              } else if (code === 'elevator_floors') {
+                surfaceType = 'floors';
+              }
+            }
+          }
+          
+          // Fallback: si pas de catalogId, utiliser le nom comme indice
+          if (surfaceType === 'general') {
+            const nameLower = (decorData.name || decorInfo.name || '').toLowerCase();
+            if (nameLower.includes('paroi') || nameLower.includes('wall')) {
+              surfaceType = 'walls';
+            } else if (nameLower.includes('sol') || nameLower.includes('floor') || nameLower.includes('grip')) {
+              surfaceType = 'floors';
+            }
           }
           
           decorsInfo.push({

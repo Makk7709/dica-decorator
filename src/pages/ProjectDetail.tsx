@@ -403,25 +403,23 @@ const ProjectDetail = () => {
   };
 
   const handleGenerateRender = async () => {
-    // Récupérer les décors sélectionnés
-    const selectedDecors = Object.values(decorSelection).filter(Boolean) as CatalogDecor[];
+    // Récupérer les décors sélectionnés avec leur catalogId
+    const selectedEntries = Object.entries(decorSelection).filter(([, decor]) => decor != null) as [string, CatalogDecor][];
     
-    if (!selectedPhoto || selectedDecors.length === 0 || !user || !project) return;
+    if (!selectedPhoto || selectedEntries.length === 0 || !user || !project) return;
 
     setIsGenerating(true);
 
     try {
-      // Pour chaque décor sélectionné, générer le rendu
-      // On utilise le premier décor comme décor principal (pour parois principalement)
-      // et on passe tous les décors au backend
-      const primaryDecor = selectedDecors[0];
+      const primaryDecor = selectedEntries[0][1];
       
-      // Construire les informations de tous les décors sélectionnés
-      const allDecors = selectedDecors.map(d => ({
+      // Construire les informations de tous les décors sélectionnés AVEC le catalogId
+      const allDecors = selectedEntries.map(([catalogId, d]) => ({
         id: d.id,
         name: d.name,
         referenceCode: d.reference_code,
         textureUrl: d.texture_image_url,
+        catalogId,
       }));
 
       const { data, error } = await supabase.functions.invoke("apply-decor", {
