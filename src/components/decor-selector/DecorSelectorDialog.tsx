@@ -205,22 +205,7 @@ export const DecorSelectorDialog = ({
           </Alert>
 
           {/* Paramètres de génération */}
-          <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
-            <div className="space-y-2">
-              <Label htmlFor="render-count">Nombre de rendus</Label>
-              <Select value={renderCount.toString()} onValueChange={(v) => onRenderCountChange(parseInt(v))}>
-                <SelectTrigger id="render-count">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 rendu</SelectItem>
-                  <SelectItem value="2">2 rendus</SelectItem>
-                  <SelectItem value="3">3 rendus</SelectItem>
-                  <SelectItem value="4">4 rendus</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
+           <div className="grid grid-cols-1 gap-4 p-4 border rounded-lg bg-muted/30">
             <div className="space-y-2">
               <Label htmlFor="render-format">Format / Taille</Label>
               <Select value={renderFormat} onValueChange={(v: any) => onRenderFormatChange(v)}>
