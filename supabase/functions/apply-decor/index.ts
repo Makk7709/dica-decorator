@@ -159,6 +159,39 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
+/**
+ * Detect image dimensions from raw bytes (JPEG/PNG headers)
+ */
+function detectImageDimensions(bytes: Uint8Array, mimeType: string): { width: number; height: number } | null {
+  try {
+    // PNG: width at bytes 16-19, height at bytes 20-23 (big-endian)
+    if (mimeType.includes("png") && bytes.length > 24) {
+      if (bytes[0] === 0x89 && bytes[1] === 0x50) {
+        const width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+        const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+        if (width > 0 && height > 0 && width < 20000 && height < 20000) {
+          return { width, height };
+        }
+      }
+    }
+    // JPEG: search for SOF0/SOF2 markers (0xFF 0xC0 or 0xFF 0xC2)
+    if (mimeType.includes("jpeg") || mimeType.includes("jpg")) {
+      for (let i = 0; i < bytes.length - 9; i++) {
+        if (bytes[i] === 0xFF && (bytes[i + 1] === 0xC0 || bytes[i + 1] === 0xC2)) {
+          const height = (bytes[i + 5] << 8) | bytes[i + 6];
+          const width = (bytes[i + 7] << 8) | bytes[i + 8];
+          if (width > 0 && height > 0 && width < 20000 && height < 20000) {
+            return { width, height };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to detect image dimensions:", e);
+  }
+  return null;
+}
+
 // ============================================================================
 // Main Handler
 // ============================================================================
@@ -222,11 +255,15 @@ serve(async (req) => {
       renderCount = 1, 
       format = "square", 
       showReferences = false, 
-      originalWidth, 
-      originalHeight,
+      originalWidth: _origW, 
+      originalHeight: _origH,
       // Nouveau: Support multi-décor (Parois + Sol pour ascenseur)
       allDecors 
     } = await req.json();
+    
+    // Mutable dimensions (can be auto-detected from photo)
+    let originalWidth = _origW;
+    let originalHeight = _origH;
     
     // Get origin from request headers for constructing absolute URLs
     const requestOrigin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, '') || "";
@@ -773,21 +810,39 @@ L'image générée DOIT être au format PAYSAGE (ratio 16:9).
         case "original":
           if (originalWidth && originalHeight) {
             const ratio = (originalWidth / originalHeight).toFixed(2);
+            const orientation = originalWidth > originalHeight ? 'PAYSAGE (plus large que haute)' : 
+                               originalWidth < originalHeight ? 'PORTRAIT (plus haute que large)' : 'CARRÉE';
             return `═══════════════════════════════════════════════════════════════════
-🖼️ FORMAT DE SORTIE: ORIGINAL (${originalWidth}×${originalHeight})
+🖼️ FORMAT DE SORTIE: ORIGINAL - CRITIQUE
 ═══════════════════════════════════════════════════════════════════
-L'image générée DOIT CONSERVER le format EXACT de la photo source.
-• Ratio d'aspect: ${ratio}:1 (largeur:hauteur)
-• Dimensions originales: ${originalWidth}×${originalHeight} pixels
-• NE PAS recadrer, NE PAS modifier les proportions
-• Préserver l'intégralité de la composition originale
+🚨 RÈGLE ABSOLUE: L'image de sortie DOIT avoir EXACTEMENT les mêmes
+proportions que la photo d'entrée. C'est NON NÉGOCIABLE.
+
+• Dimensions source: ${originalWidth}×${originalHeight} pixels
+• Ratio d'aspect EXACT: ${ratio}:1 (largeur:hauteur)
+• Orientation: ${orientation}
+• L'image générée doit être ${orientation}
+
+❌ INTERDIT:
+• NE JAMAIS générer une image carrée si la source n'est pas carrée
+• NE JAMAIS recadrer ou modifier les proportions
+• NE JAMAIS ajouter des bandes noires ou modifier le cadrage
+• Si la source est en paysage → la sortie DOIT être en paysage
+• Si la source est en portrait → la sortie DOIT être en portrait
+
+✅ OBLIGATOIRE:
+• Conserver EXACTEMENT le même cadrage que la photo source
+• Conserver EXACTEMENT les mêmes proportions largeur/hauteur
+• L'image de sortie doit être superposable à l'image source
 ═══════════════════════════════════════════════════════════════════`;
           }
           return `═══════════════════════════════════════════════════════════════════
 🖼️ FORMAT DE SORTIE: ORIGINAL
 ═══════════════════════════════════════════════════════════════════
-L'image générée DOIT CONSERVER le format EXACT de la photo source.
+🚨 RÈGLE ABSOLUE: L'image générée DOIT avoir EXACTEMENT les mêmes
+proportions et le même cadrage que la photo source fournie.
 • NE PAS recadrer, NE PAS modifier les proportions
+• NE JAMAIS générer une image carrée si la source ne l'est pas
 • Préserver l'intégralité de la composition originale
 ═══════════════════════════════════════════════════════════════════`;
         default: // square
@@ -988,6 +1043,17 @@ L'annotation doit être:
             photoBase64 = arrayBufferToBase64(arrayBuffer);
             photoMimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
             console.log(`Photo fetched (${arrayBuffer.byteLength} bytes) and converted to base64`);
+            
+            // Auto-detect dimensions from PNG/JPEG headers if not provided
+            if (format === "original" && (!originalWidth || !originalHeight)) {
+              const bytes = new Uint8Array(arrayBuffer);
+              const detected = detectImageDimensions(bytes, photoMimeType);
+              if (detected) {
+                originalWidth = detected.width;
+                originalHeight = detected.height;
+                console.log(`Auto-detected photo dimensions: ${originalWidth}×${originalHeight}`);
+              }
+            }
           }
         }
       }
