@@ -1111,17 +1111,54 @@ L'annotation doit être:
             if (gatewayResponse.ok) {
               const data = await gatewayResponse.json();
               const choice = data.choices?.[0]?.message;
-              const gatewayImageUrl = choice?.images?.[0]?.image_url?.url || null;
-              textResponse = choice?.content || null;
+              
+              // Debug: log response structure to understand format
+              console.log("Gateway response keys:", JSON.stringify({
+                hasChoices: !!data.choices,
+                choiceKeys: choice ? Object.keys(choice) : [],
+                contentType: typeof choice?.content,
+                hasImages: !!choice?.images,
+                contentIsArray: Array.isArray(choice?.content),
+              }));
+
+              let gatewayImageUrl: string | null = null;
+
+              // Strategy 1: choice.images[].image_url.url
+              if (choice?.images?.[0]?.image_url?.url) {
+                gatewayImageUrl = choice.images[0].image_url.url;
+              }
+              
+              // Strategy 2: content is array with image_url parts
+              if (!gatewayImageUrl && Array.isArray(choice?.content)) {
+                for (const part of choice.content) {
+                  if (part.type === "image_url" && part.image_url?.url) {
+                    gatewayImageUrl = part.image_url.url;
+                    break;
+                  }
+                  if (part.type === "image" && part.image_url?.url) {
+                    gatewayImageUrl = part.image_url.url;
+                    break;
+                  }
+                  if (part.type === "text" && typeof part.text === "string") {
+                    textResponse = part.text;
+                  }
+                }
+              }
+
+              // Strategy 3: content is string (text only)
+              if (typeof choice?.content === "string") {
+                textResponse = choice.content;
+              }
 
               if (gatewayImageUrl) {
+                console.log(`Gateway image found (${gatewayImageUrl.substring(0, 50)}...)`);
                 // Extract base64 from data URL if needed
                 if (gatewayImageUrl.startsWith("data:")) {
                   const commaIdx = gatewayImageUrl.indexOf(",");
                   imageBase64 = commaIdx >= 0 ? gatewayImageUrl.substring(commaIdx + 1) : null;
                 } else {
                   // It's a regular URL, use it directly
-                  imageBase64 = null; // will use gatewayImageUrl below
+                  imageBase64 = null;
                   const resultUrl = gatewayImageUrl;
                   generatedUrls.push(resultUrl);
                   console.log(`Image ${i + 1} generated via Gateway (URL), saving to database`);
@@ -1133,7 +1170,6 @@ L'annotation doit être:
                     console.error("Error saving render result:", insertError);
                     throw new Error("Erreur lors de la sauvegarde du rendu");
                   }
-                  // Skip to quota increment below
                   imageBase64 = "__ALREADY_SAVED__";
                 }
               }
@@ -1142,6 +1178,8 @@ L'annotation doit être:
                 console.log(`Image ${i + 1} generated via Gateway successfully`);
               } else if (!imageBase64) {
                 console.warn("Gateway returned no image, falling back to direct API...");
+                // Log first 500 chars of raw response for debugging
+                console.warn("Raw gateway response preview:", JSON.stringify(data).substring(0, 500));
               }
             } else {
               const errText = await gatewayResponse.text();
