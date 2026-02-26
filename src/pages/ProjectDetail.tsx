@@ -1055,11 +1055,16 @@ const ProjectDetail = () => {
                     <Button
                       onClick={() => {
                         setSelectedPhoto(photo);
-                        setShowDecorDialog(true);
-                        // Load original image dimensions
+                        setOriginalDimensions(null); // Reset to avoid stale dimensions
+                        // Pre-load original image dimensions before opening dialog
                         const img = new Image();
                         img.onload = () => {
                           setOriginalDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+                          setShowDecorDialog(true);
+                        };
+                        img.onerror = () => {
+                          // Fallback: open dialog anyway, backend will handle it
+                          setShowDecorDialog(true);
                         };
                         img.src = photo.original_image_url;
                       }}
