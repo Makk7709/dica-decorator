@@ -434,8 +434,8 @@ const ProjectDetail = () => {
           showReferences,
           originalWidth: renderFormat === "original" ? originalDimensions?.width : undefined,
           originalHeight: renderFormat === "original" ? originalDimensions?.height : undefined,
-          // Nouvelle propriété : tous les décors pour application multi-surface
-          allDecors: allDecors.length > 1 ? allDecors : undefined,
+          // TOUJOURS envoyer allDecors pour ascenseur (même avec 1 décor) pour le mapping surface
+          allDecors: project.use_case === "ascenseur" ? allDecors : (allDecors.length > 1 ? allDecors : undefined),
         },
       });
 

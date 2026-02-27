@@ -273,6 +273,8 @@ serve(async (req) => {
     
     // Déterminer si c'est un mode multi-décor (ascenseur avec Parois + Sol)
     const isMultiDecorMode = allDecors && Array.isArray(allDecors) && allDecors.length > 1 && useCase === "ascenseur";
+    // Mode ascenseur avec allDecors (même 1 seul décor) pour déterminer la surface
+    const isElevatorWithCatalogInfo = allDecors && Array.isArray(allDecors) && allDecors.length >= 1 && useCase === "ascenseur";
     
     console.log("Applying decor:", {
       photoUrl,
@@ -315,8 +317,8 @@ serve(async (req) => {
     
     let decorsInfo: DecorInfo[] = [];
     
-    if (isMultiDecorMode) {
-      // Mode multi-décor : récupérer les infos de tous les décors
+    if (isMultiDecorMode || isElevatorWithCatalogInfo) {
+      // Mode multi-décor OU single-décor ascenseur avec info catalogue : récupérer les infos de tous les décors
       console.log("Multi-decor mode: fetching info for all decors");
       
       for (const decorData of allDecors) {
@@ -528,35 +530,66 @@ RÈGLE ABSOLUE: Chaque texture va sur sa surface respective.
 NE PAS mélanger les textures. NE PAS inventer de surfaces.
 ═══════════════════════════════════════════════════════════════════`;
         } else {
-          // Mode simple décor pour ascenseur
-          surfaceRules = `═══════════════════════════════════════════════════════════════════
-IDENTIFICATION DES SURFACES - PAS DE SUGGESTION D'ESPACE
+          // Mode simple décor pour ascenseur - déterminer la surface cible
+          // Vérifier si on a l'info catalogue pour ce décor unique
+          const singleDecorSurface = decorsInfo[0]?.surfaceType || 'general';
+          console.log(`Single decor elevator mode - surface type: ${singleDecorSurface}`);
+          
+          if (singleDecorSurface === 'floors') {
+            // Décor SOL sélectionné seul → appliquer uniquement sur le sol
+            surfaceRules = `═══════════════════════════════════════════════════════════════════
+IDENTIFICATION DES SURFACES - DÉCOR SOL UNIQUEMENT
 ═══════════════════════════════════════════════════════════════════
 
-⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie, quel que soit le type d'espace
-(bureau, cuisine, salon, chambre, etc.). Le contexte "ascenseur" sert UNIQUEMENT à 
-identifier les TYPES de surfaces compatibles, PAS à suggérer de générer un ascenseur.
+⚠️ ATTENTION: Ce décor est un DÉCOR DE SOL. Tu DOIS l'appliquer 
+UNIQUEMENT sur le sol/plancher visible dans la photo.
 
-SURFACES COMPATIBLES avec le décor:
-• Panneaux muraux verticaux
-• Surfaces de portes/battants
-• Sections murales basses (soubassements)
-• Revêtements muraux lisses
+SURFACES COMPATIBLES avec le décor (SOL UNIQUEMENT):
+• Le sol / plancher de la cabine
+• Les surfaces horizontales au niveau du sol
 
 SURFACES INTERDITES (ne JAMAIS modifier):
+• Panneaux muraux et parois verticales ← NE PAS TOUCHER
+• Portes et battants ← NE PAS TOUCHER
 • Plafonds et luminaires
-• Sols et planchers
 • Éléments techniques (boutons, interrupteurs, prises)
 • Barres de maintien, poignées, quincaillerie
 • Miroirs et surfaces vitrées
 • Indicateurs et signalétique
 • Structures apparentes
-• Accessoires décoratifs ou techniques
 
-RÈGLE ABSOLUE: Travaille UNIQUEMENT sur la photo fournie. Si c'est un bureau, 
-reste sur le bureau. Si c'est une cuisine, reste sur la cuisine. NE JAMAIS inventer 
-un autre type d'espace.
+RÈGLE ABSOLUE: Ce décor va EXCLUSIVEMENT sur le SOL.
+NE JAMAIS appliquer sur les murs ou parois.
 ═══════════════════════════════════════════════════════════════════`;
+          } else {
+            // Décor PAROIS sélectionné seul (ou general) → appliquer sur les murs
+            surfaceRules = `═══════════════════════════════════════════════════════════════════
+IDENTIFICATION DES SURFACES - DÉCOR PAROIS/MURS UNIQUEMENT
+═══════════════════════════════════════════════════════════════════
+
+⚠️ ATTENTION: Ce décor est un DÉCOR DE PAROI. Tu DOIS l'appliquer 
+UNIQUEMENT sur les panneaux muraux et surfaces verticales.
+
+SURFACES COMPATIBLES avec le décor (PAROIS UNIQUEMENT):
+• Panneaux muraux verticaux
+• Surfaces de portes/battants
+• Sections murales basses (soubassements)
+• Revêtements muraux lisses
+• Cloisons et parois verticales
+
+SURFACES INTERDITES (ne JAMAIS modifier):
+• Sols et planchers ← NE PAS TOUCHER
+• Plafonds et luminaires
+• Éléments techniques (boutons, interrupteurs, prises)
+• Barres de maintien, poignées, quincaillerie
+• Miroirs et surfaces vitrées
+• Indicateurs et signalétique
+• Structures apparentes
+
+RÈGLE ABSOLUE: Ce décor va EXCLUSIVEMENT sur les PAROIS/MURS.
+NE JAMAIS appliquer sur le sol.
+═══════════════════════════════════════════════════════════════════`;
+          }
         }
         break;
       case "van":
