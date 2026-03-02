@@ -819,7 +819,8 @@ RÉSULTAT ATTENDU:
 pas de générer une nouvelle scène. La photo du client EST ta base de travail.
 ═══════════════════════════════════════════════════════════════════`;
 
-    // Layer 4: Format/Aspect ratio directive
+    // Layer 4: Format/Aspect ratio directive - DEFERRED until after dimension auto-detection
+    // (moved to after photo fetch to ensure originalWidth/originalHeight are available)
     const getFormatInstructions = () => {
       switch (format) {
         case "portrait":
@@ -889,84 +890,8 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
 ═══════════════════════════════════════════════════════════════════`;
       }
     };
-    
-    const formatInstructions = getFormatInstructions();
-    console.log(`Format instructions for: ${format}`);
-
-    // Assemble final prompt with TASK DEFINITION FIRST
-    const prompt = `${taskDefinition}
-
-${imperativeRules}
-
-${surfaceRules}
-
-${materialRules}
-
-${qualityDirective}
-
-${formatInstructions}
-
-═══════════════════════════════════════════════════════════════════
-📋 CHECKLIST FINALE AVANT GÉNÉRATION
-═══════════════════════════════════════════════════════════════════
-✓ La texture appliquée est-elle IDENTIQUE au fichier fourni?
-✓ Les couleurs sont-elles fidèles (pas de shift)?
-✓ Le grain/motif est-il dans la bonne direction?
-✓ La photo originale est-elle préservée (cadrage, objets)?
-✓ Seules les surfaces autorisées sont-elles modifiées?
-✓ Le résultat est-il crédible pour un professionnel?
-✓ Le FORMAT de sortie est-il respecté (${format})?
-
-Si UNE seule réponse est NON → Améliorer ou refuser le rendu.
-═══════════════════════════════════════════════════════════════════
-
-${showReferences ? (isMultiDecorMode ? `
-═══════════════════════════════════════════════════════════════════
-🏷️ ANNOTATIONS RÉFÉRENCES DICA - MODE MULTI-DÉCOR
-═══════════════════════════════════════════════════════════════════
-
-Tu DOIS ajouter sur l'image les références des décors appliqués:
-
-DÉCORS À ANNOTER:
-${decorsInfo.map((d, i) => `• ${d.surfaceType === 'walls' ? 'PAROIS' : d.surfaceType === 'floors' ? 'SOL' : 'DÉCOR'}: ${d.name} (réf ${d.reference_code})`).join('\n')}
-
-FORMAT D'ANNOTATION:
-• Texte élégant, police sans-serif moderne (style catalogue)
-• Fond semi-transparent derrière le texte pour lisibilité
-• Position: coin inférieur gauche
-• Couleur: blanc ou noir selon le contraste avec l'arrière-plan
-• Afficher les deux références l'une sous l'autre
-
-L'annotation doit être:
-- Professionnelle et discrète
-- Lisible sans dominer l'image
-- Intégrée harmonieusement au rendu
-═══════════════════════════════════════════════════════════════════
-` : `
-═══════════════════════════════════════════════════════════════════
-🏷️ ANNOTATIONS RÉFÉRENCES DICA - OBLIGATOIRE
-═══════════════════════════════════════════════════════════════════
-
-Tu DOIS ajouter sur l'image les références du décor appliqué:
-
-DÉCOR À ANNOTER:
-• Nom: ${decor.name}
-• Référence: ${decor.reference_code}
-
-FORMAT D'ANNOTATION:
-• Texte élégant, police sans-serif moderne (style catalogue)
-• Fond semi-transparent derrière le texte pour lisibilité
-• Position: coin inférieur gauche ou près de la surface décorée
-• Couleur: blanc ou noir selon le contraste avec l'arrière-plan
-
-L'annotation doit être:
-- Professionnelle et discrète
-- Lisible sans dominer l'image
-- Intégrée harmonieusement au rendu
-═══════════════════════════════════════════════════════════════════
-`) : ''}`;
-
-    console.log(`Calling Gemini API (${GEMINI_CONFIG.model})...`);
+    // NOTE: prompt assembly is DEFERRED to after photo fetch for dimension auto-detection
+    // See "Build Final Prompt" section below
 
     // ========================================================================
     // Fetch Source Images
@@ -1096,6 +1021,86 @@ L'annotation doit être:
         console.error("Photo fetch timed out");
       }
     }
+
+    // ========================================================================
+    // Build Final Prompt (AFTER dimension auto-detection)
+    // ========================================================================
+    const formatInstructions = getFormatInstructions();
+    console.log(`Format instructions for: ${format}, dimensions: ${originalWidth}x${originalHeight}`);
+
+    const prompt = `${taskDefinition}
+
+${imperativeRules}
+
+${surfaceRules}
+
+${materialRules}
+
+${qualityDirective}
+
+${formatInstructions}
+
+═══════════════════════════════════════════════════════════════════
+📋 CHECKLIST FINALE AVANT GÉNÉRATION
+═══════════════════════════════════════════════════════════════════
+✓ La texture appliquée est-elle IDENTIQUE au fichier fourni?
+✓ Les couleurs sont-elles fidèles (pas de shift)?
+✓ Le grain/motif est-il dans la bonne direction?
+✓ La photo originale est-elle préservée (cadrage, objets)?
+✓ Seules les surfaces autorisées sont-elles modifiées?
+✓ Le résultat est-il crédible pour un professionnel?
+✓ Le FORMAT de sortie est-il respecté (${format})?
+
+Si UNE seule réponse est NON → Améliorer ou refuser le rendu.
+═══════════════════════════════════════════════════════════════════
+
+${showReferences ? (isMultiDecorMode ? `
+═══════════════════════════════════════════════════════════════════
+🏷️ ANNOTATIONS RÉFÉRENCES DICA - MODE MULTI-DÉCOR
+═══════════════════════════════════════════════════════════════════
+
+Tu DOIS ajouter sur l'image les références des décors appliqués:
+
+DÉCORS À ANNOTER:
+${decorsInfo.map((d, i) => `• ${d.surfaceType === 'walls' ? 'PAROIS' : d.surfaceType === 'floors' ? 'SOL' : 'DÉCOR'}: ${d.name} (réf ${d.reference_code})`).join('\n')}
+
+FORMAT D'ANNOTATION:
+• Texte élégant, police sans-serif moderne (style catalogue)
+• Fond semi-transparent derrière le texte pour lisibilité
+• Position: coin inférieur gauche
+• Couleur: blanc ou noir selon le contraste avec l'arrière-plan
+• Afficher les deux références l'une sous l'autre
+
+L'annotation doit être:
+- Professionnelle et discrète
+- Lisible sans dominer l'image
+- Intégrée harmonieusement au rendu
+═══════════════════════════════════════════════════════════════════
+` : `
+═══════════════════════════════════════════════════════════════════
+🏷️ ANNOTATIONS RÉFÉRENCES DICA - OBLIGATOIRE
+═══════════════════════════════════════════════════════════════════
+
+Tu DOIS ajouter sur l'image les références du décor appliqué:
+
+DÉCOR À ANNOTER:
+• Nom: ${decor.name}
+• Référence: ${decor.reference_code}
+
+FORMAT D'ANNOTATION:
+• Texte élégant, police sans-serif moderne (style catalogue)
+• Fond semi-transparent derrière le texte pour lisibilité
+• Position: coin inférieur gauche ou près de la surface décorée
+• Couleur: blanc ou noir selon le contraste avec l'arrière-plan
+
+L'annotation doit être:
+- Professionnelle et discrète
+- Lisible sans dominer l'image
+- Intégrée harmonieusement au rendu
+═══════════════════════════════════════════════════════════════════
+`) : ''}`;
+
+    console.log(`Calling Gemini API (${GEMINI_CONFIG.model})...`);
 
     // Fetch all decor textures
     try {
