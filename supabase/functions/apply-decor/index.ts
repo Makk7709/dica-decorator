@@ -1,5 +1,5 @@
 // DICA Decorator - Apply Decor Function
-// Génération de rendus avec application de décors via Gemini 3.1 Flash Image Preview (Nano Banana 2)
+// Génération de rendus avec application de décors via Gemini 3 Pro Image Preview
 // Developed by KOREV AI for DICA France
 // Optimized for Supabase Edge Functions resource limits
 
@@ -30,8 +30,8 @@ const RESOURCE_LIMITS = {
 // ============================================================================
 
 const GEMINI_CONFIG = {
-  // Gemini 3.1 Flash Image Preview (Nano Banana 2) - Qualité Pro à vitesse Flash
-  model: "gemini-3.1-flash-image-preview",
+  // Gemini 3 Pro Image Preview - Meilleure qualité pour génération d'images
+  model: "gemini-3-pro-image-preview",
   apiEndpoint: "https://generativelanguage.googleapis.com/v1beta/models",
   responseModalities: ["TEXT", "IMAGE"],
 };
@@ -1222,7 +1222,7 @@ L'annotation doit être:
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  model: "google/gemini-3.1-flash-image-preview",
+                  model: "google/gemini-3-pro-image-preview",
                   messages: [{ role: "user", content: contentParts }],
                   modalities: ["image", "text"],
                 }),
