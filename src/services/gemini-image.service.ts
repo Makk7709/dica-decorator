@@ -59,11 +59,11 @@ export interface GeminiApiRequest {
 // Constants
 // ============================================================================
 
-/** Modèle par défaut pour la génération d'images - Gemini 3 Pro */
-export const DEFAULT_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+/** Modèle par défaut pour la génération d'images - Gemini 3.1 Flash Image (Nano Banana 2) */
+export const DEFAULT_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
 
-/** Modèle Gemini 3 Pro pour génération d'images haute qualité */
-export const GEMINI_3_PRO_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+/** Modèle Gemini 3.1 Flash Image pour génération d'images haute qualité à vitesse Flash */
+export const GEMINI_3_PRO_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
 
 /** Endpoint de base de l'API Google AI */
 export const GOOGLE_AI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
