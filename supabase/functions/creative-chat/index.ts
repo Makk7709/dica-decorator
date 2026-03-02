@@ -1,5 +1,5 @@
 // DICA Decorator - Creative Chat Function
-// Assistant créatif IA avec génération d'images via Gemini 3 Pro Image Preview
+// Assistant créatif IA avec génération d'images via Gemini 3.1 Flash Image Preview (Nano Banana 2)
 // Developed by KOREV AI for DICA France
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -15,8 +15,8 @@ const corsHeaders = {
 // ============================================================================
 
 const GEMINI_CONFIG = {
-  // Gemini 3 Pro Image Preview - Meilleure qualité pour génération d'images
-  imageModel: "gemini-3-pro-image-preview",
+  // Gemini 3.1 Flash Image Preview (Nano Banana 2) - Qualité Pro à vitesse Flash
+  imageModel: "gemini-3.1-flash-image-preview",
   // Modèle pour le chat texte avec streaming
   textModel: "gemini-2.0-flash",
   // Endpoint de base
@@ -583,7 +583,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
+          model: "google/gemini-3.1-flash-image-preview",
           messages: [
             {
               role: "user",
