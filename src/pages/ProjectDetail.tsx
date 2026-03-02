@@ -477,6 +477,47 @@ const ProjectDetail = () => {
     setIsGenerating(true);
 
     try {
+      // Pre-load original image dimensions for this specific photo
+      let regenOriginalWidth: number | undefined;
+      let regenOriginalHeight: number | undefined;
+      
+      if (renderFormat === "original") {
+        try {
+          const dims = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+            img.onerror = reject;
+            img.src = photo.original_image_url;
+          });
+          regenOriginalWidth = dims.width;
+          regenOriginalHeight = dims.height;
+        } catch {
+          console.warn("Could not load photo dimensions for regeneration, backend will auto-detect");
+        }
+      }
+
+      // For elevator projects, resolve the catalog context for surface mapping
+      let allDecors: { id: string; name: string; referenceCode: string; textureUrl: string; catalogId?: string }[] | undefined;
+      
+      if (project.use_case === "ascenseur") {
+        // Find which catalog this decor belongs to via catalog_decor_links
+        const { data: linkData } = await supabase
+          .from("catalog_decor_links")
+          .select("catalog_id")
+          .eq("decor_id", decor.id)
+          .limit(1);
+        
+        const catalogId = linkData?.[0]?.catalog_id;
+        
+        allDecors = [{
+          id: decor.id,
+          name: decor.name,
+          referenceCode: decor.reference_code,
+          textureUrl: decor.texture_image_url,
+          catalogId: catalogId || undefined,
+        }];
+      }
+
       // Delete the old render first
       const { error: deleteError } = await supabase
         .from("render_results")
@@ -496,8 +537,9 @@ const ProjectDetail = () => {
           renderCount: 1,
           format: renderFormat,
           showReferences,
-          originalWidth: renderFormat === "original" ? originalDimensions?.width : undefined,
-          originalHeight: renderFormat === "original" ? originalDimensions?.height : undefined,
+          originalWidth: regenOriginalWidth,
+          originalHeight: regenOriginalHeight,
+          allDecors,
         },
       });
 
