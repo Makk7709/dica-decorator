@@ -23,6 +23,7 @@ const Index = () => {
         playsInline
         loop
         preload="auto"
+        poster="/images/dica-landing-hero.jpg"
         onTimeUpdate={handleVideoTimeUpdate}
       >
         <source src="/videos/dica-landing-hero.mp4" type="video/mp4" />
