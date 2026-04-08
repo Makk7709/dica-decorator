@@ -258,7 +258,8 @@
   }
 
   .dark .card-premium {
-    border: 1px solid hsl(var(--border) / 0.4);
+    border: 1px solid hsl(var(--border) / 0.8);
+    background: hsl(var(--card));
   }
 
   .card-premium:hover {
