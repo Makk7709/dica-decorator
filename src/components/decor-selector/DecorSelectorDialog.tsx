@@ -3,7 +3,7 @@
  * Support de la sélection multi-catalogue (ex: Parois + Sol pour Ascenseur)
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -389,9 +389,13 @@ export const DecorSelectorDialog = ({
                                       </div>
                                     )}
                                     <img
-                                      src={decor.texture_image_url}
+                                      src={getThumbUrl(decor.texture_image_url)}
                                       alt={decor.name}
                                       className="h-24 w-full object-cover transition-transform hover:scale-105"
+                                      loading="lazy"
+                                      decoding="async"
+                                      width={200}
+                                      height={96}
                                     />
                                   </div>
                                   <h3 className="font-medium text-xs leading-tight mb-0.5 truncate">
