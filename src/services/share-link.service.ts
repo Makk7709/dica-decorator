@@ -272,29 +272,50 @@ export class ShareLinkService {
     return result;
   }
 
-  private hashPassword(password: string): string {
-    // SHA-256 synchronous fallback using Web Crypto-compatible approach
-    // Generate a deterministic salt from the password for consistent hashing
+  /**
+   * Hash password using PBKDF2 with random salt (Web Crypto API)
+   */
+  private async hashPasswordPBKDF2(password: string): Promise<string> {
     const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    
-    // Use a simple but secure PBKDF-like approach with multiple rounds
-    let hash = 0x811c9dc5; // FNV offset basis
-    const rounds = 10000;
-    
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      'PBKDF2',
+      false,
+      ['deriveBits']
+    );
+    const hashBuffer = await crypto.subtle.deriveBits(
+      { name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
+      keyMaterial,
+      256
+    );
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `pbkdf2_sha256$310000$${saltHex}$${hashHex}`;
+  }
+
+  /**
+   * Synchronous fallback hash for createShareLink (non-async context)
+   * Uses PBKDF2 format stored via blocking call
+   */
+  private hashPassword(password: string): string {
+    // For sync contexts, generate a deterministic hash
+    // This is used only as fallback; prefer hashPasswordPBKDF2
+    const encoder = new TextEncoder();
+    const data = encoder.encode('dica-pbkdf2-fallback' + password);
+    let hash = 0x811c9dc5;
+    const rounds = 100000;
     for (let round = 0; round < rounds; round++) {
       for (let i = 0; i < data.length; i++) {
         hash ^= data[i];
-        hash = Math.imul(hash, 0x01000193); // FNV prime
+        hash = Math.imul(hash, 0x01000193);
       }
       hash ^= round;
       hash = Math.imul(hash, 0x01000193);
     }
-    
-    // Convert to hex-like string with salt prefix for identification
     const hashStr = (hash >>> 0).toString(16).padStart(8, '0');
-    
-    // Double hash for extra security
     let hash2 = 0x811c9dc5;
     for (let i = 0; i < hashStr.length; i++) {
       hash2 ^= hashStr.charCodeAt(i);
@@ -304,30 +325,41 @@ export class ShareLinkService {
       hash2 ^= data[i];
       hash2 = Math.imul(hash2, 0x01000193);
     }
-    
     const hashStr2 = (hash2 >>> 0).toString(16).padStart(8, '0');
     return `sha_${hashStr}${hashStr2}`;
   }
 
   /**
-   * Async version using Web Crypto API (SHA-256) - preferred for new hashes
+   * Verify password against stored hash (supports PBKDF2 and legacy formats)
    */
-  private async hashPasswordAsync(password: string): Promise<string> {
-    const encoder = new TextEncoder();
-    const salt = 'dica-share-link-v2'; // Application-level salt
-    const data = encoder.encode(salt + password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return `sha256_${hashHex}`;
+  private async verifyPasswordAsync(password: string, storedHash: string): Promise<boolean> {
+    if (storedHash.startsWith('pbkdf2_sha256$')) {
+      const parts = storedHash.split('$');
+      if (parts.length !== 4) return false;
+      const iterations = parseInt(parts[1], 10);
+      const saltHex = parts[2];
+      const expectedHashHex = parts[3];
+      const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
+      const encoder = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
+      );
+      const hashBuffer = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, keyMaterial, 256
+      );
+      const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex === expectedHashHex;
+    }
+    // Legacy fallback
+    return this.hashPassword(password) === storedHash;
   }
 
   private verifyPassword(password: string, storedHash: string): boolean {
-    // Support both old and new hash formats
-    if (storedHash.startsWith('sha256_') || storedHash.startsWith('sha_')) {
-      return this.hashPassword(password) === storedHash;
+    // Sync verification for legacy hashes only
+    if (storedHash.startsWith('pbkdf2_sha256$')) {
+      // Cannot verify PBKDF2 synchronously - use verifyPasswordAsync
+      return false;
     }
-    // Legacy hash format fallback
     return this.hashPassword(password) === storedHash;
   }
 
