@@ -41,7 +41,7 @@ const Index = () => {
           width={600}
           height={200}
           fetchPriority="high"
-          className="h-32 md:h-44 w-auto opacity-90"
+          className="h-[40rem] md:h-[55rem] w-auto opacity-90"
         />
       </div>
       
