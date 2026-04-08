@@ -219,7 +219,7 @@ const Dashboard = () => {
             <img 
               src="/images/dica-logo.png" 
               alt="DICA Visual Studio" 
-              className="h-8 md:h-10 w-auto" 
+              className="h-14 md:h-16 w-auto" 
             />
           </div>
 
