@@ -34,7 +34,7 @@ const Index = () => {
       <div className="absolute inset-0 bg-black/20" />
       
       {/* Logo DICA en haut */}
-      <div className="absolute top-6 left-6 z-20">
+      <div className="absolute top-0 left-6 z-20">
         <img 
           src="/images/dica-logo.png" 
           alt="DICA" 
