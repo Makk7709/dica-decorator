@@ -249,9 +249,7 @@ serve(async (req) => {
     // ========================================================================
     // Quota Pre-Check - Atomic check before expensive AI call
     // ========================================================================
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = supabaseAdmin;
 
     const { data: quotaAllowed, error: quotaCheckError } = await supabase.rpc(
       'check_and_increment_quota',
@@ -323,8 +321,6 @@ serve(async (req) => {
     console.log("Lovable AI Gateway available:", !!LOVABLE_API_KEY);
 
     // Fetch decor information to get name and reference code
-    // Reuse supabaseAdmin created earlier for auth verification
-    const supabase = supabaseAdmin;
 
     // Pour le mode multi-décor, on récupère les infos de tous les décors
     interface DecorInfo {
@@ -1392,36 +1388,7 @@ L'annotation doit être:
           console.log(`Render result ${i + 1} saved successfully`);
         }
         
-        // Increment user quota usage
-        try {
-          const { data: photoData } = await supabase
-            .from("project_photos")
-            .select("project_id")
-            .eq("id", photoId)
-            .single();
-          
-          if (photoData) {
-            const { data: projectData } = await supabase
-              .from("projects")
-              .select("user_id")
-              .eq("id", photoData.project_id)
-              .single();
-            
-            if (projectData) {
-              const { error: quotaError } = await supabase.rpc('increment_quota_used', {
-                p_user_id: projectData.user_id
-              });
-              
-              if (quotaError) {
-                console.error("Error incrementing quota:", quotaError);
-              } else {
-                console.log(`Quota incremented for user ${projectData.user_id}`);
-              }
-            }
-          }
-        } catch (quotaError) {
-          console.error("Error updating quota:", quotaError);
-        }
+        // Quota already incremented atomically at the start via check_and_increment_quota
         
       } catch (renderError) {
         console.error(`Error generating render ${i + 1}:`, renderError);
