@@ -1,37 +1,45 @@
 
-# Confirmer manuellement le compte amine.mohamed@korev-ai.com
+# 🎨 Refonte Visuelle DICA — Direction "Premium & Épuré"
 
-## Probleme
-L'email de confirmation n'a jamais ete recu par l'utilisateur. Sans confirmation, la connexion est bloquee avec l'erreur "Email not confirmed". Le systeme d'envoi d'emails de Lovable Cloud a bien traite la demande (statut 200), mais l'email n'est jamais arrive.
+## Principe directeur
+Moderniser l'esthétique sans toucher à la logique métier, aux services, ni aux appels API. On ne modifie que le CSS, les tokens de design, et les composants visuels.
 
-## Solution
-Ajouter une action "confirm_user" dans la fonction backend `get-users-admin` pour permettre a l'admin de confirmer manuellement un compte, puis ajouter un bouton correspondant dans l'interface admin.
+---
 
-## Etapes
+## Phase 1 — Design System (fondations)
+- **Nouvelle palette de couleurs** : tons sombres raffinés (charcoal, slate), accent rouge DICA, surfaces subtiles
+- **Typographie** : passer à une font premium (ex: "Plus Jakarta Sans" ou "Outfit") pour les titres, garder une sans-serif clean pour le body
+- **Tokens CSS** : refonte des variables `index.css` (backgrounds, surfaces, borders, shadows élégantes)
+- **Dark mode repensé** : vrai mode sombre premium, pas juste une inversion
 
-### 1. Ajouter l'action `confirm_user` dans la fonction backend
-Ajouter un nouveau bloc dans `supabase/functions/get-users-admin/index.ts` qui utilise `supabaseAdmin.auth.admin.updateUserById()` pour mettre a jour le champ `email_confirm` a `true`.
+## Phase 2 — Dashboard (priorité #1)
+- **Header/Nav** : navigation épurée avec logo bien intégré, profil minimaliste, fond translucide avec backdrop-blur
+- **Cards projets** : redesign avec ombres douces, hover subtil avec scale, bordures fines, espacement généreux
+- **Statistiques** : widgets avec glassmorphism léger, icônes raffinées
+- **Animations** : entrées en fade-in/slide-up avec framer-motion, transitions fluides
+- **Espacement** : plus de "breathing room", grille aérée
 
-### 2. Ajouter un bouton "Confirmer email" dans l'interface admin
-Dans `src/pages/Admin.tsx` :
-- Ajouter une fonction `handleConfirmUser` qui appelle la fonction backend avec `action: "confirm_user"`
-- Ajouter un bouton "Confirmer" visible pour chaque utilisateur dans la liste
+## Phase 3 — Composants communs
+- **Boutons** : variantes premium (gradient subtil, shadow au hover)
+- **Dialogs/Modals** : fond blur, animations d'entrée/sortie
+- **Inputs/Forms** : style épuré avec focus rings élégants
+- **Toasts/Notifications** : redesign cohérent avec le nouveau style
 
-### 3. Confirmer immediatement le compte amine.mohamed@korev-ai.com
-Executer une requete pour confirmer ce compte directement afin de debloquer l'acces sans attendre le deploiement du bouton.
+## Phase 4 — Pages secondaires (si validé)
+- Page projet/détail
+- Page favoris
+- Page aide
 
-## Details techniques
+---
 
-**Fonction backend** - nouveau bloc :
-```typescript
-if (action === "confirm_user") {
-  const { userId } = body;
-  const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-    email_confirm: true
-  });
-  if (error) throw error;
-  return Response({ success: true });
-}
-```
+## ⚠️ Ce qui NE change PAS
+- Aucune modification des services (API, Supabase, edge functions)
+- Aucune modification de la logique de routing
+- Aucune modification des hooks métier
+- Aucune modification de la structure de données
 
-**Frontend** - nouveau handler + bouton avec icone `CheckCircle` a cote du bouton "Desactiver" pour chaque utilisateur.
+## 📐 Approche technique
+- Modification de `index.css` et `tailwind.config.ts` pour les tokens
+- Modification des composants UI (cards, buttons, etc.) via leurs variantes
+- Ajout de `framer-motion` pour les animations
+- Chaque phase testable indépendamment
