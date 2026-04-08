@@ -245,6 +245,27 @@ serve(async (req) => {
     
     const user = verifiedUser;
     console.log("Authenticated user:", user.id);
+
+    // ========================================================================
+    // Quota Pre-Check - Atomic check before expensive AI call
+    // ========================================================================
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { data: quotaAllowed, error: quotaCheckError } = await supabase.rpc(
+      'check_and_increment_quota',
+      { p_user_id: user.id }
+    );
+
+    if (quotaCheckError || quotaAllowed === false) {
+      console.warn("Quota exceeded for user:", user.id);
+      return new Response(
+        JSON.stringify({ error: "Quota de rendus épuisé. Contactez votre administrateur." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ========================================================================
     const { 
       photoUrl, 
