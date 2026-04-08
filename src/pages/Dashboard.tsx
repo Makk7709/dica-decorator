@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WelcomeModal, useOnboarding } from "@/components/onboarding";
-import { Plus, LogOut, Settings, FolderOpen, Sparkles, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen, Wand2, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -214,7 +214,7 @@ const Dashboard = () => {
               onClick={() => navigate("/creative")}
               className="hidden sm:flex items-center gap-2 text-primary hover:text-primary hover:bg-primary/5 rounded-xl"
             >
-              <Sparkles className="h-4 w-4" />
+              <Wand2 className="h-4 w-4" />
               <span className="hidden md:inline font-medium">Assistant Créatif</span>
             </Button>
             
@@ -224,7 +224,7 @@ const Dashboard = () => {
               onClick={() => navigate("/creative")}
               className="sm:hidden text-primary rounded-xl"
             >
-              <Sparkles className="h-5 w-5" />
+              <Wand2 className="h-5 w-5" />
             </Button>
 
             <Button
