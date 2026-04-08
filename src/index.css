@@ -252,20 +252,23 @@
   /* ─── Card Premium ─── */
   .card-premium {
     @apply bg-card rounded-2xl;
-    box-shadow: var(--shadow-card);
-    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow: var(--shadow-card), 0 0 0 1px hsl(var(--border) / 0.6), 0 0 12px -4px hsl(var(--primary) / 0.08);
+    border: none;
     transition: all var(--transition-smooth);
   }
 
   .dark .card-premium {
-    border: 1px solid hsl(var(--border) / 0.8);
     background: hsl(var(--card));
+    box-shadow: var(--shadow-card), 0 0 0 1px hsl(var(--border) / 0.8), 0 0 16px -4px hsl(var(--primary) / 0.12);
   }
 
   .card-premium:hover {
-    box-shadow: var(--shadow-card-hover);
+    box-shadow: var(--shadow-card-hover), 0 0 0 1px hsl(var(--primary) / 0.25), 0 0 24px -2px hsl(var(--primary) / 0.18), 0 0 48px -8px hsl(var(--primary) / 0.1);
     transform: translateY(-3px);
-    border-color: hsl(var(--primary) / 0.15);
+  }
+
+  .dark .card-premium:hover {
+    box-shadow: var(--shadow-card-hover), 0 0 0 1px hsl(var(--primary) / 0.35), 0 0 32px -2px hsl(var(--primary) / 0.25), 0 0 56px -8px hsl(var(--primary) / 0.15);
   }
 
   /* ─── Header Premium ─── */
