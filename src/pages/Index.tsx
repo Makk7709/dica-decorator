@@ -34,14 +34,14 @@ const Index = () => {
       <div className="absolute inset-0 bg-black/20" />
       
       {/* Logo DICA en haut */}
-      <div className="absolute top-8 left-8 z-20">
+      <div className="absolute top-6 left-6 z-20">
         <img 
           src="/images/dica-logo.png" 
           alt="DICA" 
           width={600}
           height={200}
           fetchPriority="high"
-          className="h-[40rem] md:h-[55rem] w-auto opacity-90"
+          className="h-[20rem] md:h-[27.5rem] w-auto opacity-90"
         />
       </div>
       
