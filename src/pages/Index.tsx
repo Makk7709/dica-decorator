@@ -34,14 +34,12 @@ const Index = () => {
       <div className="absolute inset-0 bg-black/20" />
       
       {/* Logo DICA en haut */}
-      <div className="absolute top-0 left-0 z-20 p-0">
+      <div className="absolute top-4 left-4 z-20">
         <img 
           src="/images/dica-logo.png" 
-          alt="DICA" 
-          width={600}
-          height={200}
+          alt="DICA - Stratifié & Compact HPL" 
           fetchPriority="high"
-          className="h-[20rem] md:h-[27.5rem] w-auto"
+          className="h-16 md:h-20 w-auto"
         />
       </div>
       
