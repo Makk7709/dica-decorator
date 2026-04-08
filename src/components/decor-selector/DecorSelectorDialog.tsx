@@ -45,8 +45,20 @@ const projectTypeLabels: Record<ProjectType, string> = {
   terrasse: "Terrasse",
   autre: "Autre",
 };
+// Génère une URL de miniature optimisée via Supabase Storage Transform
+const getThumbUrl = (url: string): string => {
+  if (!url) return url;
+  // Supabase storage URLs: add render/image/public transform
+  if (url.includes('/storage/v1/object/public/')) {
+    return url.replace(
+      '/storage/v1/object/public/',
+      '/storage/v1/render/image/public/'
+    ) + '?width=200&quality=60';
+  }
+  return url;
+};
 
-export const DecorSelectorDialog = ({
+
   open,
   onOpenChange,
   projectType,
