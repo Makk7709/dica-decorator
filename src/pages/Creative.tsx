@@ -712,7 +712,7 @@ ${exampleRefs}
           
           <div className="flex items-center gap-2 md:gap-3">
             <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+              <Wand2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">Assistant Créatif</h1>
@@ -744,7 +744,7 @@ ${exampleRefs}
                 value="chat" 
                 className="h-10 px-6 rounded-lg text-foreground data-[state=active]:bg-card data-[state=active]:shadow-sm"
               >
-                <Sparkles className="mr-2 h-4 w-4" />
+                <Wand2 className="mr-2 h-4 w-4" />
                 Nouvelle création
               </TabsTrigger>
               <TabsTrigger 
@@ -763,7 +763,7 @@ ${exampleRefs}
               <div className="mb-6 pb-6 border-b border-border/50">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-                    <Sparkles className="h-6 w-6 text-primary" />
+                    <Wand2 className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold mb-1">Studio Créatif DICA</h2>
