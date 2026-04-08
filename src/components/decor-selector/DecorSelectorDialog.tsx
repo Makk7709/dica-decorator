@@ -58,7 +58,7 @@ const getThumbUrl = (url: string): string => {
   return url;
 };
 
-
+export const DecorSelectorDialog = ({
   open,
   onOpenChange,
   projectType,
