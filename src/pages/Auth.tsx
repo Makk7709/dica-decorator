@@ -178,6 +178,26 @@ const Auth = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error("Erreur lors de la connexion avec Google");
+        return;
+      }
+      if (result.redirected) return;
+      toast.success("Connexion réussie !");
+      navigate("/dashboard");
+    } catch {
+      toast.error("Erreur lors de la connexion avec Google");
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
   return (
     <PremiumLayout showPlates={true}>
       {/* Theme toggle in corner */}
