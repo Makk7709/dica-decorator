@@ -188,7 +188,7 @@ const Dashboard = () => {
   };
 
   return (
-    <PremiumLayout>
+    <PremiumLayout backgroundImage="/images/page-projets.png">
       {/* Header */}
       <motion.header 
         className="header-premium sticky top-0 z-50"
