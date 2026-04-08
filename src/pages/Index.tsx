@@ -39,7 +39,7 @@ const Index = () => {
           src="/images/dica-logo.png" 
           alt="DICA - Stratifié & Compact HPL" 
           fetchPriority="high"
-          className="h-16 md:h-20 w-auto"
+          className="h-28 md:h-36 w-auto"
         />
       </div>
       
