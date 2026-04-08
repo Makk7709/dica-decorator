@@ -3,7 +3,7 @@
  * Support de la sélection multi-catalogue (ex: Parois + Sol pour Ascenseur)
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -44,6 +44,18 @@ const projectTypeLabels: Record<ProjectType, string> = {
   van: "Van",
   terrasse: "Terrasse",
   autre: "Autre",
+};
+// Génère une URL de miniature optimisée via Supabase Storage Transform
+const getThumbUrl = (url: string): string => {
+  if (!url) return url;
+  // Supabase storage URLs: add render/image/public transform
+  if (url.includes('/storage/v1/object/public/')) {
+    return url.replace(
+      '/storage/v1/object/public/',
+      '/storage/v1/render/image/public/'
+    ) + '?width=200&quality=60';
+  }
+  return url;
 };
 
 export const DecorSelectorDialog = ({
@@ -175,9 +187,11 @@ export const DecorSelectorDialog = ({
                       {selectedDecor ? (
                         <>
                           <img
-                            src={selectedDecor.texture_image_url}
+                            src={getThumbUrl(selectedDecor.texture_image_url)}
                             alt={selectedDecor.name}
                             className="w-10 h-10 rounded object-cover"
+                            loading="eager"
+                            decoding="async"
                           />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-muted-foreground">{catalog.label}</p>
@@ -389,9 +403,13 @@ export const DecorSelectorDialog = ({
                                       </div>
                                     )}
                                     <img
-                                      src={decor.texture_image_url}
+                                      src={getThumbUrl(decor.texture_image_url)}
                                       alt={decor.name}
                                       className="h-24 w-full object-cover transition-transform hover:scale-105"
+                                      loading="lazy"
+                                      decoding="async"
+                                      width={200}
+                                      height={96}
                                     />
                                   </div>
                                   <h3 className="font-medium text-xs leading-tight mb-0.5 truncate">
