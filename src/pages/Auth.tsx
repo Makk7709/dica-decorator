@@ -365,7 +365,6 @@ const Auth = () => {
                     )}
                     Continuer avec Google
                   </Button>
-                  </Button>
                   <div className="text-center">
                     <button
                       type="button"
