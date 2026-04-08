@@ -691,7 +691,7 @@ const ProjectDetail = () => {
           </Button>
           
           <div className="flex items-center gap-2 md:gap-3">
-            <img src="/images/dica-logo.svg" alt="DICA" className="h-7 md:h-8 w-auto" />
+            <img src="/images/dica-logo.png" alt="DICA" className="h-7 md:h-8 w-auto" />
             <div className="text-left hidden sm:block">
               <h1 className="text-base md:text-lg font-semibold leading-tight tracking-tight">{project.title}</h1>
               <p className="text-xs text-muted-foreground">{getUseCaseLabel(project.use_case)}</p>

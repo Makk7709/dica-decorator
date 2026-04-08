@@ -217,7 +217,7 @@ const Dashboard = () => {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <img 
-              src="/images/dica-logo.svg" 
+              src="/images/dica-logo.png" 
               alt="DICA Visual Studio" 
               className="h-8 md:h-10 w-auto" 
             />

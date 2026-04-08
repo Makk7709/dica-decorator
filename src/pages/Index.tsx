@@ -36,7 +36,7 @@ const Index = () => {
       {/* Logo DICA en haut */}
       <div className="absolute top-6 left-6 z-20">
         <img 
-          src="/images/dica-logo.svg" 
+          src="/images/dica-logo.png" 
           alt="DICA" 
           width={140}
           height={48}
