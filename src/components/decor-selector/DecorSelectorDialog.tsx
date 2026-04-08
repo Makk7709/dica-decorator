@@ -187,9 +187,11 @@ export const DecorSelectorDialog = ({
                       {selectedDecor ? (
                         <>
                           <img
-                            src={selectedDecor.texture_image_url}
+                            src={getThumbUrl(selectedDecor.texture_image_url)}
                             alt={selectedDecor.name}
                             className="w-10 h-10 rounded object-cover"
+                            loading="eager"
+                            decoding="async"
                           />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-muted-foreground">{catalog.label}</p>
