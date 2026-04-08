@@ -135,7 +135,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <img 
-                  src="/images/dica-logo.svg" 
+                  src="/images/dica-logo.png" 
                   alt="DICA" 
                   className="h-8 w-auto"
                 />

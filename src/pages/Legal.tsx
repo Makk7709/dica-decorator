@@ -14,7 +14,7 @@ const Legal = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <img 
-              src="/images/dica-logo.svg" 
+              src="/images/dica-logo.png" 
               alt="DICA" 
               className="h-8 w-auto"
             />
