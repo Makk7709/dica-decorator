@@ -8,7 +8,7 @@ const Index = () => {
 
   const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
-    if (video.currentTime >= 6.381) {
+    if (video.currentTime >= 6.481) {
       video.pause();
     }
   };
@@ -16,7 +16,7 @@ const Index = () => {
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-black">
       {/* Full-screen background video */}
-      <video 
+      <video
         className="absolute inset-0 w-full h-full object-cover"
         autoPlay
         muted
@@ -27,10 +27,10 @@ const Index = () => {
         <source src="/videos/dica-landing-hero.mp4" type="video/mp4" />
         Votre navigateur ne supporte pas la lecture vidéo.
       </video>
-      
+
       {/* Overlay for better text visibility */}
       <div className="absolute inset-0 bg-black/20" />
-      
+
       {/* Content */}
       <div className="relative z-10 text-center px-4 mt-[48vh]">
         <Button
@@ -44,7 +44,7 @@ const Index = () => {
 
       {/* Footer */}
       <div className="absolute bottom-4 left-0 right-0 z-20 text-center">
-        <Link 
+        <Link
           to="/mentions-legales"
           className="text-xs text-white/60 hover:text-white transition-colors underline-offset-4 hover:underline"
         >
