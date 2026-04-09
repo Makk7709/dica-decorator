@@ -23,7 +23,6 @@ const Index = () => {
         playsInline
         loop
         preload="auto"
-        poster="/images/dica-landing-hero.jpg"
         onTimeUpdate={handleVideoTimeUpdate}
       >
         <source src="/videos/dica-landing-hero.mp4" type="video/mp4" />
@@ -32,16 +31,6 @@ const Index = () => {
       
       {/* Overlay for better text visibility */}
       <div className="absolute inset-0 bg-black/20" />
-      
-      {/* Logo DICA en haut */}
-      <div className="absolute top-4 left-4 z-20">
-        <img 
-          src="/images/dica-logo.png" 
-          alt="DICA - Stratifié & Compact HPL" 
-          fetchPriority="high"
-          className="h-28 md:h-36 w-auto"
-        />
-      </div>
       
       {/* Content */}
       <div className="relative z-10 text-center px-4 mt-[48vh]">
