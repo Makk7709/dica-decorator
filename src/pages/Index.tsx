@@ -21,7 +21,6 @@ const Index = () => {
         autoPlay
         muted
         playsInline
-        loop
         preload="auto"
         onTimeUpdate={handleVideoTimeUpdate}
       >
