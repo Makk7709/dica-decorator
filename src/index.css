@@ -392,7 +392,24 @@
     background: hsl(var(--muted-foreground));
   }
 
-  /* ─── Halo Lumineux — Landing Page ─── */
+  @keyframes glow-pulse {
+    0%, 100% {
+      box-shadow: 
+        0 0 20px rgba(233, 78, 93, 0.4),
+        0 0 40px rgba(233, 78, 93, 0.2);
+    }
+    50% {
+      box-shadow: 
+        0 0 30px rgba(233, 78, 93, 0.6),
+        0 0 60px rgba(233, 78, 93, 0.4),
+        0 0 90px rgba(233, 78, 93, 0.2);
+    }
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
   @keyframes halo-pulse {
     0%, 100% {
       box-shadow: 
