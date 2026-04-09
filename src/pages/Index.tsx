@@ -8,7 +8,7 @@ const Index = () => {
 
   const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
-    if (video.currentTime >= 6.840) {
+    if (video.currentTime >= 6.381) {
       video.pause();
     }
   };
