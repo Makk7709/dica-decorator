@@ -1298,6 +1298,16 @@ L'annotation doit être:
                   model: "google/gemini-3-pro-image-preview",
                   messages: [{ role: "user", content: contentParts }],
                   modalities: ["image", "text"],
+                  // Force the output aspect ratio so Avant/Après are perfectly superposable
+                  image_config: { aspect_ratio: computedAspectRatio },
+                  imageConfig: { aspectRatio: computedAspectRatio },
+                  extra_body: {
+                    google: {
+                      generation_config: {
+                        image_config: { aspect_ratio: computedAspectRatio },
+                      },
+                    },
+                  },
                 }),
               },
               55000 // 55s timeout - gateway handles its own retries
@@ -1393,7 +1403,11 @@ L'annotation doit être:
           
           const geminiRequestBody = JSON.stringify({
             contents: [{ role: "user", parts: requestParts }],
-            generationConfig: { responseModalities: GEMINI_CONFIG.responseModalities },
+            generationConfig: {
+              responseModalities: GEMINI_CONFIG.responseModalities,
+              // Force aspect ratio so Avant/Après stay perfectly superposable
+              imageConfig: { aspectRatio: computedAspectRatio },
+            },
           });
 
           const geminiResponse = await fetchWithTimeout(geminiUrl, {
