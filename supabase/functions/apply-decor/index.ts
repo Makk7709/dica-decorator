@@ -160,6 +160,61 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 /**
+ * Map arbitrary width/height to closest Gemini-supported aspect ratio.
+ * Supported ratios for gemini-3-pro-image-preview:
+ *   "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+ */
+function mapToSupportedAspectRatio(width: number, height: number): string {
+  if (!width || !height) return "1:1";
+  const target = width / height;
+  const candidates: Array<{ label: string; value: number }> = [
+    { label: "1:1", value: 1 },
+    { label: "2:3", value: 2 / 3 },
+    { label: "3:2", value: 3 / 2 },
+    { label: "3:4", value: 3 / 4 },
+    { label: "4:3", value: 4 / 3 },
+    { label: "4:5", value: 4 / 5 },
+    { label: "5:4", value: 5 / 4 },
+    { label: "9:16", value: 9 / 16 },
+    { label: "16:9", value: 16 / 9 },
+    { label: "21:9", value: 21 / 9 },
+  ];
+  let best = candidates[0];
+  let bestDiff = Math.abs(Math.log(target / best.value));
+  for (const c of candidates) {
+    const diff = Math.abs(Math.log(target / c.value));
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = c;
+    }
+  }
+  return best.label;
+}
+
+/**
+ * Compute the aspect ratio string sent to the Gemini image model based on the
+ * format requested by the user and the source photo dimensions.
+ */
+function computeAspectRatio(
+  format: string,
+  width?: number,
+  height?: number
+): string {
+  switch (format) {
+    case "portrait":
+      return "9:16";
+    case "landscape":
+      return "16:9";
+    case "square":
+      return "1:1";
+    case "original":
+    default:
+      if (width && height) return mapToSupportedAspectRatio(width, height);
+      return "1:1";
+  }
+}
+
+/**
  * Detect image dimensions from raw bytes (JPEG/PNG headers)
  */
 function detectImageDimensions(bytes: Uint8Array, mimeType: string): { width: number; height: number } | null {
@@ -1043,7 +1098,8 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
     // Build Final Prompt (AFTER dimension auto-detection)
     // ========================================================================
     const formatInstructions = getFormatInstructions();
-    console.log(`Format instructions for: ${format}, dimensions: ${originalWidth}x${originalHeight}`);
+    const computedAspectRatio = computeAspectRatio(format, originalWidth, originalHeight);
+    console.log(`Format: ${format}, dimensions: ${originalWidth}x${originalHeight}, aspectRatio sent to Gemini: ${computedAspectRatio}`);
 
     const prompt = `${taskDefinition}
 
@@ -1242,6 +1298,16 @@ L'annotation doit être:
                   model: "google/gemini-3-pro-image-preview",
                   messages: [{ role: "user", content: contentParts }],
                   modalities: ["image", "text"],
+                  // Force the output aspect ratio so Avant/Après are perfectly superposable
+                  image_config: { aspect_ratio: computedAspectRatio },
+                  imageConfig: { aspectRatio: computedAspectRatio },
+                  extra_body: {
+                    google: {
+                      generation_config: {
+                        image_config: { aspect_ratio: computedAspectRatio },
+                      },
+                    },
+                  },
                 }),
               },
               55000 // 55s timeout - gateway handles its own retries
@@ -1337,7 +1403,11 @@ L'annotation doit être:
           
           const geminiRequestBody = JSON.stringify({
             contents: [{ role: "user", parts: requestParts }],
-            generationConfig: { responseModalities: GEMINI_CONFIG.responseModalities },
+            generationConfig: {
+              responseModalities: GEMINI_CONFIG.responseModalities,
+              // Force aspect ratio so Avant/Après stay perfectly superposable
+              imageConfig: { aspectRatio: computedAspectRatio },
+            },
           });
 
           const geminiResponse = await fetchWithTimeout(geminiUrl, {
