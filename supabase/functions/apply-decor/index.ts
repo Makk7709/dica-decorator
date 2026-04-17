@@ -1098,7 +1098,8 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
     // Build Final Prompt (AFTER dimension auto-detection)
     // ========================================================================
     const formatInstructions = getFormatInstructions();
-    console.log(`Format instructions for: ${format}, dimensions: ${originalWidth}x${originalHeight}`);
+    const computedAspectRatio = computeAspectRatio(format, originalWidth, originalHeight);
+    console.log(`Format: ${format}, dimensions: ${originalWidth}x${originalHeight}, aspectRatio sent to Gemini: ${computedAspectRatio}`);
 
     const prompt = `${taskDefinition}
 
