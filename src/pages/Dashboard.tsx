@@ -267,6 +267,29 @@ const Dashboard = () => {
               <Heart className="h-5 w-5 fill-current" />
             </Button>
 
+            {coBrandingEnabled && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("/mon-cobranding")}
+                  className="hidden sm:flex items-center gap-2 text-primary hover:text-primary hover:bg-primary/5 rounded-xl"
+                >
+                  <Building2 className="h-4 w-4" />
+                  <span className="hidden md:inline font-medium">Co-branding</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate("/mon-cobranding")}
+                  className="sm:hidden text-primary rounded-xl"
+                  title="Mon co-branding"
+                >
+                  <Building2 className="h-5 w-5" />
+                </Button>
+              </>
+            )}
+
             {userRole === "admin" && (
               <Button
                 variant="ghost"
@@ -346,6 +369,32 @@ const Dashboard = () => {
             </motion.div>
           </div>
         </motion.div>
+
+        {/* Carte Co-branding (visible uniquement si activé par admin) */}
+        {coBrandingEnabled && (
+          <motion.div
+            className="mb-10"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            onClick={() => navigate("/mon-cobranding")}
+          >
+            <div className="card-premium p-6 cursor-pointer group flex items-center gap-5 border-l-4 border-primary/60 hover:border-primary transition-all">
+              <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center group-hover:bg-primary/12 transition-colors">
+                <Building2 className="h-7 w-7 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">
+                  Mon Co-branding
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  Personnalisez vos plaquettes et magazines DECO avec votre logo et vos coordonnées.
+                </p>
+              </div>
+              <ChevronRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+            </div>
+          </motion.div>
+        )}
 
         {/* Projects Grid */}
         {isLoading ? (
