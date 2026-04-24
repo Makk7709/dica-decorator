@@ -21,6 +21,7 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const Presentation = lazy(() => import("./pages/Presentation"));
 const Help = lazy(() => import("./pages/Help"));
 const Favorites = lazy(() => import("./pages/Favorites"));
+const MyCoBranding = lazy(() => import("./pages/MyCoBranding"));
 const Legal = lazy(() => import("./pages/Legal"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -127,6 +128,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <Favorites />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/mon-cobranding"
+                  element={
+                    <ProtectedRoute>
+                      <MyCoBranding />
                     </ProtectedRoute>
                   }
                 />
