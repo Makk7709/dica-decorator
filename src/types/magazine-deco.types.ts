@@ -3,7 +3,7 @@
  * Style éditorial premium pour DICA DÉCOR
  */
 
-import { PlaquetteProject, PlaquetteDecor, PlaquetteImage } from './plaquette.types';
+import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, ResellerBranding } from './plaquette.types';
 
 /**
  * Texte AI généré par l'orchestrateur DICA
@@ -43,6 +43,9 @@ export interface MagazineDecoOptions {
   
   /** Générer les captions AI automatiquement si non fournis */
   generateAICaptions?: boolean;
+
+  /** Branding revendeur (co-branding optionnel sur couverture + footer) */
+  resellerBranding?: ResellerBranding | null;
 }
 
 /**
