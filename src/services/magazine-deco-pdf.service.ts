@@ -548,7 +548,7 @@ export class MagazineDecoPdfService {
     }
     
     // Footer
-    this.renderFooter(pdf, pageWidth, pageHeight, 2);
+    this.renderFooter(pdf, pageWidth, pageHeight, 2, options.resellerBranding);
   }
 
   /**
