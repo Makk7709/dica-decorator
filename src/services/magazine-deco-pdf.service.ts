@@ -962,7 +962,8 @@ export class MagazineDecoPdfService {
   private async renderClosingPage(
     pdf: jsPDF,
     pageWidth: number,
-    pageHeight: number
+    pageHeight: number,
+    branding?: ResellerBranding | null
   ) {
     // Fond blanc cassé élégant
     pdf.setFillColor(253, 252, 250);
