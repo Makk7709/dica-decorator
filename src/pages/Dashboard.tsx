@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { 
   PremiumLayout, 
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WelcomeModal, useOnboarding } from "@/components/onboarding";
-import { Plus, LogOut, Settings, FolderOpen, Wand2, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen, Wand2, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -48,8 +49,28 @@ const Dashboard = () => {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [isRenaming, setIsRenaming] = useState(false);
+  const [coBrandingEnabled, setCoBrandingEnabled] = useState(false);
   
   const { showWelcome, completeWelcome } = useOnboarding();
+
+  useEffect(() => {
+    const loadCoBrandingStatus = async () => {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("cobranding_enabled")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (!error && data) {
+          setCoBrandingEnabled(data.cobranding_enabled ?? false);
+        }
+      } catch (err) {
+        console.error("[Dashboard] Co-branding status load error:", err);
+      }
+    };
+    loadCoBrandingStatus();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
