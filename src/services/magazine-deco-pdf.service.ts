@@ -10,6 +10,7 @@ import type {
   MagazineDecoResult, 
   MagazineAICaption 
 } from '@/types/magazine-deco.types';
+import type { ResellerBranding } from '@/types/plaquette.types';
 import { MAGAZINE_DECO_CONFIG } from '@/types/magazine-deco.types';
 
 export class MagazineDecoPdfService {
