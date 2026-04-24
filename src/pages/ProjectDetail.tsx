@@ -842,6 +842,7 @@ const ProjectDetail = () => {
                         return 0;
                       })
                     }
+                    resellerBranding={resellerBranding}
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-foreground"
