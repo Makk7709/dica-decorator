@@ -93,7 +93,7 @@ export class MagazineDecoPdfService {
       
       // PAGE FINALE - Certifications & Contact DICA
       pdf.addPage();
-      await this.renderClosingPage(pdf, pageWidth, pageHeight);
+      await this.renderClosingPage(pdf, pageWidth, pageHeight, options.resellerBranding);
 
       // Generate blob
       const blob = pdf.output('blob');
