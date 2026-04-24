@@ -1140,6 +1140,46 @@ export class MagazineDecoPdfService {
     currentY += 5;
     pdf.text("info@dica-france.fr", marginX, currentY);
     pdf.text("www.dica-france.fr", marginX + 50, currentY);
+
+    // Bloc revendeur sur closing page si co-branding actif
+    if (branding && branding.enabled && branding.companyName) {
+      currentY += 18;
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.2);
+      pdf.line(marginX, currentY - 8, pageWidth - marginX, currentY - 8);
+
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(10);
+      pdf.setTextColor(140, 140, 140);
+      pdf.text('Magazine présenté par', marginX, currentY);
+
+      const accentHex = branding.accentColorHex || '#E94E5D';
+      const rgb = this.hexToRgb(accentHex);
+      pdf.setFont('Times', 'bold');
+      pdf.setFontSize(16);
+      pdf.setTextColor(rgb.r, rgb.g, rgb.b);
+      pdf.text(branding.companyName, marginX, currentY + 8);
+
+      pdf.setFont('Times', 'normal');
+      pdf.setFontSize(9);
+      pdf.setTextColor(80, 80, 80);
+      let bY = currentY + 14;
+      const contactLine: string[] = [];
+      if (branding.phone) contactLine.push(branding.phone);
+      if (branding.email) contactLine.push(branding.email);
+      if (branding.website) contactLine.push(branding.website);
+      if (contactLine.length) {
+        pdf.text(contactLine.join('  •  '), marginX, bY);
+        bY += 5;
+      }
+      const addr: string[] = [];
+      if (branding.addressLine1) addr.push(branding.addressLine1);
+      const cityLine = [branding.postalCode, branding.city].filter(Boolean).join(' ');
+      if (cityLine) addr.push(cityLine);
+      if (addr.length) {
+        pdf.text(addr.join(' — '), marginX, bY);
+      }
+    }
     
     // ═══════════════════════════════════════════════════════════════════
     // FOOTER DISCRET
