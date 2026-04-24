@@ -863,9 +863,15 @@ export class MagazineDecoPdfService {
   }
 
   /**
-   * Render footer on all pages
+   * Render footer on all pages (avec mention revendeur si co-branding actif)
    */
-  private renderFooter(pdf: jsPDF, pageWidth: number, pageHeight: number, pageNumber: number) {
+  private renderFooter(
+    pdf: jsPDF,
+    pageWidth: number,
+    pageHeight: number,
+    pageNumber: number,
+    branding?: ResellerBranding | null
+  ) {
     const { margins, typography, colors } = MAGAZINE_DECO_CONFIG;
     
     pdf.setFont(typography.body.fontFamily, 'normal');
@@ -878,6 +884,22 @@ export class MagazineDecoPdfService {
     const footerY = pageHeight - margins.bottom + 5;
     
     pdf.text(footerText, footerX, footerY);
+
+    // Mention revendeur à gauche si co-branding actif
+    if (branding && branding.enabled && branding.companyName) {
+      const accentHex = branding.accentColorHex || '#E94E5D';
+      const rgb = this.hexToRgb(accentHex);
+
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(7);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text('Présenté par ', margins.left, footerY);
+      const labelW = pdf.getTextWidth('Présenté par ');
+
+      pdf.setFont('Times', 'bold');
+      pdf.setTextColor(rgb.r, rgb.g, rgb.b);
+      pdf.text(branding.companyName, margins.left + labelW, footerY);
+    }
   }
 
   /**
