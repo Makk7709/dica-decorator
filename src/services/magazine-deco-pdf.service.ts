@@ -318,6 +318,99 @@ export class MagazineDecoPdfService {
     // Magazine code above barcode
     pdf.setFontSize(5);
     pdf.text("M 02650-894", barcodeX - 6, barcodeY - 3);
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CO-BRANDING REVENDEUR sur la couverture (bas-gauche, élégant)
+    // ═══════════════════════════════════════════════════════════════════
+    await this.renderResellerCoverBlock(pdf, options.resellerBranding, pageWidth, pageHeight);
+  }
+
+  /**
+   * Bloc co-branding revendeur sur la couverture (bas-gauche)
+   * Logo + nom de la société dans un encart discret et premium
+   */
+  private async renderResellerCoverBlock(
+    pdf: jsPDF,
+    branding: ResellerBranding | null | undefined,
+    pageWidth: number,
+    pageHeight: number
+  ) {
+    if (!branding || !branding.enabled || !branding.companyName) return;
+
+    const blockX = 12;
+    const blockY = pageHeight - 32;
+    const blockHeight = 22;
+    const blockWidth = 80;
+
+    // Fond ivoire semi-transparent pour lisibilité sur image
+    pdf.setGState(pdf.GState({ opacity: 0.85 }));
+    pdf.setFillColor(255, 250, 240);
+    pdf.roundedRect(blockX, blockY, blockWidth, blockHeight, 2, 2, 'F');
+    pdf.setGState(pdf.GState({ opacity: 1.0 }));
+
+    // Logo (si fourni)
+    let textX = blockX + 5;
+    if (branding.logoUrl) {
+      try {
+        const logo = await this.loadSingleImageWithBase64(branding.logoUrl);
+        const logoSize = 14;
+        const logoRatio = logo.width / logo.height;
+        const logoW = logoRatio >= 1 ? logoSize : logoSize * logoRatio;
+        const logoH = logoRatio >= 1 ? logoSize / logoRatio : logoSize;
+        pdf.addImage(
+          logo.base64,
+          'PNG',
+          blockX + 4,
+          blockY + (blockHeight - logoH) / 2,
+          logoW,
+          logoH,
+          undefined,
+          'FAST'
+        );
+        textX = blockX + 4 + logoW + 4;
+      } catch (err) {
+        console.warn('[Magazine] Logo revendeur introuvable:', err);
+      }
+    }
+
+    // Label "Présenté par" en italique gris
+    pdf.setFont('Times', 'italic');
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(120, 120, 120);
+    pdf.text('PRÉSENTÉ PAR', textX, blockY + 7);
+
+    // Nom de la société (bold, couleur d'accent ou rouge DICA)
+    const accentHex = branding.accentColorHex || '#E94E5D';
+    const rgb = this.hexToRgb(accentHex);
+    pdf.setFont('Times', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(rgb.r, rgb.g, rgb.b);
+    const nameMaxWidth = blockWidth - (textX - blockX) - 5;
+    const nameLines = pdf.splitTextToSize(branding.companyName, nameMaxWidth);
+    pdf.text(nameLines[0], textX, blockY + 13);
+
+    // Tagline ou contact (petit, gris foncé)
+    const subtitle = branding.tagline || branding.website || branding.phone;
+    if (subtitle) {
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(7);
+      pdf.setTextColor(80, 80, 80);
+      const subLines = pdf.splitTextToSize(subtitle, nameMaxWidth);
+      pdf.text(subLines[0], textX, blockY + 18);
+    }
+  }
+
+  /**
+   * Convertit un hex (#RRGGBB) en {r,g,b}
+   */
+  private hexToRgb(hex: string): { r: number; g: number; b: number } {
+    const cleaned = hex.replace('#', '');
+    const bigint = parseInt(cleaned, 16);
+    return {
+      r: (bigint >> 16) & 255,
+      g: (bigint >> 8) & 255,
+      b: bigint & 255,
+    };
   }
 
   /**
