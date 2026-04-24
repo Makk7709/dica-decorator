@@ -822,11 +822,8 @@ export class MagazineDecoPdfService {
     pdf.setTextColor(235, 235, 235);
     pdf.text(pageNumber.toString(), pageWidth - margins.right - 15, pageHeight - margins.bottom + 5);
     
-    // Footer
-    pdf.setFont('Inter', 'normal');
-    pdf.setFontSize(5);
-    pdf.setTextColor(180, 180, 180);
-    pdf.text("Visuels non contractuels • www.dica-france.com", margins.left, pageHeight - 6);
+    // Footer (avec mention revendeur si co-branding actif)
+    this.renderFooter(pdf, pageWidth, pageHeight, pageNumber, options.resellerBranding);
   }
   
   /**
