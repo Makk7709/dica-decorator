@@ -302,12 +302,14 @@ Une documentation complète est disponible dans le dossier `/docs` :
 
 ## 🚢 Déploiement
 
-### Lovable (Production)
+### Production
 
-L'application est déployée via **Lovable** qui gère :
-- Supabase (Backend)
-- Edge Functions
-- Storage
+L'application se déploie en deux blocs indépendants :
+
+| Cible | Description |
+|-------|-------------|
+| **Frontend** | SPA Vite buildée (`npm run build`) servie depuis n'importe quel hébergeur statique compatible CDN (Vercel, Netlify, OVH, S3+CloudFront, Nginx…) |
+| **Backend** | Projet Supabase Cloud : Postgres + Auth + Storage + Edge Functions (Deno) déployées via la CLI Supabase |
 
 ### Build manuel
 
@@ -316,7 +318,7 @@ npm run build
 # Les fichiers sont dans dist/
 ```
 
-Voir le [Guide de Déploiement](./docs/GUIDE_DEPLOIEMENT.md) pour plus de détails.
+Voir le [Guide de Déploiement](./docs/GUIDE_DEPLOIEMENT.md) et le [Guide Handover Développeur](./docs/HANDOVER_DEVELOPPEUR.md) pour la procédure complète (variables d'environnement, déploiement Edge Functions, migrations SQL).
 
 ---
 

@@ -268,7 +268,7 @@ export class AdminProjectViewerService {
       .filter((r: any) => r.decor_id)
       .map((r: any) => r.decor_id);
 
-    let decorsMap: Map<string, DecorInfo> = new Map();
+    const decorsMap: Map<string, DecorInfo> = new Map();
 
     if (decorIds.length > 0) {
       const { data: decorsData, error: decorsError } = await this.supabase

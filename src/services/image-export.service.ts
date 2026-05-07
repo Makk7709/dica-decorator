@@ -81,7 +81,7 @@ export class ImageExportService {
    */
   static generateFilename(format: ImageExportFormat, baseName?: string): string {
     const sanitizedBase = baseName
-      ? baseName.replace(/[\/\\:*?"<>|]/g, '-')
+      ? baseName.replace(/[/\\:*?"<>|]/g, '-')
       : `dica-export-${Date.now()}`;
     
     return `${sanitizedBase}${this.getFileExtension(format)}`;

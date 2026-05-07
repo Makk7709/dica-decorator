@@ -22,3 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+coverage
+
+# Audit snapshots (reproductibles via les commandes documentées
+# dans docs/AUDIT_TIER1_BUREAU_DIAGNOSTIQUE.md §5).
+audit/
+

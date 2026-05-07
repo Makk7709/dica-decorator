@@ -12,8 +12,8 @@ Le DICA Prompt Orchestrator est une couche d'intelligence artificielle **créati
 
 ```
 ┌─────────────┐       ┌──────────────────┐       ┌────────────────┐
-│   Utilisateur│  -->  │  Orchestrateur   │  -->  │  Nano Banana   │
-│   (Prompt)   │       │  (Lovable AI)    │       │  (Génération)  │
+│   Utilisateur│  -->  │  Orchestrateur   │  -->  │  Gemini Image  │
+│   (Prompt)   │       │  (AI Gateway)    │       │  (Génération)  │
 └─────────────┘       └──────────────────┘       └────────────────┘
                               │
                               ├── Optimisation créative
@@ -34,7 +34,7 @@ L'orchestrateur reçoit:
 
 ### 2. Analyse et optimisation créative
 
-L'orchestrateur (via Lovable AI GPT model) effectue:
+L'orchestrateur (via passerelle AI Gateway compatible OpenAI Chat Completions, modèle Gemini 2.5 Flash) effectue:
 - ✅ Identification ou **invention intelligente** du type d'espace (van, cuisine, ascenseur, etc.)
 - ✅ Extraction ou **sélection automatique** des décors DICA appropriés
 - ✅ Vérification stricte que les décors existent dans le catalogue
@@ -197,7 +197,7 @@ const orchestratorInput: OrchestratorInput = {
 // 2. Appeler l'orchestrateur
 const result = await orchestrateDicaPrompt(
   orchestratorInput, 
-  LOVABLE_API_KEY
+  AI_GATEWAY_API_KEY
 );
 
 // 3. Gérer les statuts
@@ -216,13 +216,15 @@ const imageResponse = await generateWithNanoBanana(
 );
 ```
 
-### Utilisation de Lovable AI
+### Utilisation de l'AI Gateway
 
-Le système utilise le modèle `google/gemini-2.5-flash` via Lovable AI Gateway:
-- Endpoint: `https://ai.gateway.lovable.dev/v1/chat/completions`
-- Authentification: `LOVABLE_API_KEY` (fournie automatiquement)
-- Tool calling pour JSON structuré
+Le système utilise le modèle `google/gemini-2.5-flash` via une passerelle AI Gateway compatible OpenAI Chat Completions :
+- Endpoint configurable via la variable d'environnement `AI_GATEWAY_URL`
+- Authentification via la variable `AI_GATEWAY_API_KEY` (fallback historique : `LOVABLE_API_KEY` pour la rétrocompatibilité)
+- Tool calling pour produire du JSON structuré strict
 - Rapide et économique pour l'orchestration
+
+> Le code est volontairement abstrait derrière un client HTTP générique : la passerelle peut être remplacée par toute implémentation compatible OpenAI Chat Completions (Vertex AI, OpenRouter, gateway interne, etc.) sans modification du code applicatif. Voir `docs/AUDIT_DEPENDANCES.md`.
 
 ## Logs et monitoring
 
@@ -307,7 +309,7 @@ console.log("📊 Orchestration result:", {
 ### Problème: Temps de réponse trop long
 → Vérifier la taille du `decorContext` (peut être optimisé)
 → Considérer le cache pour les catalogues
-→ Vérifier les limites de rate de Lovable AI
+→ Vérifier les limites de rate de la passerelle AI Gateway
 
 ### Problème: Décors non reconnus
 → Vérifier que les références dans le catalogue sont correctes

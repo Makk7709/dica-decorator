@@ -154,8 +154,8 @@ export const createMockSupabaseClient = () => ({
   rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
 });
 
-// Type assertion helpers with explicit generic constraint
-function assertDefined<T extends any>(value: T | null | undefined, message?: string): T {
+// Type assertion helpers
+function assertDefined<T>(value: T | null | undefined, message?: string): T {
   if (value === null || value === undefined) {
     throw new Error(message ?? 'Value is null or undefined');
   }
