@@ -279,13 +279,23 @@ serve(async (req) => {
       JSON.stringify({ users: usersWithData }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
-    const status = (error as any)?.status || 500;
-    const message = (error as any)?.message || (error instanceof Error ? error.message : "Unknown error");
-    console.error("Error in get-users-admin:", message);
+  } catch (error: unknown) {
+    // Les erreurs Supabase Auth admin peuvent porter un champ `status` HTTP
+    // — on le récupère prudemment via type-narrowing structuré.
+    const errStatus =
+      typeof error === "object" && error !== null && "status" in error &&
+      typeof (error as { status: unknown }).status === "number"
+        ? (error as { status: number }).status
+        : 500;
+    const errMessage =
+      typeof error === "object" && error !== null && "message" in error &&
+      typeof (error as { message: unknown }).message === "string"
+        ? (error as { message: string }).message
+        : (error instanceof Error ? error.message : "Unknown error");
+    console.error("Error in get-users-admin:", errMessage);
     return new Response(
-      JSON.stringify({ error: message }),
-      { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: errMessage }),
+      { status: errStatus, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

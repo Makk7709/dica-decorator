@@ -1,5 +1,18 @@
+// DICA Decorator - Magazine Captions Edge Function
+// Génère les textes éditoriaux (headline, sub-headline, slugline, caption,
+// article) du Magazine DÉCO à partir d'une image et du contexte projet.
+// Modèle : Gemini 2.5 Pro/Flash via passerelle AI Gateway compatible OpenAI
+// Chat Completions (URL et clé fournies par variables d'environnement).
+// Propriété KOREV AI — application développée pour DICA France.
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getErrorMessage } from "../_shared/logger.ts";
+
+const AI_GATEWAY_URL =
+  Deno.env.get("AI_GATEWAY_URL") ??
+  Deno.env.get("AI_GATEWAY_BASE_URL") ??
+  "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,9 +97,12 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    // AI Gateway key (OpenAI-compatible). Fallback to legacy var for
+    // backward compatibility with previously provisioned secrets.
+    const AI_GATEWAY_API_KEY =
+      Deno.env.get("AI_GATEWAY_API_KEY") ?? Deno.env.get("LOVABLE_API_KEY");
+    if (!AI_GATEWAY_API_KEY) {
+      throw new Error("AI_GATEWAY_API_KEY not configured");
     }
 
     // Context safety mapping
@@ -168,7 +184,10 @@ RÈGLES GÉNÉRALES:
 Si tu oublies l'article, la fonction échouera !`;
 
     // Build user message with IMAGE
-    const userMessageContent: any[] = [
+    type ChatMessagePart =
+      | { type: "text"; text: string }
+      | { type: "image_url"; image_url: { url: string } };
+    const userMessageContent: ChatMessagePart[] = [
       {
         type: "text",
         text: `Analyse cette image réelle et génère des textes éditoriaux pour le magazine DICA DÉCOR.
@@ -196,11 +215,11 @@ Retourne un JSON avec {headline, subheadline, slugline, caption, article}.`
       });
     }
 
-    // Call Lovable AI with tool calling for structured output (with image analysis)
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Call AI gateway with tool calling for structured output (with image analysis)
+    const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Authorization": `Bearer ${AI_GATEWAY_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -262,7 +281,7 @@ Retourne un JSON avec {headline, subheadline, slugline, caption, article}.`
       
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "Payment required. Please add credits to your Lovable AI workspace." }),
+          JSON.stringify({ error: "Payment required. Please top up the AI gateway account." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -350,11 +369,11 @@ Retourne un JSON avec {headline, subheadline, slugline, caption, article}.`
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ Caption generation error:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Unknown error",
+        error: getErrorMessage(error) || "Unknown error",
         headline: "",
         subheadline: "",
         slugline: "",

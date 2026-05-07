@@ -1,9 +1,23 @@
-// DICA Decorator - Creative Chat Function
-// Assistant créatif IA avec génération d'images via Gemini 3 Pro Image Preview
-// Developed by KOREV AI for DICA France
+// DICA Decorator - Creative Chat Edge Function
+// Assistant créatif IA propriétaire avec :
+//  - Orchestration de prompt (modèle Gemini 2.5 Flash via passerelle AI Gateway
+//    compatible OpenAI Chat Completions, configurable par variables d'env).
+//  - Génération d'images (modèle Gemini 3 Pro Image Preview, appel direct à
+//    generativelanguage.googleapis.com avec la clé GOOGLE_AI_API_KEY).
+// Propriété KOREV AI — application développée pour DICA France.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { orchestrateDicaPrompt, type OrchestratorInput } from "./orchestrator.ts";
+import {
+  assertSafeFetchUrl,
+  SsrfBlockedError,
+} from "../_shared/ssrf-guard.ts";
+
+// Whitelist des hostnames autorisés pour fetch sortant (defense-in-depth SSRF).
+const ALLOWED_FETCH_HOST_SUFFIXES = [
+  "supabase.co",
+  "supabase.in",
+];
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,9 +54,27 @@ function buildStreamingTextUrl(apiKey: string): string {
 }
 
 /**
+ * Représentation minimale (best-effort) d'une réponse Gemini
+ * (cf. apply-decor/index.ts pour le pattern complet).
+ */
+interface GeminiResponsePart {
+  inline_data?: { data?: string; mime_type?: string };
+  inlineData?: { data?: string; mimeType?: string };
+  text?: string;
+}
+
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: GeminiResponsePart[];
+    };
+  }>;
+}
+
+/**
  * Parse Gemini response for image data
  */
-function parseImageResponse(response: any): { imageBase64: string | null; textResponse: string | null } {
+function parseImageResponse(response: GeminiResponse): { imageBase64: string | null; textResponse: string | null } {
   const parts = response?.candidates?.[0]?.content?.parts || [];
   
   let imageBase64: string | null = null;
@@ -158,9 +190,13 @@ serve(async (req) => {
       throw new Error("GOOGLE_AI_API_KEY is not configured");
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    // AI Gateway (compatible OpenAI Chat Completions) used by the orchestrator.
+    // Primary env var: AI_GATEWAY_API_KEY. Fallback to LOVABLE_API_KEY for
+    // backward compatibility with previously provisioned secrets.
+    const AI_GATEWAY_API_KEY =
+      Deno.env.get("AI_GATEWAY_API_KEY") ?? Deno.env.get("LOVABLE_API_KEY");
+    if (!AI_GATEWAY_API_KEY) {
+      throw new Error("AI_GATEWAY_API_KEY is not configured");
     }
 
     // Detect if user wants an image generation
@@ -241,7 +277,7 @@ serve(async (req) => {
         }
       };
 
-      const orchestrationResult = await orchestrateDicaPrompt(orchestratorInput, LOVABLE_API_KEY);
+      const orchestrationResult = await orchestrateDicaPrompt(orchestratorInput, AI_GATEWAY_API_KEY);
       
       console.log("📊 Orchestration result:", {
         status: orchestrationResult.status,
@@ -276,7 +312,7 @@ serve(async (req) => {
       }
 
       // ========================================================================
-      // STEP 2: IMAGE GENERATION - Use orchestrated prompt with Nano Banana
+      // STEP 2: IMAGE GENERATION - Use orchestrated prompt with Gemini Image
       // ========================================================================
       
       console.log("✅ Request validated, proceeding with image generation");
@@ -401,7 +437,10 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       console.log("Orchestrated decor references:", orchestrationResult.decorReferences);
 
       // Build request parts
-      const requestParts: any[] = [{ text: basePrompt }];
+      type GeminiRequestPart =
+        | { text: string }
+        | { inlineData: { mimeType: string; data: string } };
+      const requestParts: GeminiRequestPart[] = [{ text: basePrompt }];
 
       // ======================================================================
       // Add decor texture reference images (to prevent the model from inventing)
@@ -409,11 +448,21 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       if (orchestrationResult.decorReferences.length > 0) {
         console.log(`Fetching ${orchestrationResult.decorReferences.length} decor texture images from database...`);
 
-        const { data: decorRows, error: decorErr } = await authSupabase
+        // Shape minimal projeté par le SELECT — l'inférence `{}` est due
+        // à l'absence de Supabase typegen pour les Edge Functions
+        // (cf. docs/PLAN_CORRECTION_RISQUES_DECOTE.md §P2). Cast explicite
+        // car le SELECT garantit la projection.
+        interface DecorTextureRow {
+          reference_code: string;
+          name: string;
+          texture_image_url: string | null;
+        }
+        const { data: rawDecorRows, error: decorErr } = await supabaseAdmin
           .from("decors")
           .select("reference_code,name,texture_image_url")
           .in("reference_code", orchestrationResult.decorReferences)
           .eq("is_active", true);
+        const decorRows = (rawDecorRows ?? []) as unknown as DecorTextureRow[];
 
         if (decorErr) {
           console.error("Error fetching decors:", decorErr);
@@ -459,6 +508,20 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
 
            try {
              const label = row.name || ref;
+             try {
+               assertSafeFetchUrl(resolvedTextureUrl, {
+                 allowedHostSuffixes: ALLOWED_FETCH_HOST_SUFFIXES,
+               });
+             } catch (ssrfErr) {
+               if (ssrfErr instanceof SsrfBlockedError) {
+                 console.warn(
+                   "Decor texture URL blocked by SSRF guard:",
+                   ssrfErr.message,
+                 );
+                 continue;
+               }
+               throw ssrfErr;
+             }
              console.log(`Fetching decor texture (${label}):`, resolvedTextureUrl);
              const imageResponse = await fetch(resolvedTextureUrl);
              if (!imageResponse.ok) {
@@ -499,6 +562,20 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
           const label = allImageLabels[i] || `Image ${i + 1}`;
 
           try {
+            try {
+              assertSafeFetchUrl(imageUrl, {
+                allowedHostSuffixes: ALLOWED_FETCH_HOST_SUFFIXES,
+              });
+            } catch (ssrfErr) {
+              if (ssrfErr instanceof SsrfBlockedError) {
+                console.warn(
+                  `Source image URL blocked by SSRF guard (${label}):`,
+                  ssrfErr.message,
+                );
+                continue;
+              }
+              throw ssrfErr;
+            }
             console.log(`Fetching image ${i + 1} (${label}):`, imageUrl);
             const imageResponse = await fetch(imageUrl);
             if (imageResponse.ok) {

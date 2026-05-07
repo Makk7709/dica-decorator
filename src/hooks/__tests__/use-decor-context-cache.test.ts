@@ -71,11 +71,14 @@ describe('useDecorContextCache', () => {
       expect(result.current.context).toContain('unis');
     });
 
-    it('should include usage contexts', () => {
+    // Note: les `usage_contexts` ont été délibérément exclus du contexte IA
+    // (Quick Win QW3 — économie de tokens) car ils sont redondants avec
+    // l'instruction métier déjà injectée côté Edge Function.
+    it('should NOT include usage_contexts in IA context (token economy QW3)', () => {
       const { result } = renderHook(() => useDecorContextCache(mockDecors));
-      
-      expect(result.current.context).toContain('ascenseur');
-      expect(result.current.context).toContain('van');
+
+      expect(result.current.context).not.toContain('ascenseur');
+      expect(result.current.context).not.toContain('van');
     });
   });
 
@@ -234,17 +237,28 @@ describe('useDecorContextCache', () => {
   // ============================================================================
 
   describe('Context Format', () => {
-    it('should format context in a structured way', () => {
+    it('should format context in a structured way (emoji-prefixed sections)', () => {
       const { result } = renderHook(() => useDecorContextCache(mockDecors));
-      
-      // Should have sections
-      expect(result.current.context).toMatch(/CATÉGORIE|CATEGORY/i);
+
+      // Le format actuel utilise des marqueurs emoji pour économiser les
+      // tokens et améliorer la robustesse du parsing IA. Les sections
+      // attendues sont : références, JSON, catégories.
+      expect(result.current.context).toMatch(/RÉFÉRENCES VALIDES/);
+      expect(result.current.context).toMatch(/📊 JSON/);
+      expect(result.current.context).toMatch(/📂/);
+      // CATALOGUE DICA présent en en-tête
+      expect(result.current.context).toMatch(/CATALOGUE DICA/);
     });
 
-    it('should include texture URLs', () => {
+    // Note: les `texture_image_url` ont été délibérément exclus du contexte IA
+    // (Quick Win QW3 — économie de tokens). Les URLs sont passées séparément
+    // au modèle de génération d'images, pas au LLM d'orchestration texte.
+    it('should NOT include texture URLs in IA context (token economy QW3)', () => {
       const { result } = renderHook(() => useDecorContextCache(mockDecors));
-      
-      expect(result.current.context).toContain('url1');
+
+      expect(result.current.context).not.toContain('url1');
+      expect(result.current.context).not.toContain('url2');
+      expect(result.current.context).not.toContain('url3');
     });
   });
 });

@@ -5,6 +5,18 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  assertSafeFetchUrl,
+  SsrfBlockedError,
+} from "../_shared/ssrf-guard.ts";
+
+// Whitelist des hostnames autorisés pour fetch sortant (defense-in-depth SSRF).
+// On autorise uniquement Supabase Storage (urls signées + buckets publics
+// internes) et les fonts/CDN strictement nécessaires.
+const ALLOWED_FETCH_HOST_SUFFIXES = [
+  "supabase.co",
+  "supabase.in",
+];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,9 +56,28 @@ function buildGeminiUrl(apiKey: string): string {
 }
 
 /**
+ * Représentation minimale (best-effort) d'une réponse Gemini.
+ * Les réponses réelles peuvent contenir d'autres champs ; on ne valide
+ * que ce qui est strictement consommé.
+ */
+interface GeminiResponsePart {
+  inline_data?: { data?: string; mime_type?: string };
+  inlineData?: { data?: string; mimeType?: string };
+  text?: string;
+}
+
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: GeminiResponsePart[];
+    };
+  }>;
+}
+
+/**
  * Parse Gemini response and extract image data
  */
-function parseGeminiResponse(response: any): { imageBase64: string | null; textResponse: string | null } {
+function parseGeminiResponse(response: GeminiResponse): { imageBase64: string | null; textResponse: string | null } {
   const parts = response?.candidates?.[0]?.content?.parts || [];
   
   let imageBase64: string | null = null;
@@ -233,7 +264,7 @@ serve(async (req) => {
       surfaceType: 'walls' | 'floors' | 'general';
     }
     
-    let decorsInfo: DecorInfo[] = [];
+    const decorsInfo: DecorInfo[] = [];
     
     if (isMultiDecorMode) {
       // Mode multi-décor : récupérer les infos de tous les décors
@@ -488,7 +519,7 @@ RÈGLE ABSOLUE: Travaille UNIQUEMENT sur la photo fournie. Si c'est un bureau,
 reste sur le bureau. NE JAMAIS inventer un autre type d'espace.
 ═══════════════════════════════════════════════════════════════════`;
         break;
-      case "terrasse":
+      case "terrasse": {
         // Logique conditionnelle : chants blancs uniquement pour CARRARE COMPACTOP
         const isCarrareCompactop = decor.name && decor.name.toUpperCase().includes("CARRARE") && decor.name.toUpperCase().includes("COMPACTOP");
         const tranches = isCarrareCompactop 
@@ -578,6 +609,7 @@ tables transformé, PAS ses chaises, PAS ses murs.${isCarrareCompactop ? `
 Matériau Carrare Compactop détecté - Les chants seront en blanc uni (âme blanche).` : ''}
 ═══════════════════════════════════════════════════════════════════`;
         break;
+      }
       default:
         surfaceRules = `═══════════════════════════════════════════════════════════════════
 IDENTIFICATION DES SURFACES - MODE GÉNÉRAL
@@ -880,9 +912,21 @@ L'annotation doit être:
       }
       
       // Strategy 3: Try the original URL (might be absolute already)
+      // SSRF guard: bloque les fetch sortants vers réseau interne / metadata cloud.
       if (!textureLoaded && url.startsWith("http")) {
+        try {
+          assertSafeFetchUrl(url, {
+            allowedHostSuffixes: ALLOWED_FETCH_HOST_SUFFIXES,
+          });
+        } catch (ssrfErr) {
+          if (ssrfErr instanceof SsrfBlockedError) {
+            console.warn("Texture URL blocked by SSRF guard:", ssrfErr.message);
+            return null;
+          }
+          throw ssrfErr;
+        }
         console.log("Trying original absolute URL:", url);
-        
+
         try {
           const response = await fetchWithTimeout(url);
           const contentType = response.headers.get("content-type") ?? "";
@@ -903,8 +947,23 @@ L'annotation doit être:
     }
 
     // Fetch original photo with timeout and size check
+    // SSRF guard: bloque les fetch sortants vers réseau interne / metadata cloud.
     try {
       if (photoUrl) {
+        try {
+          assertSafeFetchUrl(photoUrl, {
+            allowedHostSuffixes: ALLOWED_FETCH_HOST_SUFFIXES,
+          });
+        } catch (ssrfErr) {
+          if (ssrfErr instanceof SsrfBlockedError) {
+            console.warn("Photo URL blocked by SSRF guard:", ssrfErr.message);
+            return new Response(
+              JSON.stringify({ error: "Invalid photo URL: not allowed" }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          throw ssrfErr;
+        }
         console.log("Fetching original photo for Gemini:", photoUrl);
         const photoResponse = await fetchWithTimeout(photoUrl);
         
@@ -977,7 +1036,10 @@ L'annotation doit être:
     // Build Request Payload
     // ========================================================================
     
-    const requestParts: any[] = [{ text: prompt }];
+    type GeminiRequestPart =
+      | { text: string }
+      | { inlineData: { mimeType: string; data: string } };
+    const requestParts: GeminiRequestPart[] = [{ text: prompt }];
     
     // Add photo first
     if (photoBase64) {

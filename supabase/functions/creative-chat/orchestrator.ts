@@ -1,8 +1,29 @@
 // ============================================================================
 // DICA Prompt Orchestrator
-// Couche d'orchestration IA qui valide et structure les demandes utilisateurs
-// avant la génération d'images avec Nano Banana
+// Couche d'orchestration IA propriétaire (KOREV AI) qui valide et structure
+// les demandes utilisateurs avant la génération d'images.
+//
+// Architecture :
+//   - Modèle texte : Gemini 2.5 Flash via passerelle AI Gateway (compatible
+//     OpenAI Chat Completions). L'URL et la clé sont injectées via les
+//     variables d'environnement AI_GATEWAY_URL / AI_GATEWAY_API_KEY (ou les
+//     équivalents historiques) — voir docs/AUDIT_DEPENDANCES.md.
+//   - Modèle image : Gemini 3 Pro Image Preview (appel direct à
+//     generativelanguage.googleapis.com depuis creative-chat/index.ts).
 // ============================================================================
+
+import {
+  logDebug,
+  logInfo,
+  logWarn,
+  logError,
+  getErrorMessage,
+} from "../_shared/logger.ts";
+
+const DEFAULT_AI_GATEWAY_URL =
+  Deno.env.get("AI_GATEWAY_URL") ??
+  Deno.env.get("AI_GATEWAY_BASE_URL") ??
+  "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 export interface OrchestratorInput {
   userPrompt: string;
@@ -31,25 +52,31 @@ export interface OrchestratorResult {
 }
 
 /**
- * Orchestrate DICA prompt validation and structuring
+ * Orchestrate DICA prompt validation and structuring.
+ *
+ * @param input         Catalogue + prompt utilisateur + images source.
+ * @param aiGatewayKey  Clé d'accès à la passerelle AI Gateway (compatible
+ *                      OpenAI Chat Completions). L'URL est résolue depuis
+ *                      les variables d'environnement (voir constante
+ *                      DEFAULT_AI_GATEWAY_URL au début du module).
  */
 export async function orchestrateDicaPrompt(
   input: OrchestratorInput,
-  lovableApiKey: string
+  aiGatewayKey: string
 ): Promise<OrchestratorResult> {
-  console.log("🎯 DICA Orchestrator - Starting validation");
-  console.log("- User prompt:", input.userPrompt.substring(0, 100));
-  console.log("- Source images:", input.sourceImages?.length || 0);
-  console.log("- Decor context length:", input.decorContext.length);
+  logInfo("🎯 DICA Orchestrator - Starting validation");
+  logDebug("- User prompt:", input.userPrompt.substring(0, 100));
+  logDebug("- Source images:", input.sourceImages?.length || 0);
+  logDebug("- Decor context length:", input.decorContext.length);
 
   const systemPrompt = buildOrchestratorSystemPrompt();
   const userMessage = buildOrchestratorUserMessage(input);
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(DEFAULT_AI_GATEWAY_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${lovableApiKey}`,
+        "Authorization": `Bearer ${aiGatewayKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -126,12 +153,12 @@ export async function orchestrateDicaPrompt(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Lovable AI error:", response.status, errorText);
+      logError("AI gateway error:", response.status, errorText);
       throw new Error(`Orchestrator API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log("Orchestrator raw response:", JSON.stringify(data, null, 2));
+    logDebug("Orchestrator raw response:", JSON.stringify(data, null, 2));
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function?.name !== "validate_dica_request") {
@@ -142,7 +169,7 @@ export async function orchestrateDicaPrompt(
     
     validateOrchestratorResult(result, input.decorContext);
     
-    console.log("✅ Orchestration result:", {
+    logInfo("✅ Orchestration result:", {
       status: result.status,
       projectType: result.projectType,
       decorReferences: result.decorReferences,
@@ -150,14 +177,14 @@ export async function orchestrateDicaPrompt(
     });
 
     return result;
-  } catch (error: any) {
-    console.error("❌ Orchestration error:", error);
+  } catch (error: unknown) {
+    logError("❌ Orchestration error:", error);
     return {
       status: "reject",
       projectType: "unknown",
       decorReferences: [],
       nbVariants: 1,
-      rejectionReason: `Erreur d'orchestration: ${error.message}`
+      rejectionReason: `Erreur d'orchestration: ${getErrorMessage(error)}`
     };
   }
 }
@@ -310,10 +337,10 @@ function extractValidReferenceCodes(decorContext: string): Set<string> {
           validRefs.add(item.ref);
         }
       }
-      console.log(`📋 Extracted ${validRefs.size} refs from JSON`);
+      logDebug(`📋 Extracted ${validRefs.size} refs from JSON`);
     }
-  } catch (e) {
-    console.log("JSON parsing failed, using pattern matching");
+  } catch {
+    logDebug("JSON parsing failed, using pattern matching");
   }
   
   // Match new format: NAME-DICA-CONTEXT-SURFACE-NUMBER-FINISH
@@ -335,7 +362,7 @@ function extractValidReferenceCodes(decorContext: string): Set<string> {
     }
   }
   
-  console.log(`📋 Total extracted: ${validRefs.size} valid reference codes`);
+  logDebug(`📋 Total extracted: ${validRefs.size} valid reference codes`);
   return validRefs;
 }
 
@@ -402,7 +429,7 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
   }
 
   const validRefs = extractValidReferenceCodes(decorContext);
-  console.log(`🔍 Valid refs available: ${validRefs.size} references`);
+  logDebug(`🔍 Valid refs available: ${validRefs.size} references`);
   
   if (result.decorReferences && result.decorReferences.length > 0) {
     const originalCount = result.decorReferences.length;
@@ -418,27 +445,27 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
       if (isValidReference(ref, validRefs)) {
         validatedRefs.push(ref);
         if (originalLabels[i]) validatedLabels.push(originalLabels[i]);
-        console.log(`✅ VALID: ${ref}`);
+        logDebug(`✅ VALID: ${ref}`);
       } else {
         const bestMatch = findBestMatch(ref, validRefs);
         if (bestMatch) {
           validatedRefs.push(bestMatch);
           if (originalLabels[i]) validatedLabels.push(originalLabels[i]);
           correctedRefs.push({ from: ref, to: bestMatch });
-          console.log(`🔄 AUTO-CORRECTED: "${ref}" → "${bestMatch}"`);
+          logInfo(`🔄 AUTO-CORRECTED: "${ref}" → "${bestMatch}"`);
         } else {
           invalidRefs.push(ref);
-          console.error(`❌ REJECTED (no match): "${ref}"`);
+          logError(`❌ REJECTED (no match): "${ref}"`);
         }
       }
     }
     
     if (correctedRefs.length > 0) {
-      console.log(`🔧 Auto-corrected ${correctedRefs.length} references`);
+      logInfo(`🔧 Auto-corrected ${correctedRefs.length} references`);
     }
     
     if (invalidRefs.length > 0 && result.status === "ok") {
-      console.error(`🚫 ${invalidRefs.length} unmatched refs: ${invalidRefs.join(', ')}`);
+      logError(`🚫 ${invalidRefs.length} unmatched refs: ${invalidRefs.join(', ')}`);
       
       if (validatedRefs.length === 0) {
         result.status = "need_clarification";
@@ -455,17 +482,17 @@ function validateOrchestratorResult(result: OrchestratorResult, decorContext: st
     result.decorReferences = validatedRefs;
     result.decorLabels = validatedLabels;
     
-    console.log(`📊 Final: ${originalCount} refs → ${validatedRefs.length} valid (${correctedRefs.length} corrected, ${invalidRefs.length} rejected)`);
+    logInfo(`📊 Final: ${originalCount} refs → ${validatedRefs.length} valid (${correctedRefs.length} corrected, ${invalidRefs.length} rejected)`);
   } else if (result.status === "ok") {
-    console.warn(`⚠️ No decor references provided but status=ok`);
+    logWarn(`⚠️ No decor references provided but status=ok`);
   }
 
   if (result.status === "ok") {
     if (!result.finalPromptForImageModel || result.finalPromptForImageModel.length < 30) {
-      console.warn("⚠️ finalPromptForImageModel is short or missing");
+      logWarn("⚠️ finalPromptForImageModel is short or missing");
     }
     if (result.decorReferences.length === 0) {
-      console.warn("⚠️ No valid decor references after validation");
+      logWarn("⚠️ No valid decor references after validation");
     }
   }
 

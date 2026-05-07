@@ -259,8 +259,10 @@ CREATE TRIGGER update_projects_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
--- Seed admin user role (will be created after signup)
--- Admin email: admin@dica.com / PassTemporaire@123
+-- Seed admin user role
+-- Note: Le compte administrateur initial est créé via la console Supabase Auth,
+-- puis son rôle est attribué via INSERT INTO public.user_roles (user_id, role)
+-- VALUES (<uuid>, 'admin');. Aucun identifiant n'est stocké dans le code source.
 
 -- Seed demo decors
 INSERT INTO public.decors (name, reference_code, usage_contexts, texture_image_url, is_active) VALUES
