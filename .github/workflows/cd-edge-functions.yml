@@ -1,0 +1,101 @@
+# DICA Decorator — Pipeline CD (déploiement Edge Functions Supabase)
+
+# Déclenche un déploiement des Edge Functions Supabase sur push sur main
+# (après validation du job CI). Workflow MANUEL via workflow_dispatch
+# par sécurité — toute personne souhaitant déployer doit explicitement
+# le déclencher depuis l'onglet Actions.
+#
+# PRÉREQUIS GITHUB SECRETS :
+#   - SUPABASE_ACCESS_TOKEN : token d'accès Supabase (CLI auth)
+#   - SUPABASE_PROJECT_REF  : référence du projet Supabase cible
+#
+# REMARQUE :
+#   - Pas de déploiement front automatique (le front est servi via CDN
+#     statique — déploiement géré séparément par l'opérateur).
+#   - Aucun secret Edge Function n'est mis dans le repo : ils sont gérés
+#     via `supabase secrets set` (cf. docs/HANDOVER_DEVELOPPEUR.md).
+#
+# Auteur : KOREV AI
+
+name: CD Edge Functions
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environnement cible'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - staging
+          - production
+      function:
+        description: "Nom de la fonction (laisser vide pour deployer toutes)"
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: cd-edge-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-edge:
+    name: Deploy Supabase Edge Functions (${{ github.event.inputs.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    environment:
+      name: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verifier l'authentification Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase --version
+
+      - name: Lier le projet Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Lister les fonctions a deployer
+        id: list
+        run: |
+          if [ -n "${{ github.event.inputs.function }}" ]; then
+            echo "TARGETS=${{ github.event.inputs.function }}" >> $GITHUB_OUTPUT
+          else
+            FUNCTIONS=$(ls -d supabase/functions/*/ | xargs -n 1 basename | tr '\n' ' ')
+            echo "TARGETS=$FUNCTIONS" >> $GITHUB_OUTPUT
+          fi
+          echo "Functions a deployer : ${{ steps.list.outputs.TARGETS }}"
+
+      - name: Deployer chaque fonction
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          for fn in ${{ steps.list.outputs.TARGETS }}; do
+            echo "::group::Deploy $fn"
+            supabase functions deploy "$fn" || {
+              echo "::error::Echec deploiement $fn"
+              exit 1
+            }
+            echo "::endgroup::"
+          done
+
+      - name: Notifier le deploiement
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          echo "Deploiement Edge Functions vers ${{ github.event.inputs.environment }} : $STATUS"
+          # Hook potentiel : Slack, email, Linear, ...
