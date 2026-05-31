@@ -1,3 +1,12 @@
+> ⚠️ **DOCUMENT ARCHIVÉ**
+> **Statut :** Historique à conserver (checklist d'onboarding ponctuelle)
+> **Date d'archivage :** 2026-05-31
+> **Raison :** Checklist d'onboarding utilisateur datée de décembre 2025. Pas de référentiel opérationnel courant ; sert d'exemple de méthodologie de contrôle. Certains points (vidéo d'accueil, branding) reflètent l'UI de décembre 2025 qui a pu évoluer.
+> **Remplacé par :** `docs/MODE_EMPLOI.md` et `docs/GUIDE_UTILISATEUR.md` pour l'onboarding utilisateur ; `docs/CHECKLIST_SMOKE_KILLSWITCH.md` pour les vérifications de production.
+> **Ne pas utiliser comme référence opérationnelle active.**
+
+---
+
 # 🎯 Prompt de Contrôle — Documentation & Onboarding DICA
 
 > **Objectif** : Vérifier que l'onboarding utilisateur fonctionne sans explication orale complémentaire.

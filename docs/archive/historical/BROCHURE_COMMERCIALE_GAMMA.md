@@ -1,3 +1,12 @@
+> ⚠️ **DOCUMENT ARCHIVÉ**
+> **Statut :** Historique à conserver (document commercial)
+> **Date d'archivage :** 2026-05-31
+> **Raison :** Support de présentation commerciale (slides Gamma.app) daté de décembre 2025. **Document commercial, non technique** : à ne pas utiliser comme référentiel d'architecture ou de fonctionnalités opposable à un auditeur. Conservé pour la traçabilité de la communication produit à la date indiquée.
+> **Remplacé par :** aucun équivalent dans la documentation technique (par construction). Pour la vue technique factuelle, voir `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md`.
+> **Ne pas utiliser comme référence technique active.**
+
+---
+
 # 🎨 DICA Decorator — Brochure Commerciale
 ## Présentation Client | 12 Slides pour Gamma.app
 

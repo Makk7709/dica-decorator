@@ -1,3 +1,8 @@
+> **Note de fraîcheur (revue 2026-05-31)**
+> Document daté du 30 novembre 2025, conservé comme référentiel **actif** pour le parcours utilisateur final. Les fonctionnalités décrites correspondent au socle produit en place. Pour le mode opératoire condensé (onboarding rapide), voir aussi `docs/MODE_EMPLOI.md`. En cas de divergence avec l'UI actuelle, l'UI prévaut ; merci de signaler les écarts.
+
+---
+
 # 👤 Guide Utilisateur DICA Decorator
 
 **Application de Visualisation de Décors par Intelligence Artificielle**

@@ -1,3 +1,8 @@
+> **Note de fraîcheur (revue 2026-05-31)**
+> Document daté du 30 novembre 2025, conservé comme référentiel **actif**. Couvre les endpoints Supabase (REST, RPC, Storage) et les Edge Functions historiques. Pour les Edge Functions ajoutées depuis (`creative-chat`, `generate-magazine-captions`, etc.), voir directement `supabase/functions/` et `docs/DICA_ORCHESTRATOR_GUIDE.md`. En cas de divergence, le code source prévaut.
+
+---
+
 # 📡 API Reference DICA Decorator
 
 **Documentation des Endpoints et Interfaces**

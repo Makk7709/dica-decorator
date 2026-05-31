@@ -1,365 +1,259 @@
-# 🎨 DICA Decorator
+# DICA Decorator
 
-<div align="center">
+Application web propriétaire de visualisation IA des décors stratifiés du catalogue **DICA France**, développée par **KOREV AI**.
 
-![DICA France](public/images/dica-logo.svg)
-
-**Application de Visualisation de Décors par Intelligence Artificielle**
-
-[![Tests](https://img.shields.io/badge/tests-663%20passed-brightgreen)](#tests)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](#technologies)
-[![React](https://img.shields.io/badge/React-18.x-61dafb)](#technologies)
-[![Supabase](https://img.shields.io/badge/Supabase-Backend-3ecf8e)](#technologies)
-[![Google AI](https://img.shields.io/badge/Google%20AI-Gemini-4285f4)](#technologies)
-
-[Documentation](./docs/README.md) • [Guide Utilisateur](./docs/GUIDE_UTILISATEUR.md) • [API Reference](./docs/API_REFERENCE.md)
-
-</div>
+| Champ | Valeur |
+|---|---|
+| Nom | `dica-decorator` |
+| Version (package.json) | `2.2.0` |
+| Licence | `UNLICENSED` (propriétaire ; voir `package.json` et `docs/commissaire_aux_apports/NOTE_LICENCE_COMMERCIALE_DICA_DECOR.md`) |
+| Propriétaire de la base logicielle | KOREV AI |
+| Client / utilisateur final | DICA France et ses revendeurs |
+| Statut du repository | Actif, en production |
+| Stack | React 18 + TypeScript 5 / Vite 5 / Supabase / Edge Functions Deno / Google AI (Gemini) |
+| Dernière revue documentaire | 2026-05-31 (cf. `docs/audit/documentation_cleanup_report_2026-05-31.md`) |
 
 ---
 
-## 📋 À propos
+## 1. Description courte
 
-**DICA Decorator** est une application web professionnelle développée par **KOREV AI** pour **DICA France** permettant de visualiser instantanément les décors du catalogue sur des photos réelles grâce à l'intelligence artificielle Google Gemini.
+DICA Decorator permet d'appliquer un décor stratifié du catalogue DICA sur une photographie d'un support réel (cabine d'ascenseur, van, terrasse, mobilier) via génération d'image par Google Gemini, et de produire des livrables visuels (comparaisons avant/après, brochures revendeur cobrandées, magazine de décoration, mood boards).
 
-### ✨ Bénéfices clés
-
-| Bénéfice | Impact |
-|----------|--------|
-| ⚡ **Rapidité** | Visualisation en secondes au lieu de semaines de maquettes |
-| 🎯 **Fiabilité** | Rendus cohérents et professionnels à chaque fois |
-| 🤖 **Automatisation** | Zéro manipulation manuelle, l'IA fait tout |
-| 💰 **Économies** | Réduction des coûts de prototypage de 80% |
+Le produit est un **SaaS web multi-tenant** : authentification Supabase, isolation par organisation, quotas de génération, audit log, et exports PDF/PNG/JPEG/WebP.
 
 ---
 
-## 🚀 Fonctionnalités
+## 2. Modules actifs
 
-### Core Features
+Les services réellement présents dans `src/services/` au 2026-05-31 :
 
-| Fonctionnalité | Description |
-|----------------|-------------|
-| 🖼️ **Visualisation IA** | Application de décors sur photos en quelques secondes |
-| 🎨 **Assistant Créatif** | Génération de mood boards et plaquettes commerciales |
-| 📁 **Gestion de Projets** | Organisation par clients avec historique complet |
-| ❤️ **Système de Favoris** | Marquez et retrouvez vos meilleurs rendus |
-| 🏷️ **Références DICA** | Annotations automatiques des codes décors |
+| Service | Rôle |
+|---|---|
+| `gemini-image.service.ts` | Génération d'image via Gemini (intégration et fallbacks) |
+| `magazine-deco-pdf.service.ts` | Export PDF magazine éditorial (style AD) |
+| `reseller-brochure-pdf.service.ts` | Brochure revendeur cobrandée |
+| `image-comparison.service.ts` | Comparaison Avant / Après |
+| `image-export.service.ts` | Export multi-format (PNG, JPEG, WebP) |
+| `image-storage.service.ts` | Migration base64 → Storage Supabase |
+| `share-link.service.ts` | Partage sécurisé par lien à expiration |
+| `presentation.service.ts` | Mode présentation plein écran |
+| `analytics.service.ts` / `analytics-export.service.ts` | Métriques produit et exports JSON / Excel / PDF |
+| `auth-guard.service.ts` | Vérification rôles & permissions |
+| `rate-limiter.service.ts` / `quota.service.ts` | Limites de génération (jour, mois, organisation) |
+| `organization.service.ts` | Multi-tenant (organisations, membres, invitations) |
+| `url-validator.service.ts` | Garde anti-SSRF (frontend) |
+| `parallel-fetch.service.ts` | Chargement parallèle de ressources |
+| `project-deletion.service.ts` / `project-rename.service.ts` / `admin-project-viewer.service.ts` | Gestion projets et opérations admin |
+| `favorites.service.ts` | Gestion des rendus favoris |
 
-### Exports & Partage
-
-| Fonctionnalité | Description |
-|----------------|-------------|
-| 📄 **Brochure Revendeur** | Export Magazine DÉCO avec couverture personnalisable revendeur |
-| 📊 **Magazine DÉCO** | Export éditorial style AD Magazine avec typographie élégante |
-| 📈 **Analytics Excel/PDF/JSON** | Rapports statistiques multi-formats |
-| 🔗 **Partage par Lien** | Partage sécurisé avec expiration |
-| ⚖️ **Comparaison Avant/Après** | Slider interactif avec labels *Avant/Après* en serif italique |
-| 🖼️ **Multi-formats images** | Export PNG, JPEG, WebP avec qualité configurable |
-
-### Administration
-
-| Fonctionnalité | Description |
-|----------------|-------------|
-| 👥 **Multi-Organisations** | Support revendeurs avec quotas |
-| 📊 **Dashboard Analytics** | Métriques et tendances en temps réel |
-| 🎬 **Mode Présentation** | Fullscreen pour démos commerciales |
-| 🌙 **Mode Nuit** | Interface adaptable jour/nuit |
-
-### Cas d'usage supportés
-
-| Contexte | Description |
-|----------|-------------|
-| 🛗 Ascenseur | Cabines d'ascenseur |
-| 🚐 Van | Aménagement véhicules |
-| 🏡 Terrasse | Espaces extérieurs |
-| 🪑 Autre | Mobilier, surfaces |
+Les Edge Functions Deno actives sont dans `supabase/functions/` (notamment `apply-decor`, `creative-chat`, `generate-magazine-captions`, `analytics`, `_shared/ssrf-guard.ts`).
 
 ---
 
-## 🏗️ Architecture
+## 3. Modules legacy / archivés
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React)                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
-│  │   Pages     │  │ Components  │  │  Services   │              │
-│  │  (Router)   │  │ (shadcn/ui) │  │   (TDD)     │              │
-│  └─────────────┘  └─────────────┘  └─────────────┘              │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ HTTPS/REST
-┌────────────────────────────┴────────────────────────────────────┐
-│                      SUPABASE (Backend)                          │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
-│  │    Auth     │  │  Database   │  │   Storage   │              │
-│  │   (JWT)     │  │ (PostgreSQL)│  │  (Images)   │              │
-│  └─────────────┘  └─────────────┘  └─────────────┘              │
-│                                                                  │
-│  ┌──────────────────────────────────────────────┐               │
-│  │            Edge Functions (Deno)              │               │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐    │               │
-│  │  │apply-decor│  │creative  │  │analytics │    │               │
-│  │  │          │  │  -chat   │  │          │    │               │
-│  │  └──────────┘  └──────────┘  └──────────┘    │               │
-│  └──────────────────────────────────────────────┘               │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ API
-┌────────────────────────────┴────────────────────────────────────┐
-│                    GOOGLE AI (Gemini)                            │
-│  ┌─────────────────────┐  ┌─────────────────────┐               │
-│  │ Gemini 3 Pro Image  │  │ Gemini 2.5 Flash    │               │
-│  │ (Génération images) │  │ (Chat créatif)      │               │
-│  └─────────────────────┘  └─────────────────────┘               │
-└─────────────────────────────────────────────────────────────────┘
-```
+Pour ne pas induire en erreur un nouvel arrivant ou un auditeur, les services et documents suivants ont été supprimés ou archivés :
+
+| Élément | Statut | Trace |
+|---|---|---|
+| `plaquette-pdf.service.ts` (avec classe `PlaquettePdfService`) | **Supprimé du code** ; remplacé par `magazine-deco-pdf.service.ts` + `reseller-brochure-pdf.service.ts` | `docs/archive/obsolete/PLAQUETTE_PDF_COBRANDING.md` |
+| `PDFExportService` (alias documenté) | **Jamais présent dans le code actuel** ; vestige de doc | `docs/archive/obsolete/API_SERVICES.md` |
+| `lovable-tagger` (plugin Vite Lovable) | **Retiré** des dépendances runtime/devDependencies | `docs/AUDIT_DEPENDANCES.md` |
+| Index documentaire v2.0.0 (décembre 2025) | **Remplacé** par `docs/README.md` (à jour) | `docs/archive/obsolete/README_v2.0.0_2025-12.md` |
+| Audit technique snapshot (17 décembre 2025, 784 tests / 25 suites) | **Historique** ; conservé pour traçabilité | `docs/archive/historical/AUDIT_TECHNIQUE_2025-12.md` |
+| Plan correctif personnalisation revendeur (décembre 2025) | **Plan exécuté** ; conservé pour traçabilité TDD | `docs/archive/historical/PLAN_CORRECTIF_PLAQUETTE_REVENDEUR.md` |
+| Brochure commerciale Gamma (décembre 2025) | **Document commercial** non technique ; conservé pour mémoire | `docs/archive/historical/BROCHURE_COMMERCIALE_GAMMA.md` |
+| Résumé exécutif v2.0.0 (décembre 2025) | **Historique** | `docs/archive/historical/DICA_FRANCE_RESUME_2025-12.md` |
+| Prompt de contrôle onboarding (décembre 2025) | **Checklist ponctuelle** archivée | `docs/archive/historical/PROMPT_CONTROLE_ONBOARDING.md` |
+| Prompt de contrôle plaquette (novembre 2025) | **Obsolète** (cible `PlaquettePdfService` supprimé) | `docs/archive/obsolete/PROMPT_CONTROLE_PLAQUETTE.md` |
+
+> La documentation active prime sur les documents archivés. Aucun document archivé ne doit être utilisé comme référence opérationnelle courante.
 
 ---
 
-## 🚀 Démarrage rapide
+## 4. Architecture générale
+
+Architecture trois couches, factuelle :
+
+1. **Frontend** : SPA React 18 / TypeScript 5 / Vite 5, routing `react-router-dom@6`, état serveur via TanStack Query, UI shadcn/ui + Radix, formulaires `react-hook-form` + `zod`. Code source : `src/`.
+2. **Backend managé** : projet Supabase (PostgreSQL, Auth JWT, Storage, RLS), avec Edge Functions Deno pour orchestration IA et logique côté serveur. Définition : `supabase/`.
+3. **IA externe** : Google AI Gemini (modèle `gemini-3-pro-image-preview` pour la génération d'image, `gemini-2.5-flash` pour la composition texte). Appelée uniquement depuis les Edge Functions ; aucune clé API n'est exposée au navigateur.
+
+Pour une description détaillée et auditable de l'architecture (modules propriétaires, dépendances tierces, flux de données, sécurité), voir `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md`.
+
+---
+
+## 5. Démarrage local
 
 ### Prérequis
 
-- Node.js 18+
-- npm 8+
-- Compte Supabase
-- Clé API Google AI
+- Node.js `>= 20.0.0` (cf. `package.json#engines`)
+- npm `>= 10.0.0`
+- Un projet Supabase (URL + clés `anon` et `service_role` côté serveur)
+- Une clé Google AI (utilisée par les Edge Functions, pas par le frontend)
 
 ### Installation
 
 ```bash
-# Cloner le repository
 git clone <repository-url>
 cd dica-decorator
-
-# Installer les dépendances
 npm install
-
-# Configurer les variables d'environnement
 cp .env.example .env.local
-# Éditer .env.local avec vos clés
-
-# Lancer en développement
+# Compléter .env.local : VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, etc.
 npm run dev
 ```
 
-L'application sera accessible sur `http://localhost:8080`
+L'application est alors servie sur `http://localhost:8080`.
 
-### Scripts disponibles
+### Scripts disponibles (cf. `package.json`)
 
-```bash
-npm run dev          # Serveur de développement
-npm run build        # Build de production
-npm run preview      # Preview du build
-npm run test         # Tests en mode watch
-npm run test:run     # Tests une seule fois
-npm run test:coverage # Tests avec couverture
-npm run lint         # Linter ESLint
-```
-
----
-
-## 🛠️ Technologies
-
-### Frontend
-
-| Technologie | Usage |
-|-------------|-------|
-| **React 18** | Framework UI |
-| **TypeScript** | Typage statique |
-| **Vite** | Build tool |
-| **TailwindCSS** | Styling |
-| **shadcn/ui** | Composants UI |
-| **React Router** | Routing |
-| **TanStack Query** | État serveur |
-| **jsPDF** | Génération PDF |
-
-### Backend
-
-| Service | Usage |
-|---------|-------|
-| **Supabase** | Auth, Database, Storage |
-| **PostgreSQL** | Base de données |
-| **Edge Functions** | Logique serveur (Deno) |
-| **Row Level Security** | Sécurité données |
-
-### Intelligence Artificielle
-
-| Service | Modèle | Usage |
-|---------|--------|-------|
-| **Google AI** | Gemini 3 Pro Image Preview | Génération images |
-| **Google AI** | Gemini 2.5 Flash | Chat créatif (texte) |
+| Script | Effet |
+|---|---|
+| `npm run dev` | Serveur de développement Vite |
+| `npm run build` | Build de production (sortie : `dist/`) |
+| `npm run build:dev` | Build en mode développement |
+| `npm run preview` | Aperçu du build de production |
+| `npm run lint` | ESLint sur l'ensemble du repo |
+| `npm run test` / `test:run` | Tests Vitest (mode watch / une passe) |
+| `npm run test:coverage` | Tests + couverture v8 |
+| `npm run test:ui` | UI Vitest |
 
 ---
 
-## 📁 Structure du projet
+## 6. Tests et qualité
 
-```
-dica-decorator/
-├── docs/                    # 📚 Documentation complète
-│   ├── README.md
-│   ├── GUIDE_UTILISATEUR.md
-│   ├── GUIDE_ADMINISTRATEUR.md
-│   ├── DOCUMENTATION_TECHNIQUE.md
-│   ├── GUIDE_DEPLOIEMENT.md
-│   ├── API_REFERENCE.md
-│   └── DICA_FRANCE_RESUME.md
-├── public/
-│   └── images/              # Assets statiques
-├── src/
-│   ├── components/          # Composants React
-│   │   ├── ui/              # Composants shadcn/ui
-│   │   ├── analytics/       # Composants analytics
-│   │   └── onboarding/      # Composants onboarding
-│   ├── contexts/            # Contextes React
-│   ├── integrations/        # Intégrations (Supabase)
-│   ├── lib/                 # Utilitaires
-│   ├── pages/               # Pages de l'application
-│   ├── services/            # Services métier (TDD)
-│   │   └── __tests__/       # Tests unitaires
-│   └── test/                # Configuration tests
-├── supabase/
-│   ├── functions/           # Edge Functions
-│   └── migrations/          # Migrations SQL
-└── package.json
-```
+Mesures observées au 2026-05-31, sources reproductibles :
+
+| Indicateur | Valeur | Source |
+|---|---|---|
+| Suites de tests Vitest | 27 | `npm run test:run` |
+| Tests unitaires | 825 | `npm run test:run` |
+| TypeScript | `tsc --noEmit` = 0 erreur | `audit/final/build.txt` |
+| ESLint | 0 erreur, ~170 warnings `any` (non bloquants) | `audit/final/lint.txt` |
+| Vulnérabilités npm | Suivies en migration différée | `docs/MIGRATIONS_DIFFEREES_DEPENDANCES.md` |
+| Pipelines CI/CD | GitHub Actions : `ci.yml` (qualité), `cd-edge-functions.yml` (déploiement Edge) | `.github/workflows/README.md` |
+
+Pour le rapport de qualité courant, voir `docs/RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md`.
+Pour la trajectoire historique (incluant le snapshot décembre 2025 à 784 tests / 25 suites), voir `docs/archive/historical/AUDIT_TECHNIQUE_2025-12.md`.
 
 ---
 
-## 🧪 Tests
+## 7. Sécurité (énoncé synthétique)
 
-L'application est développée avec une approche **TDD stricte**.
+- Authentification JWT via Supabase Auth.
+- Row Level Security (RLS) sur l'ensemble des tables métier.
+- Garde anti-SSRF côté frontend (`url-validator.service.ts`) et côté Edge Functions (`supabase/functions/_shared/ssrf-guard.ts`).
+- Rate limiting et quotas de génération par utilisateur et organisation.
+- Aucun secret en clair dans le repository ; les secrets sont gérés via variables d'environnement et secrets Supabase / GitHub Actions.
+- Audits de licences et de vulnérabilités automatisés en CI.
 
-```bash
-# Lancer les tests
-npm run test:run
-
-# Résultat attendu
-✓ src/services/__tests__/gemini-image.service.test.ts (46 tests)
-✓ src/services/__tests__/analytics.service.test.ts (49 tests)
-✓ src/services/__tests__/analytics-export.service.test.ts (29 tests)
-✓ src/services/__tests__/share-link.service.test.ts (58 tests)
-✓ src/services/__tests__/url-validator.service.test.ts (71 tests)
-✓ src/services/__tests__/image-comparison.service.test.ts (67 tests)
-✓ src/services/__tests__/presentation.service.test.ts (67 tests)
-✓ src/services/__tests__/plaquette-pdf.service.test.ts (138 tests)
-✓ src/services/__tests__/organization.service.test.ts (27 tests)
-✓ src/services/__tests__/image-storage.service.test.ts (29 tests)
-✓ src/services/__tests__/auth-guard.service.test.ts (31 tests)
-✓ src/services/__tests__/rate-limiter.service.test.ts (30 tests)
-✓ src/services/__tests__/quota.service.test.ts (21 tests)
-
-Test Files  13 passed (13)
-     Tests  663 passed (663)
-```
-
-### Services testés
-
-| Service | Tests | Couverture |
-|---------|-------|------------|
-| MagazineDecoPdfService | 120+ | Export Magazine DÉCO style AD |
-| ResellerBrochurePdfService | 16 | Brochure revendeur personnalisable |
-| UrlValidatorService | 71 | Protection anti-SSRF |
-| PresentationService | 67 | Mode présentation plein écran |
-| ImageComparisonService | 67 | Comparaison Avant/Après |
-| ShareLinkService | 58 | Partage de projets sécurisé |
-| AnalyticsService | 49 | Dashboard analytics admin |
-| GeminiImageService | 46 | Intégration Gemini 3 Pro |
-| ImageExportService | 32 | Export multi-formats (PNG/JPEG/WebP) |
-| AuthGuardService | 31 | Validation rôles & permissions |
-| RateLimiterService | 30 | Limites quotidiennes/mensuelles |
-| AnalyticsExportService | 29 | Export JSON/Excel/PDF |
-| ImageStorageService | 29 | Migration base64 → Storage |
-| OrganizationService | 27 | Multi-tenant |
-| QuotaService | 21 | Gestion quotas revendeurs |
+Pour le détail, voir `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md` § 7 et `docs/MIGRATIONS_DIFFEREES_DEPENDANCES.md`.
 
 ---
 
-## 🔒 Sécurité
+## 8. Procédure de contribution
 
-- ✅ **Authentification JWT** via Supabase Auth
-- ✅ **Row Level Security** sur toutes les tables
-- ✅ **Protection SSRF** pour URLs externes
-- ✅ **Rate Limiting** quotidien et mensuel
-- ✅ **Validation serveur** de tous les inputs
-- ✅ **Tests de sécurité** (71 tests UrlValidator)
+Le repository est privé. Les contributions internes suivent la règle suivante :
 
----
-
-## 📚 Documentation
-
-Une documentation complète est disponible dans le dossier `/docs` :
-
-| Document | Description |
-|----------|-------------|
-| [README](./docs/README.md) | Vue d'ensemble |
-| [Guide Utilisateur](./docs/GUIDE_UTILISATEUR.md) | Pour les utilisateurs finaux |
-| [Guide Administrateur](./docs/GUIDE_ADMINISTRATEUR.md) | Pour les admins |
-| [Documentation Technique](./docs/DOCUMENTATION_TECHNIQUE.md) | Architecture & code |
-| [Guide de Déploiement](./docs/GUIDE_DEPLOIEMENT.md) | Installation & prod |
-| [API Reference](./docs/API_REFERENCE.md) | Endpoints & types |
-| [Résumé DICA](./docs/DICA_FRANCE_RESUME.md) | Résumé exécutif |
+1. Les modifications de logique métier doivent être accompagnées de tests Vitest.
+2. La CI (`.github/workflows/ci.yml`) doit être verte sur la PR avant merge : lint, tests, build.
+3. Toute modification d'Edge Function doit être déployée via le workflow manuel `cd-edge-functions.yml`.
+4. Toute modification de la documentation doit respecter la séparation **active / archive** décrite ci-dessous (§ 10).
+5. Les rapports d'audit, de qualité et de valorisation ne doivent jamais être supprimés ; en cas d'obsolescence, ils sont archivés (cf. `docs/audit/documentation_cleanup_report_2026-05-31.md`).
 
 ---
 
-## 🚢 Déploiement
+## 9. Documentation de référence
 
-### Lovable (Production)
+> **Règle générale : la documentation active (`docs/*.md`, `docs/audit/`, `docs/commissaire_aux_apports/`) est prioritaire sur les documents archivés (`docs/archive/`).**
 
-L'application est déployée via **Lovable** qui gère :
-- Supabase (Backend)
-- Edge Functions
-- Storage
+### 9.1 Index documentaire
 
-### Build manuel
+Le point d'entrée détaillé est `docs/README.md`.
 
-```bash
-npm run build
-# Les fichiers sont dans dist/
-```
+### 9.2 Documents techniques actifs
 
-Voir le [Guide de Déploiement](./docs/GUIDE_DEPLOIEMENT.md) pour plus de détails.
+| Document | Contenu |
+|---|---|
+| `docs/DOCUMENTATION_TECHNIQUE.md` | Stack technique, architecture applicative, services TDD, sécurité (note de fraîcheur 2026-05-31). |
+| `docs/API_REFERENCE.md` | Endpoints Supabase et Edge Functions historiques (note de fraîcheur 2026-05-31). |
+| `docs/DICA_ORCHESTRATOR_GUIDE.md` | Orchestrateur AI Gemini et fonctions associées. |
+| `docs/HANDOVER_DEVELOPPEUR.md` | Handover technique structuré (architecture, scripts, alertes, points de vigilance). |
+| `docs/MIGRATIONS_DIFFEREES_DEPENDANCES.md` | Vulnérabilités npm en migration différée et plan de traitement. |
+| `docs/AUDIT_DEPENDANCES.md` | Suivi des dépendances tierces et retraits (ex. `lovable-tagger`). |
+| `docs/AUDIT_TIER1_BUREAU_DIAGNOSTIQUE.md` | Audit ciblé bureau diagnostique. |
+| `docs/CHECKLIST_SMOKE_KILLSWITCH.md` | Checklist de vérification post-déploiement (smoke + killswitch). |
+| `docs/MODE_EMPLOI.md` | Mode opératoire condensé. |
+| `.github/workflows/README.md` | Description factuelle des pipelines CI/CD. |
 
----
+### 9.3 Documents utilisateurs et exploitation
 
-## 📊 Changelog récent
+| Document | Contenu |
+|---|---|
+| `docs/GUIDE_UTILISATEUR.md` | Guide de l'utilisateur final (note de fraîcheur 2026-05-31). |
+| `docs/GUIDE_ADMINISTRATEUR.md` | Guide d'administration (note de fraîcheur 2026-05-31). |
+| `docs/GUIDE_DEPLOIEMENT.md` | Procédure d'installation et de déploiement (note de fraîcheur 2026-05-31). |
 
-### Version 2.2.0 (Décembre 2025)
+### 9.4 Documents de qualité, valorisation, audit cabinet
 
-- 📄 **Brochure Revendeur** : Magazine DÉCO avec couverture personnalisable (nom revendeur en titre)
-- 🎨 **Typographie élégante** : Labels *Avant/Après* en serif italique (Times New Roman)
-- 🖼️ **Export multi-formats** : PNG, JPEG, WebP avec qualité configurable
-- 📏 **Spécifications chants** : L'IA comprend les épaisseurs de chants (0.5mm → 5mm+)
-- ⚡ **Optimisation latence** : Chargement parallèle + mises à jour optimistes
-- 🦴 **Skeletons loaders** : Feedback visuel instantané pendant le chargement
-
-### Version 2.1.0 (Décembre 2025)
-
-- ✨ **Export Analytics multi-formats** : JSON, Excel (CSV), PDF
-- ❤️ **Bouton favoris visible** sur chaque rendu (plus dans le menu)
-- 🎨 **Icônes corrigées** pour dark mode
-- 📊 **Dashboard Analytics** amélioré avec graphiques
-- 📄 **Magazine DÉCO** style AD Magazine
-
----
-
-## 📄 Licence
-
-Application propriétaire développée pour **DICA France**.
-
----
-
-## 📞 Support
-
-- **Documentation** : [/docs](./docs/README.md)
-- **Support technique** : tech@dica-france.com
+| Document | Usage |
+|---|---|
+| `docs/RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md` | Rapport qualité courant. |
+| `docs/RAPPORT_VALORISATION_TECHNIQUE.md` | Rapport interne de valorisation technique. |
+| `docs/VALORISATION_TECHNIQUE_DICA_DECOR.md` | Synthèse interne valorisation. |
+| `docs/MATRICE_HEURES_QUALITE_DICA_DECOR.md` | Matrice heures × qualité (interne). |
+| `docs/PLAN_CORRECTION_RISQUES_DECOTE.md` | Plan de correction des risques de décote. |
+| `docs/RAPPORT_EXECUTION_PLAN_CORRECTION.md` | Suivi d'exécution du plan de correction. |
+| `docs/DOSSIER_COMMISSAIRE_AUX_APPORTS.md` | Dossier interne pour commissaire aux apports. |
+| `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md` | Documentation projet standardisée pour cabinet d'audit. |
+| `docs/audit/PROJECT_AUDIT_NOTES.md` | Notes méthodologiques de l'audit cabinet. |
+| `docs/audit/documentation_cleanup_report_2026-05-31.md` | Rapport de la présente mission de nettoyage documentaire. |
+| `docs/commissaire_aux_apports/DOCUMENTATION_PROJET_COMMISSAIRE_AUX_APPORTS.md` | Document destiné au commissaire aux apports. |
+| `docs/commissaire_aux_apports/CONTROLE_DOCUMENTATION_PROJET.md` | Rapport de contrôle interne associé. |
+| `docs/commissaire_aux_apports/NOTE_LICENCE_COMMERCIALE_DICA_DECOR.md` | Note interne sur licence commerciale et droits d'exploitation. |
 
 ---
 
-<div align="center">
+## 10. Documents archivés / historiques
 
-**DICA Decorator v2.1.0**
+`docs/archive/` contient les documents qui **ne doivent plus être utilisés comme référence opérationnelle**.
 
-*Transformez votre catalogue en expérience visuelle*
+| Sous-dossier | Contenu | Politique |
+|---|---|---|
+| `docs/archive/obsolete/` | Documents contradictoires avec le code actuel (services supprimés, version incompatible). | Ne pas utiliser. Conservés pour traçabilité. |
+| `docs/archive/historical/` | Documents anciens utiles à la traçabilité (snapshots d'audit, plans exécutés, supports commerciaux datés). | Lecture autorisée pour comprendre la trajectoire ; ne pas opposer à un état présent. |
 
-© 2025 DICA France - Développé par **KOREV AI**
+Chaque document archivé porte un encadré `⚠️ DOCUMENT ARCHIVÉ` en tête, précisant son statut, sa date d'archivage, la raison de l'archivage, et le document de remplacement.
 
-</div>
+---
+
+## 11. Pour les auditeurs et le commissaire aux apports
+
+Pour éviter toute confusion entre **état actuel** et **historique** :
+
+- **Vue technique courante** auditable : `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md`. C'est le document de référence pour un cabinet d'audit ou de due diligence.
+- **Vue commissaire aux apports** : `docs/commissaire_aux_apports/DOCUMENTATION_PROJET_COMMISSAIRE_AUX_APPORTS.md`, complétée par les notes internes (`CONTROLE_DOCUMENTATION_PROJET.md`, `NOTE_LICENCE_COMMERCIALE_DICA_DECOR.md`).
+- **Trajectoire historique** : `docs/archive/historical/` (snapshot audit décembre 2025, plans exécutés, support de présentation commerciale).
+- **Méthodologie de l'audit documentaire** : `docs/audit/documentation_cleanup_report_2026-05-31.md`.
+
+Les chiffres opérationnels (tests, suites, services, vulnérabilités) cités dans la documentation active sont reproductibles à partir des artefacts dans `audit/final/` (sortie de `npm run lint`, `npm run test:run`, `npm run build`, `npm audit`). Les chiffres cités dans la documentation archivée correspondent à un état antérieur du projet et ne doivent pas être confondus avec l'état présent.
+
+---
+
+## 12. Licence
+
+Le code source est sous licence `UNLICENSED` (cf. `package.json`). Cela signifie qu'il s'agit d'un logiciel propriétaire dont aucun droit n'est concédé par défaut. Les dépendances open-source sont sous leurs licences respectives (majoritairement MIT, ISC, Apache-2.0) ; voir `audit/phase-minus-1/licenses-prod.csv` et `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md` § 6.
+
+Pour la position détaillée sur la propriété intellectuelle, la licence commerciale et les droits d'exploitation (KOREV AI vs DICA France), voir `docs/commissaire_aux_apports/NOTE_LICENCE_COMMERCIALE_DICA_DECOR.md` (note interne, à valider juridiquement).
+
+---
+
+## 13. Contact
+
+- Support technique DICA : `tech@dica-france.com`
+- Documentation : `docs/README.md`
+- Issues internes : suivi GitHub privé du projet.
+
+---
+
+© DICA France — base logicielle développée par KOREV AI. Application propriétaire ; reproduction et redistribution non autorisées sans accord écrit.

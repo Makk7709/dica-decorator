@@ -1,3 +1,12 @@
+> ⚠️ **DOCUMENT ARCHIVÉ**
+> **Statut :** Historique à conserver (résumé exécutif daté v2.0.0)
+> **Date d'archivage :** 2026-05-31
+> **Raison :** Résumé exécutif daté de décembre 2025, version 2.0.0 du produit. Le projet est désormais en 2.2.0 et la documentation de référence cabinet/commissaire aux apports a été produite depuis. Conservé pour la traçabilité de la communication exécutive à cette date.
+> **Remplacé par :** `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md` (vue audit cabinet à jour) et `docs/commissaire_aux_apports/DOCUMENTATION_PROJET_COMMISSAIRE_AUX_APPORTS.md` (vue commissaire aux apports).
+> **Ne pas utiliser comme référence opérationnelle active.**
+
+---
+
 # 🏢 DICA Decorator - Résumé Exécutif
 
 **Application de Visualisation de Décors par Intelligence Artificielle**

@@ -1,3 +1,12 @@
+> ⚠️ **DOCUMENT ARCHIVÉ**
+> **Statut :** Obsolète
+> **Date d'archivage :** 2026-05-31
+> **Raison :** Prompt de contrôle ciblant le service `PlaquettePdfService` qui n'existe plus dans le code (cf. `docs/archive/obsolete/PLAQUETTE_PDF_COBRANDING.md` archivé en parallèle). Les contrôles fonctionnels du système PDF actuel sont couverts par les tests unitaires dans `src/services/__tests__/magazine-deco-pdf.service.test.ts`, `reseller-brochure-pdf.service.test.ts` et `reseller-brochure-personalization.test.ts`.
+> **Remplacé par :** suites de tests unitaires Vitest dans `src/services/__tests__/`, et `docs/CHECKLIST_SMOKE_KILLSWITCH.md` pour les vérifications de production.
+> **Ne pas utiliser comme référence opérationnelle active.**
+
+---
+
 # 🔍 PROMPT DE CONTRÔLE - Plaquette PDF DICA DÉCOR
 
 ## Objectif
