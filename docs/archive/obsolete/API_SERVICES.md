@@ -1,3 +1,12 @@
+> ⚠️ **DOCUMENT ARCHIVÉ**
+> **Statut :** Obsolète
+> **Date d'archivage :** 2026-05-31
+> **Raison :** Décrit `PDFExportService` qui n'existe pas dans le code actuel. Référence la version 2.0.0 alors que le projet est en 2.2.0. Les services PDF actuels sont `magazine-deco-pdf.service.ts` et `reseller-brochure-pdf.service.ts`.
+> **Remplacé par :** `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md` (§ 5 et § 4) pour la cartographie des services à jour, et le code `src/services/` directement (les services sont auto-documentés en TypeScript avec types exportés).
+> **Ne pas utiliser comme référence opérationnelle active.**
+
+---
+
 # 📚 API Services - Documentation Technique
 
 > Documentation complète des services DICA Decorator  

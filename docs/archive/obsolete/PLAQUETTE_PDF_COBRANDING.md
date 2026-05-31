@@ -1,3 +1,12 @@
+> ⚠️ **DOCUMENT ARCHIVÉ**
+> **Statut :** Obsolète
+> **Date d'archivage :** 2026-05-31
+> **Raison :** Décrit le service `plaquette-pdf.service.ts` (avec sa classe `PlaquettePdfService`) qui a été supprimé du code source. Le système de génération PDF actuel est porté par deux services distincts : `magazine-deco-pdf.service.ts` (format magazine éditorial) et `reseller-brochure-pdf.service.ts` (brochure revendeur cobrandée).
+> **Remplacé par :** code `src/services/magazine-deco-pdf.service.ts` et `src/services/reseller-brochure-pdf.service.ts`, leurs tests associés, et la fonction Edge `supabase/functions/generate-magazine-captions/index.ts`.
+> **Ne pas utiliser comme référence opérationnelle active.**
+
+---
+
 # 📄 Plaquette PDF DICA DÉCOR - Co-branding Revendeurs
 
 ## 🎯 Vue d'ensemble

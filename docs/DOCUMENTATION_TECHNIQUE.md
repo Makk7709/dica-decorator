@@ -1,3 +1,8 @@
+> **Note de fraîcheur (revue 2026-05-31)**
+> Document daté du 30 novembre 2025, conservé comme référentiel **actif**. Aucune référence à des modules supprimés (`PlaquettePdfService`, `PDFExportService`) détectée. Pour la cartographie services et le périmètre IP/licences à jour, voir `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md` et `docs/commissaire_aux_apports/DOCUMENTATION_PROJET_COMMISSAIRE_AUX_APPORTS.md`. En cas de divergence avec ce document, le code source et la documentation d'audit prévalent.
+
+---
+
 # 💻 Documentation Technique DICA Decorator
 
 **Architecture, Technologies et Implémentation**

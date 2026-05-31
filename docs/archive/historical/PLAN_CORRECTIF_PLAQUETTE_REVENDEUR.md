@@ -1,3 +1,12 @@
+> ⚠️ **DOCUMENT ARCHIVÉ**
+> **Statut :** Historique à conserver (plan exécuté)
+> **Date d'archivage :** 2026-05-31
+> **Raison :** Plan d'action TDD daté de décembre 2025, dont toutes les cases de validation sont marquées « OK » dans le document lui-même. Le plan a été exécuté ; il n'a plus vocation opérationnelle. Conservé pour la traçabilité de la conception (preuve d'application de la démarche TDD sur la personnalisation revendeur).
+> **Remplacé par :** code `src/services/reseller-brochure-pdf.service.ts` et tests `src/services/__tests__/reseller-brochure-personalization.test.ts`.
+> **Ne pas utiliser comme référence opérationnelle active.**
+
+---
+
 # Plan d'Action TDD - Correction Personnalisation Plaquette Revendeur
 
 ## 🎯 Objectif

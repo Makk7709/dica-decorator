@@ -164,7 +164,7 @@ Décomposition par service (volumétrie de tests) :
 | Service | Tests | Préoccupation testée |
 |---------|------:|----------------------|
 | `reseller-brochure-pdf.service` | 60 + 26 perso. | Génération PDF revendeur, personnalisation |
-| `plaquette-pdf.service` (legacy) | 138 | Génération brochure historique |
+| `plaquette-pdf.service` *(supprimé du code 2026, remplacé par `magazine-deco-pdf.service` + `reseller-brochure-pdf.service` ; tests historiques)* | 138 | Génération brochure (historique, non actif) |
 | `share-link.service` | 58 | Partage sécurisé avec expiration |
 | `url-validator.service` | 71 | Protection anti-SSRF |
 | `presentation.service` | 67 | Mode présentation |
@@ -280,17 +280,17 @@ Localisation : `docs/`
 | `DOCUMENTATION_TECHNIQUE.md` | — | Architecture & code |
 | `GUIDE_DEPLOIEMENT.md` | — | Installation, prod |
 | `API_REFERENCE.md` | — | Endpoints & types |
-| `API_SERVICES.md` | — | Contrats services |
-| `DICA_FRANCE_RESUME.md` | — | Résumé exécutif client |
+| `archive/obsolete/API_SERVICES.md` | — | Contrats services *(archivé 2026-05-31)* |
+| `archive/historical/DICA_FRANCE_RESUME_2025-12.md` | — | Résumé exécutif client *(archivé 2026-05-31, v2.0.0)* |
 | `DICA_ORCHESTRATOR_GUIDE.md` | — | Orchestration IA |
 | `MODE_EMPLOI.md` | 165 | Quick start utilisateur |
 | `RAPPORT_VALORISATION_TECHNIQUE.md` | ~900 | Rapport commissaire aux apports détaillé |
 | `DOSSIER_COMMISSAIRE_AUX_APPORTS.md` | — | Dossier de transmission |
-| `AUDIT_TECHNIQUE.md` | 187 | Audit interne (Décembre 2025) |
-| `BROCHURE_COMMERCIALE_GAMMA.md` | — | Brochure commerciale |
-| `PLAQUETTE_PDF_COBRANDING.md` | — | Spec co-branding |
+| `archive/historical/AUDIT_TECHNIQUE_2025-12.md` | 187 | Audit interne (Décembre 2025) *(archivé 2026-05-31)* |
+| `archive/historical/BROCHURE_COMMERCIALE_GAMMA.md` | — | Brochure commerciale *(archivée 2026-05-31, document commercial)* |
+| `archive/obsolete/PLAQUETTE_PDF_COBRANDING.md` | — | Spec co-branding *(archivée 2026-05-31, service `PlaquettePdfService` supprimé)* |
 | `PROMPT_CONTROLE_*.md` | — | Procédures de validation |
-| `PLAN_CORRECTIF_PLAQUETTE_REVENDEUR.md` | — | Plan correctif |
+| `archive/historical/PLAN_CORRECTIF_PLAQUETTE_REVENDEUR.md` | — | Plan correctif *(archivé 2026-05-31, plan exécuté)* |
 | `VALORISATION_TECHNIQUE_DICA_DECOR.md` | (ce document) | — |
 | `MATRICE_HEURES_QUALITE_DICA_DECOR.md` | nouveau | Matrice temps homme |
 | `RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md` | nouveau | Rapport qualité |
@@ -367,7 +367,7 @@ Voir le détail bloc par bloc dans `docs/MATRICE_HEURES_QUALITE_DICA_DECOR.md`.
 | Risque | Description | Mitigation |
 |--------|-------------|------------|
 | Échec test pré-existant | 3 tests sur `use-decor-context-cache.test.ts` ne reflètent plus le format réel du contexte catalogue (la fonction a évolué, le test n'a pas été synchronisé) | Test ou implémentation à harmoniser dans une prochaine itération. **Validé sur main pristine** : ce sont des échecs antérieurs, pas une régression introduite. |
-| Dette `any` | ~172 erreurs ESLint liées au typage `any` dans services PDF, mocks de tests, et certaines Edge Functions | Sans impact runtime, à éroder progressivement. Documenté dans `docs/AUDIT_TECHNIQUE.md`. |
+| Dette `any` | ~172 erreurs ESLint liées au typage `any` dans services PDF, mocks de tests, et certaines Edge Functions | Sans impact runtime, à éroder progressivement. Documenté dans `docs/archive/historical/AUDIT_TECHNIQUE_2025-12.md` *(archivé 2026-05-31)*. |
 | Vulnérabilités npm | 19 issues dans dépendances transitives (Vite, Vitest, jspdf) | Programmer `npm audit fix --force` + re-test. |
 | Engine Node | `type-fest@5` exige Node ≥20, CI sur Node 18 | Bumper la pipeline CI vers Node 20 LTS. |
 | Dépendance API Gemini | Nécessite clé Google AI valide ; en cas de panne fournisseur, l'application est dégradée | API multi-fournisseurs (passerelle abstraite, voir `AUDIT_DEPENDANCES.md` §4). Migration en 0,5 j/h. |
@@ -394,7 +394,7 @@ Aucun risque ne remet en cause la transférabilité de l'actif ni son exploitabi
 | Matrice heures × qualité | `docs/MATRICE_HEURES_QUALITE_DICA_DECOR.md` |
 | Rapport qualité logicielle | `docs/RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md` |
 | Handover développeur | `docs/HANDOVER_DEVELOPPEUR.md` |
-| Audit technique préalable | `docs/AUDIT_TECHNIQUE.md` |
+| Audit technique préalable | `docs/archive/historical/AUDIT_TECHNIQUE_2025-12.md` *(snapshot décembre 2025, archivé 2026-05-31)* + `docs/RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md` *(courant)* |
 | Rapport valorisation détaillé | `docs/RAPPORT_VALORISATION_TECHNIQUE.md` (V4.0, 14/02/2026) |
 
 ---

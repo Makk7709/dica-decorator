@@ -394,10 +394,10 @@ Les Edge Functions loggent abondamment (préfixes 🎯, ✅, ❌, ⚠️). Voir 
 | Guide utilisateur | `docs/GUIDE_UTILISATEUR.md` + `docs/MODE_EMPLOI.md` |
 | Guide administrateur | `docs/GUIDE_ADMINISTRATEUR.md` |
 | Documentation technique détaillée | `docs/DOCUMENTATION_TECHNIQUE.md` |
-| API services | `docs/API_REFERENCE.md` + `docs/API_SERVICES.md` |
+| API services | `docs/API_REFERENCE.md` + `docs/archive/obsolete/API_SERVICES.md` *(API_SERVICES archivé 2026-05-31, partiellement obsolète ; pour la cartographie services à jour, lire `src/services/index.ts` et `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md` § 5)* |
 | Orchestrateur IA | `docs/DICA_ORCHESTRATOR_GUIDE.md` |
 | Guide déploiement | `docs/GUIDE_DEPLOIEMENT.md` |
-| Audit technique | `docs/AUDIT_TECHNIQUE.md` |
+| Audit technique | `docs/RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md` *(courant)* + `docs/archive/historical/AUDIT_TECHNIQUE_2025-12.md` *(snapshot historique décembre 2025)* |
 | Audit dépendances | `docs/AUDIT_DEPENDANCES.md` |
 | Valorisation technique | `docs/VALORISATION_TECHNIQUE_DICA_DECOR.md` |
 | Matrice heures × qualité | `docs/MATRICE_HEURES_QUALITE_DICA_DECOR.md` |

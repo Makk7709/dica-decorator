@@ -211,7 +211,7 @@ npm run lint
 ### 4.4 Analyse
 
 - **Aucune erreur ne provoque d'échec runtime** (l'application se build et se déploie).
-- **Aucune nouveauté** : ces lints sont **antérieurs à la mission de cleanup** et déjà documentés dans `docs/AUDIT_TECHNIQUE.md` (Décembre 2025) qui mentionne « ~170 `any` dans services (non bloquant) ».
+- **Aucune nouveauté** : ces lints sont **antérieurs à la mission de cleanup** et déjà documentés dans `docs/archive/historical/AUDIT_TECHNIQUE_2025-12.md` (snapshot décembre 2025, archivé le 2026-05-31) qui mentionne « ~170 `any` dans services (non bloquant) ».
 - **Stratégie de remédiation** : sprint de typage progressif (typage des `jsPDF` events, des handlers Supabase, des erreurs `unknown`). Estimation de remédiation totale : 3–4 j/h.
 
 ---

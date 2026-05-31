@@ -133,7 +133,7 @@
 | Nature | Implémentation + tests + UI admin |
 | Complexité | ★★★ |
 | Bas / Central / Haut | 5 / **7** / 10 |
-| Preuves repo | `src/services/reseller-brochure-pdf.service.ts`, `src/components/admin/reseller-branding-settings.tsx`, `docs/PLAQUETTE_PDF_COBRANDING.md` |
+| Preuves repo | `src/services/reseller-brochure-pdf.service.ts`, `src/components/admin/reseller-branding-settings.tsx`, `docs/archive/obsolete/PLAQUETTE_PDF_COBRANDING.md` *(archivée 2026-05-31, décrit l'ancien service `PlaquettePdfService` désormais remplacé)* |
 | Tests | `reseller-brochure-pdf.service.test.ts` (60) + `reseller-brochure-personalization.test.ts` (26) → 86 tests |
 | Qualité | Élevée — couverture de tests forte |
 | Risque de décote | Faible |
@@ -328,7 +328,7 @@ La fourchette **130–170 j/h** est défendable face à un évaluateur externe, 
 
 | Risque | Impact valorisation | Mitigation possible |
 |--------|--------------------:|--------------------|
-| Dette lint (~172 `any`) | -2 à -5 j/h potentiellement décotés sur bloc 18 | Sprint de typage progressif (déjà entamé selon `AUDIT_TECHNIQUE.md`) |
+| Dette lint (~172 `any`) | -2 à -5 j/h potentiellement décotés sur bloc 18 | Sprint de typage progressif (déjà entamé selon `docs/archive/historical/AUDIT_TECHNIQUE_2025-12.md`) |
 | 3 tests `use-decor-context-cache` pré-existants en échec | -1 à -2 j/h sur bloc 16 | Réaligner test ou implémentation lors d'une prochaine itération |
 | Coverage formelle non mesurée | Risque modéré si l'évaluateur l'exige formellement | Lancer `npm run test:coverage` et publier le rapport |
 | 19 vulnérabilités npm transitives | Risque modéré | `npm audit fix --force` + re-test |

@@ -1,3 +1,12 @@
+> ⚠️ **DOCUMENT ARCHIVÉ**
+> **Statut :** Historique à conserver (renommé `AUDIT_TECHNIQUE_2025-12.md`)
+> **Date d'archivage :** 2026-05-31
+> **Raison :** Snapshot d'audit daté du 17 décembre 2025, sur le commit `47f5aa8`. Mentionne 784 tests / 25 suites, alors que le projet est aujourd'hui à 825 tests / 27 suites (cf. `docs/RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md`). Conservé pour la traçabilité de la trajectoire qualité du projet (corrections TypeScript, durcissement sécurité, etc.) et la valorisation.
+> **Remplacé par :** `docs/RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md` (rapport qualité courant), `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md` (vue audit cabinet) et `docs/RAPPORT_EXECUTION_PLAN_CORRECTION.md` (suivi des corrections).
+> **Ne pas utiliser comme référence opérationnelle active : les chiffres et le commit cités ne reflètent plus l'état du repository.**
+
+---
+
 # 🔍 AUDIT TECHNIQUE COMPLET - DICA Decorator
 
 **Date :** 17 Décembre 2025  

@@ -199,7 +199,7 @@
 | Action | Typer les 37 `any` des services (`admin-project-viewer`, `analytics`, `magazine-deco-pdf`, `project-deletion`, `project-rename`, `reseller-brochure-pdf`, etc.). Pattern : remplacer `catch (e: any)` par `catch (e: unknown)` + narrowing, typer les events jspdf via interfaces partielles. |
 | Coût estimé | 2 j/h |
 | Validation | Lint services à 0 erreur ; tests services passent (~600 cas) |
-| Risque résiduel | Faible — patterns standards documentés dans `docs/AUDIT_TECHNIQUE.md` §1 |
+| Risque résiduel | Faible — patterns standards documentés dans `docs/archive/historical/AUDIT_TECHNIQUE_2025-12.md` §1 *(snapshot décembre 2025, archivé)* |
 
 #### P2-3 — Sprint typage pages (R-LINT-A, sous-bloc pages)
 

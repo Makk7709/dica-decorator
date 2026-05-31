@@ -1,3 +1,8 @@
+> **Note de fraîcheur (revue 2026-05-31)**
+> Document daté du 30 novembre 2025, conservé comme référentiel **actif** pour l'installation locale, la configuration Supabase et la mise en production. Les pipelines CI/CD GitHub Actions actuels sont décrits dans `.github/workflows/README.md`. La checklist de smoke / killswitch production est dans `docs/CHECKLIST_SMOKE_KILLSWITCH.md`. En cas de divergence sur les variables d'environnement ou les secrets, `.env.example` et la console Supabase prévalent.
+
+---
+
 # 🚀 Guide de Déploiement DICA Decorator
 
 **Installation, Configuration et Mise en Production**

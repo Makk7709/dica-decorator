@@ -1,3 +1,8 @@
+> **Note de fraîcheur (revue 2026-05-31)**
+> Document daté du 30 novembre 2025, conservé comme référentiel **actif** pour les opérations d'administration (décors, organisations, utilisateurs, quotas). Les noms de tables, RLS et rôles correspondent au schéma Supabase en vigueur. En cas de divergence, le schéma `supabase/migrations/` prévaut. Pour le périmètre des modules valorisables, voir `docs/audit/PROJECT_DOCUMENTATION_STANDARD.md`.
+
+---
+
 # 🔧 Guide Administrateur DICA Decorator
 
 **Gestion et Administration de l'Application**
