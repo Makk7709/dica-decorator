@@ -144,31 +144,34 @@ async function fetchWithTimeout(url: string, options?: RequestInit, timeout = RE
 }
 
 /**
- * Si l'URL pointe vers un bucket Supabase Storage privé (project-photos/render-results),
- * la signe via le client admin pour 60 secondes. Sinon retourne l'URL telle quelle.
- * Requiert un client Supabase admin disponible (passé en paramètre).
+ * Télécharge directement le contenu d'un objet depuis Supabase Storage
+ * en utilisant le client admin (bypass des URLs signées/publiques).
+ * Fonctionne pour buckets publics ET privés. Retourne null si l'URL ne
+ * pointe pas vers Supabase Storage.
  */
-async function signPrivateStorageUrl(
+async function downloadFromStorage(
   url: string,
   // deno-lint-ignore no-explicit-any
   supabaseAdmin: any,
-): Promise<string> {
-  if (!url) return url;
+): Promise<{ arrayBuffer: ArrayBuffer; mimeType: string } | null> {
+  if (!url) return null;
   const match = url.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/([^?]+)/);
-  if (!match) return url;
+  if (!match) return null;
   const bucket = match[1];
   const path = decodeURIComponent(match[2]);
-  if (bucket !== "project-photos" && bucket !== "render-results") return url;
   try {
-    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 60);
-    if (error || !data?.signedUrl) {
-      console.warn("[apply-decor] createSignedUrl failed:", error?.message);
-      return url;
+    const { data, error } = await supabaseAdmin.storage.from(bucket).download(path);
+    if (error || !data) {
+      console.warn(`[apply-decor] storage.download failed for ${bucket}/${path}:`, error?.message);
+      return null;
     }
-    return data.signedUrl;
+    const arrayBuffer = await data.arrayBuffer();
+    const mimeType = data.type || "image/jpeg";
+    console.log(`[apply-decor] storage.download ok for ${bucket}/${path} (${arrayBuffer.byteLength} bytes)`);
+    return { arrayBuffer, mimeType };
   } catch (e) {
-    console.warn("[apply-decor] createSignedUrl exception:", e instanceof Error ? e.message : e);
-    return url;
+    console.warn(`[apply-decor] storage.download exception:`, e instanceof Error ? e.message : e);
+    return null;
   }
 }
 
