@@ -405,7 +405,7 @@ export const DecorSelectorDialog = ({
                                       </div>
                                     )}
                                     <img
-                                      src={getThumbUrl(decor.texture_image_url)}
+                                      src={getThumbUrl(decor.texture_image_url, 220, 88)}
                                       alt={decor.name}
                                       className="h-24 w-full object-cover transition-transform hover:scale-105"
                                       loading="lazy"
