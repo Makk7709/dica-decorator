@@ -45,19 +45,16 @@ const projectTypeLabels: Record<ProjectType, string> = {
   terrasse: "Terrasse",
   autre: "Autre",
 };
-// Génère une URL de miniature optimisée via Supabase Storage Transform
-// width = taille d'affichage CSS (sera multipliée par le DPR pour la netteté retina)
+// Génère une URL de miniature optimisée via Supabase Storage Transform.
+// `width` = taille d'affichage CSS — multipliée par le DPR pour la netteté retina.
+// Retombe sur l'URL d'origine si le format n'est pas un bucket Supabase public.
 const getThumbUrl = (url: string, width = 200, quality = 85): string => {
-  if (!url) return url;
+  if (!url || !url.includes('/storage/v1/object/public/')) return url;
   const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 3) : 2;
   const renderWidth = Math.round(width * dpr);
-  if (url.includes('/storage/v1/object/public/')) {
-    return url.replace(
-      '/storage/v1/object/public/',
-      '/storage/v1/render/image/public/'
-    ) + `?width=${renderWidth}&quality=${quality}&resize=cover`;
-  }
-  return url;
+  const base = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}width=${renderWidth}&quality=${quality}`;
 };
 
 export const DecorSelectorDialog = ({
