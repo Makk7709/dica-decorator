@@ -71,6 +71,9 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isLoaded, setIsLoaded] = useState({ before: false, after: false });
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
+  // Résolution automatique des URLs Supabase Storage privées en URLs signées
+  const { url: signedBefore } = useSignedUrl(beforeImage);
+  const { url: signedAfter } = useSignedUrl(afterImage);
 
   // Configure service
   useEffect(() => {
