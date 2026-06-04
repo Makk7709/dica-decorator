@@ -144,6 +144,35 @@ async function fetchWithTimeout(url: string, options?: RequestInit, timeout = RE
 }
 
 /**
+ * Si l'URL pointe vers un bucket Supabase Storage privé (project-photos/render-results),
+ * la signe via le client admin pour 60 secondes. Sinon retourne l'URL telle quelle.
+ * Requiert un client Supabase admin disponible (passé en paramètre).
+ */
+async function signPrivateStorageUrl(
+  url: string,
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+): Promise<string> {
+  if (!url) return url;
+  const match = url.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/([^?]+)/);
+  if (!match) return url;
+  const bucket = match[1];
+  const path = decodeURIComponent(match[2]);
+  if (bucket !== "project-photos" && bucket !== "render-results") return url;
+  try {
+    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 60);
+    if (error || !data?.signedUrl) {
+      console.warn("[apply-decor] createSignedUrl failed:", error?.message);
+      return url;
+    }
+    return data.signedUrl;
+  } catch (e) {
+    console.warn("[apply-decor] createSignedUrl exception:", e instanceof Error ? e.message : e);
+    return url;
+  }
+}
+
+/**
  * Convert ArrayBuffer to base64 in chunks to avoid memory issues
  */
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -1057,8 +1086,9 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
     // Fetch original photo with timeout and size check
     try {
       if (photoUrl) {
-        console.log("Fetching original photo for Gemini:", photoUrl);
-        const photoResponse = await fetchWithTimeout(photoUrl);
+        const signedPhotoUrl = await signPrivateStorageUrl(photoUrl, supabaseAdmin);
+        console.log("Fetching original photo for Gemini:", signedPhotoUrl);
+        const photoResponse = await fetchWithTimeout(signedPhotoUrl);
         
         if (!photoResponse.ok) {
           console.error("Failed to fetch photo:", photoResponse.status);

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ImageOff } from "lucide-react";
+import { useSignedUrl } from "@/hooks/use-signed-url";
 
 type Props = {
   src: string;
@@ -24,6 +25,8 @@ export function SafeImage({
   referrerPolicy = "no-referrer",
 }: Props) {
   const [hasError, setHasError] = useState(false);
+  // Résout automatiquement les URLs Supabase Storage privées en URLs signées
+  const { url: resolvedSrc, isLoading: isSigning } = useSignedUrl(src);
 
   if (!src || hasError) {
     return (
@@ -46,9 +49,20 @@ export function SafeImage({
     );
   }
 
+  if (isSigning || !resolvedSrc) {
+    return (
+      <div
+        className={["animate-pulse bg-muted", className].filter(Boolean).join(" ")}
+        style={{ width, height }}
+        aria-label={`${alt} (chargement)`}
+        role="img"
+      />
+    );
+  }
+
   return (
     <img
-      src={src}
+      src={resolvedSrc}
       alt={alt}
       className={className}
       width={width}

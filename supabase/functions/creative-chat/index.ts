@@ -5,6 +5,34 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { orchestrateDicaPrompt, type OrchestratorInput, FORMAT_PRESETS } from "./orchestrator.ts";
 
+/**
+ * Convertit une URL Supabase Storage publique d'un bucket privé
+ * en URL signée temporaire (TTL 5min) pour que l'AI gateway puisse la fetch.
+ */
+async function signPrivateStorageUrl(
+  url: string,
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+): Promise<string> {
+  if (!url) return url;
+  const match = url.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/([^?]+)/);
+  if (!match) return url;
+  const bucket = match[1];
+  const path = decodeURIComponent(match[2]);
+  if (bucket !== "project-photos" && bucket !== "render-results") return url;
+  try {
+    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 300);
+    if (error || !data?.signedUrl) {
+      console.warn("[creative-chat] createSignedUrl failed:", error?.message);
+      return url;
+    }
+    return data.signedUrl;
+  } catch (e) {
+    console.warn("[creative-chat] createSignedUrl exception:", e instanceof Error ? e.message : e);
+    return url;
+  }
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -234,6 +262,12 @@ ${catalogSections.join('\n')}
       }
     }
     console.log('- Total source images:', allSourceImages.length);
+
+    // Signer toutes les URLs venant des buckets Supabase Storage privés
+    // pour que l'AI gateway (et Gemini) puisse les télécharger
+    for (let i = 0; i < allSourceImages.length; i++) {
+      allSourceImages[i] = await signPrivateStorageUrl(allSourceImages[i], supabaseAdmin);
+    }
     
     console.log('- Decor context preview:', decorContext?.substring(0, 200));
 

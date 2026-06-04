@@ -145,6 +145,7 @@ export const createMockSupabaseClient = () => ({
     from: vi.fn().mockReturnValue({
       upload: vi.fn().mockResolvedValue({ data: { path: 'test.png' }, error: null }),
       getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://test.com/test.png' } }),
+      createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'https://test.com/test.png?token=mock' }, error: null }),
       download: vi.fn(),
     }),
   },

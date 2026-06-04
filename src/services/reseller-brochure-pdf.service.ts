@@ -10,6 +10,7 @@
 
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
+import { signStorageUrl } from '@/lib/signed-storage';
 import type { ResellerBranding } from '@/types/plaquette.types';
 import type { 
   MagazineDecoOptions, 
@@ -488,6 +489,9 @@ export class ResellerBrochurePdfService {
     };
     
     try {
+      const captionImageUrl = options.images[0]?.url
+        ? await signStorageUrl(options.images[0].url, 600)
+        : undefined;
       const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
         body: {
           projectName: options.project.name,
@@ -495,7 +499,7 @@ export class ResellerBrochurePdfService {
           decorLabel: options.decor.name,
           decorReference: options.decor.referenceCode,
           decorCategory: options.decor.category,
-          imageUrl: options.images[0]?.url
+          imageUrl: captionImageUrl
         }
       });
 
@@ -740,15 +744,16 @@ export class ResellerBrochurePdfService {
   }
 
   private async loadSingleImageWithBase64(url: string): Promise<LoadedImage> {
-    const response = await fetch(url);
+    const signedUrl = await signStorageUrl(url);
+    const response = await fetch(signedUrl);
     if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
     
     const blob = await response.blob();
     const base64 = await this.blobToBase64(blob);
-    const dimensions = await this.getImageDimensions(url);
+    const dimensions = await this.getImageDimensions(signedUrl);
     
     return {
-      url,
+      url: signedUrl,
       base64,
       width: dimensions.width,
       height: dimensions.height
@@ -757,15 +762,16 @@ export class ResellerBrochurePdfService {
 
   private async loadImagesWithBase64(images: any[]): Promise<LoadedImage[]> {
     const promises = images.map(async (img) => {
-      const response = await fetch(img.url);
+      const signedUrl = await signStorageUrl(img.url);
+      const response = await fetch(signedUrl);
       if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
       
       const blob = await response.blob();
       const base64 = await this.blobToBase64(blob);
-      const dimensions = await this.getImageDimensions(img.url);
+      const dimensions = await this.getImageDimensions(signedUrl);
       
       return {
-        url: img.url,
+        url: signedUrl,
         base64,
         width: dimensions.width,
         height: dimensions.height
