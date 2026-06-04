@@ -46,14 +46,16 @@ const projectTypeLabels: Record<ProjectType, string> = {
   autre: "Autre",
 };
 // Génère une URL de miniature optimisée via Supabase Storage Transform
-const getThumbUrl = (url: string): string => {
+// width = taille d'affichage CSS (sera multipliée par le DPR pour la netteté retina)
+const getThumbUrl = (url: string, width = 200, quality = 85): string => {
   if (!url) return url;
-  // Supabase storage URLs: add render/image/public transform
+  const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 3) : 2;
+  const renderWidth = Math.round(width * dpr);
   if (url.includes('/storage/v1/object/public/')) {
     return url.replace(
       '/storage/v1/object/public/',
       '/storage/v1/render/image/public/'
-    ) + '?width=200&quality=60';
+    ) + `?width=${renderWidth}&quality=${quality}&resize=cover`;
   }
   return url;
 };
