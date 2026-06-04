@@ -189,7 +189,7 @@ export const DecorSelectorDialog = ({
                       {selectedDecor ? (
                         <>
                           <img
-                            src={getThumbUrl(selectedDecor.texture_image_url)}
+                            src={getThumbUrl(selectedDecor.texture_image_url, 40, 90)}
                             alt={selectedDecor.name}
                             className="w-10 h-10 rounded object-cover"
                             loading="eager"
