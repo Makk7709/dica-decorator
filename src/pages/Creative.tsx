@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PremiumLayout, ContentContainer } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ImageExportDropdown } from "@/components/ui/image-export-dropdown";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface DecorReference {
   reference: string;
@@ -828,7 +829,7 @@ ${exampleRefs}
                               {message.sourceImageUrls && message.sourceImageUrls.length > 0 && message.role === "user" && (
                                 <div className="mb-2 flex flex-wrap gap-2">
                                   {message.sourceImageUrls.map((url, idx) => (
-                                    <img 
+                                    <SafeImage 
                                       key={idx}
                                       src={url} 
                                       alt={`Photo source ${idx + 1}`} 
@@ -839,7 +840,7 @@ ${exampleRefs}
                               )}
                               {message.sourceImageUrl && !message.sourceImageUrls && message.role === "user" && (
                                 <div className="mb-2">
-                                  <img 
+                                  <SafeImage 
                                     src={message.sourceImageUrl} 
                                     alt="Photo source" 
                                     className="rounded-lg max-h-40 w-auto"
@@ -863,7 +864,7 @@ ${exampleRefs}
                                         }
                                       }}
                                     >
-                                      <img 
+                                      <SafeImage 
                                         src={message.imageUrl} 
                                         alt="Visualisation générée" 
                                         className="rounded-lg w-full max-w-2xl transition-transform hover:scale-[1.02]"
@@ -962,7 +963,7 @@ ${exampleRefs}
                       <div className="flex flex-wrap gap-3">
                         {uploadedImages.map((img, index) => (
                           <div key={index} className="relative group">
-                            <img 
+                            <SafeImage 
                               src={img.url} 
                               alt={img.label} 
                               className="rounded-lg h-20 w-20 object-cover border-2 border-primary"
@@ -1121,7 +1122,7 @@ ${exampleRefs}
                             }
                           }}
                         >
-                          <img 
+                          <SafeImage 
                             src={favorite.image_data} 
                             alt={favorite.title}
                             className="w-full aspect-square object-cover"
@@ -1355,12 +1356,10 @@ ${exampleRefs}
 
                 {/* Image zoomée */}
                 {zoomedImage && (
-                  <img
+                  <SafeImage
                     src={zoomedImage}
                     alt="Visualisation en plein écran"
                     className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 )}
               </div>
