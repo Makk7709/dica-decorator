@@ -21,6 +21,7 @@ import { type CatalogDecor, type ProjectType, type Catalog } from "@/hooks/use-c
 
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
+import { signStorageUrl } from "@/lib/signed-storage";
 
 interface Project {
   id: string;
@@ -483,11 +484,12 @@ const ProjectDetail = () => {
       
       if (renderFormat === "original") {
         try {
+          const photoSignedUrl = await signStorageUrl(photo.original_image_url);
           const dims = await new Promise<{ width: number; height: number }>((resolve, reject) => {
             const img = new Image();
             img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
             img.onerror = reject;
-            img.src = photo.original_image_url;
+            img.src = photoSignedUrl;
           });
           regenOriginalWidth = dims.width;
           regenOriginalHeight = dims.height;
@@ -1096,10 +1098,11 @@ const ProjectDetail = () => {
                   
                 {/* Action Button */}
                     <Button
-                      onClick={() => {
+                      onClick={async () => {
                         setSelectedPhoto(photo);
                         setOriginalDimensions(null); // Reset to avoid stale dimensions
                         // Pre-load original image dimensions before opening dialog
+                        const photoSignedUrl = await signStorageUrl(photo.original_image_url);
                         const img = new Image();
                         img.onload = () => {
                           setOriginalDimensions({ width: img.naturalWidth, height: img.naturalHeight });
@@ -1109,7 +1112,7 @@ const ProjectDetail = () => {
                           // Fallback: open dialog anyway, backend will handle it
                           setShowDecorDialog(true);
                         };
-                        img.src = photo.original_image_url;
+                        img.src = photoSignedUrl;
                       }}
                   className="w-full btn-primary-premium h-11 rounded-xl"
                     >
@@ -1313,7 +1316,7 @@ const ProjectDetail = () => {
             </Button>
             {zoomedImage && (
               <>
-                <img
+                <SafeImage
                   src={zoomedImage}
                   alt="Rendu agrandi"
                   className="max-w-full max-h-[90vh] object-contain"
