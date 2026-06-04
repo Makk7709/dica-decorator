@@ -1086,28 +1086,37 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
       return textureLoaded ? { base64, mimeType } : null;
     }
 
-    // Fetch original photo with timeout and size check
+    // Fetch original photo - prefer direct storage download (works for private buckets)
     try {
       if (photoUrl) {
-        const signedPhotoUrl = await signPrivateStorageUrl(photoUrl, supabaseAdmin);
-        console.log("Fetching original photo for Gemini:", signedPhotoUrl);
-        const photoResponse = await fetchWithTimeout(signedPhotoUrl);
-        
-        if (!photoResponse.ok) {
-          console.error("Failed to fetch photo:", photoResponse.status);
+        let arrayBuffer: ArrayBuffer | null = null;
+        let mimeType = "image/jpeg";
+
+        // Try direct storage download first (bypasses URL signing entirely)
+        const storageResult = await downloadFromStorage(photoUrl, supabaseAdmin);
+        if (storageResult) {
+          arrayBuffer = storageResult.arrayBuffer;
+          mimeType = storageResult.mimeType;
         } else {
-          const contentLength = photoResponse.headers.get("content-length");
-          const size = contentLength ? parseInt(contentLength) : 0;
-          
-          if (size > RESOURCE_LIMITS.maxImageSize) {
-            console.warn(`Photo size (${size} bytes) exceeds limit. Using URL reference instead.`);
+          // Fallback: plain HTTP fetch for non-storage URLs
+          console.log("Fetching original photo via HTTP:", photoUrl);
+          const photoResponse = await fetchWithTimeout(photoUrl);
+          if (!photoResponse.ok) {
+            console.error("Failed to fetch photo:", photoResponse.status);
           } else {
-            const arrayBuffer = await photoResponse.arrayBuffer();
+            arrayBuffer = await photoResponse.arrayBuffer();
+            mimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
+          }
+        }
+
+        if (arrayBuffer) {
+          if (arrayBuffer.byteLength > RESOURCE_LIMITS.maxImageSize) {
+            console.warn(`Photo size (${arrayBuffer.byteLength} bytes) exceeds limit.`);
+          } else {
             photoBase64 = arrayBufferToBase64(arrayBuffer);
-            photoMimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
+            photoMimeType = mimeType;
             console.log(`Photo fetched (${arrayBuffer.byteLength} bytes) and converted to base64`);
-            
-            // Auto-detect dimensions from PNG/JPEG headers if not provided
+
             if (format === "original" && (!originalWidth || !originalHeight)) {
               const bytes = new Uint8Array(arrayBuffer);
               const detected = detectImageDimensions(bytes, photoMimeType);
