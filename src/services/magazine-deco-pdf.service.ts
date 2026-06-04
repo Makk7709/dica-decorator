@@ -144,6 +144,9 @@ export class MagazineDecoPdfService {
     };
     
     try {
+      const captionImageUrl = options.images[0]?.url
+        ? await signStorageUrl(options.images[0].url, 600)
+        : undefined;
       const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
         body: {
           projectName: options.project.name,
@@ -151,7 +154,7 @@ export class MagazineDecoPdfService {
           decorLabel: options.decor.name,
           decorReference: options.decor.referenceCode,
           decorCategory: options.decor.category,
-          imageUrl: options.images[0]?.url // Pass first image for analysis
+          imageUrl: captionImageUrl // Pass first image for analysis (signed for private buckets)
         }
       });
 
