@@ -25,6 +25,7 @@ import {
   SlideTransition,
 } from '@/services/presentation.service';
 import { BeforeAfterSlider } from '@/components/ui/before-after-slider';
+import { SafeImage } from '@/components/ui/safe-image';
 
 // ============================================================================
 // Types
@@ -77,11 +78,10 @@ const SlideRenderer: React.FC<{
     case 'image':
       return (
         <div className={baseClasses}>
-          <img
+          <SafeImage
             src={slide.content}
             alt={slide.title || 'Slide'}
             className="max-w-full max-h-full object-contain"
-            draggable={false}
           />
           {slide.title && (
             <div className="absolute bottom-20 left-0 right-0 text-center">
@@ -212,7 +212,7 @@ const ThumbnailStrip: React.FC<{
         )}
       >
         {slide.type === 'image' || slide.type === 'comparison' ? (
-          <img
+          <SafeImage
             src={slide.content}
             alt=""
             className="w-full h-full object-cover"
