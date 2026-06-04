@@ -1018,6 +1018,16 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
       let base64 = "";
       let mimeType = "image/jpeg";
       
+      // Strategy 0: Direct storage download via admin client (works for private buckets)
+      const storageResult = await downloadFromStorage(url, supabaseAdmin);
+      if (storageResult) {
+        base64 = arrayBufferToBase64(storageResult.arrayBuffer);
+        mimeType = storageResult.mimeType;
+        textureLoaded = true;
+        console.log(`Texture loaded via storage.download (${storageResult.arrayBuffer.byteLength} bytes)`);
+        return { base64, mimeType };
+      }
+      
       // Extract filename from texture URL path
       const textureFilename = url.split('/').pop() || '';
       
