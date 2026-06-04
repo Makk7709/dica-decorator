@@ -852,8 +852,16 @@ ${exampleRefs}
                                   <div className="space-y-2">
                                     {/* Image avec overlay de zoom */}
                                     <div 
+                                      role="button"
+                                      tabIndex={0}
                                       className="relative group cursor-pointer"
                                       onClick={() => setZoomedImage(message.imageUrl!)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault();
+                                          setZoomedImage(message.imageUrl!);
+                                        }
+                                      }}
                                     >
                                       <img 
                                         src={message.imageUrl} 
@@ -1102,8 +1110,16 @@ ${exampleRefs}
                       {/* Image si présente */}
                       {favorite.image_data && (
                         <div 
+                          role="button"
+                          tabIndex={0}
                           className="relative group cursor-pointer"
                           onClick={() => setZoomedImage(favorite.image_data!)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setZoomedImage(favorite.image_data!);
+                            }
+                          }}
                         >
                           <img 
                             src={favorite.image_data} 
@@ -1344,6 +1360,7 @@ ${exampleRefs}
                     alt="Visualisation en plein écran"
                     className="max-w-full max-h-[90vh] object-contain rounded-lg"
                     onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
                   />
                 )}
               </div>

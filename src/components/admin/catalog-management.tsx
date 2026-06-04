@@ -348,12 +348,21 @@ export const CatalogManagement = () => {
                       return (
                         <div
                           key={decor.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={isSelected}
                           className={`relative rounded-lg border-2 transition-all cursor-pointer overflow-hidden ${
                             isSelected 
                               ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
                               : 'border-transparent hover:border-muted-foreground/30'
                           }`}
                           onClick={() => toggleLink(activeCatalog, decor.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleLink(activeCatalog, decor.id);
+                            }
+                          }}
                         >
                           <div className="aspect-square relative">
                             <img

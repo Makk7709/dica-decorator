@@ -347,10 +347,19 @@ function FavoriteCard({ favorite, isSelected, onToggleSelect }: FavoriteCardProp
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
       className={`relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
         isSelected ? 'border-primary shadow-lg' : 'border-transparent hover:border-border'
       }`}
       onClick={onToggleSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggleSelect();
+        }
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
