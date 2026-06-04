@@ -489,6 +489,9 @@ export class ResellerBrochurePdfService {
     };
     
     try {
+      const captionImageUrl = options.images[0]?.url
+        ? await signStorageUrl(options.images[0].url, 600)
+        : undefined;
       const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
         body: {
           projectName: options.project.name,
@@ -496,7 +499,7 @@ export class ResellerBrochurePdfService {
           decorLabel: options.decor.name,
           decorReference: options.decor.referenceCode,
           decorCategory: options.decor.category,
-          imageUrl: options.images[0]?.url
+          imageUrl: captionImageUrl
         }
       });
 
