@@ -183,7 +183,7 @@ export const CatalogManagement = () => {
   });
 
   // Extraire toutes les catégories uniques
-  const allCategories = [...new Set(decors.map(d => d.category))].sort();
+  const allCategories = [...new Set(decors.map(d => d.category))].sort((a, b) => a.localeCompare(b));
 
   // Grouper par catégorie
   const decorsByCategory = filteredDecors.reduce((acc, decor) => {
