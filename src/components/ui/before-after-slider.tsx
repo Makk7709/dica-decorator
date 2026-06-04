@@ -11,6 +11,7 @@ import {
   ImagePair,
 } from '@/services/image-comparison.service';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSignedUrl } from '@/hooks/use-signed-url';
 
 // ============================================================================
 // Types
@@ -241,7 +242,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         style={{ clipPath: clipPaths.before }}
       >
         <img
-          src={beforeImage}
+          src={signedBefore}
           alt={beforeLabel}
           className="w-full h-full object-contain"
           onLoad={handleBeforeLoad}
@@ -255,7 +256,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         style={{ clipPath: clipPaths.after }}
       >
         <img
-          src={afterImage}
+          src={signedAfter}
           alt={afterLabel}
           className="w-full h-full object-contain"
           onLoad={handleAfterLoad}
