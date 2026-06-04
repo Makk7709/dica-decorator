@@ -144,31 +144,34 @@ async function fetchWithTimeout(url: string, options?: RequestInit, timeout = RE
 }
 
 /**
- * Si l'URL pointe vers un bucket Supabase Storage privé (project-photos/render-results),
- * la signe via le client admin pour 60 secondes. Sinon retourne l'URL telle quelle.
- * Requiert un client Supabase admin disponible (passé en paramètre).
+ * Télécharge directement le contenu d'un objet depuis Supabase Storage
+ * en utilisant le client admin (bypass des URLs signées/publiques).
+ * Fonctionne pour buckets publics ET privés. Retourne null si l'URL ne
+ * pointe pas vers Supabase Storage.
  */
-async function signPrivateStorageUrl(
+async function downloadFromStorage(
   url: string,
   // deno-lint-ignore no-explicit-any
   supabaseAdmin: any,
-): Promise<string> {
-  if (!url) return url;
+): Promise<{ arrayBuffer: ArrayBuffer; mimeType: string } | null> {
+  if (!url) return null;
   const match = url.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/([^?]+)/);
-  if (!match) return url;
+  if (!match) return null;
   const bucket = match[1];
   const path = decodeURIComponent(match[2]);
-  if (bucket !== "project-photos" && bucket !== "render-results") return url;
   try {
-    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 60);
-    if (error || !data?.signedUrl) {
-      console.warn("[apply-decor] createSignedUrl failed:", error?.message);
-      return url;
+    const { data, error } = await supabaseAdmin.storage.from(bucket).download(path);
+    if (error || !data) {
+      console.warn(`[apply-decor] storage.download failed for ${bucket}/${path}:`, error?.message);
+      return null;
     }
-    return data.signedUrl;
+    const arrayBuffer = await data.arrayBuffer();
+    const mimeType = data.type || "image/jpeg";
+    console.log(`[apply-decor] storage.download ok for ${bucket}/${path} (${arrayBuffer.byteLength} bytes)`);
+    return { arrayBuffer, mimeType };
   } catch (e) {
-    console.warn("[apply-decor] createSignedUrl exception:", e instanceof Error ? e.message : e);
-    return url;
+    console.warn(`[apply-decor] storage.download exception:`, e instanceof Error ? e.message : e);
+    return null;
   }
 }
 
@@ -1015,6 +1018,16 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
       let base64 = "";
       let mimeType = "image/jpeg";
       
+      // Strategy 0: Direct storage download via admin client (works for private buckets)
+      const storageResult = await downloadFromStorage(url, supabaseAdmin);
+      if (storageResult) {
+        base64 = arrayBufferToBase64(storageResult.arrayBuffer);
+        mimeType = storageResult.mimeType;
+        textureLoaded = true;
+        console.log(`Texture loaded via storage.download (${storageResult.arrayBuffer.byteLength} bytes)`);
+        return { base64, mimeType };
+      }
+      
       // Extract filename from texture URL path
       const textureFilename = url.split('/').pop() || '';
       
@@ -1083,28 +1096,37 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
       return textureLoaded ? { base64, mimeType } : null;
     }
 
-    // Fetch original photo with timeout and size check
+    // Fetch original photo - prefer direct storage download (works for private buckets)
     try {
       if (photoUrl) {
-        const signedPhotoUrl = await signPrivateStorageUrl(photoUrl, supabaseAdmin);
-        console.log("Fetching original photo for Gemini:", signedPhotoUrl);
-        const photoResponse = await fetchWithTimeout(signedPhotoUrl);
-        
-        if (!photoResponse.ok) {
-          console.error("Failed to fetch photo:", photoResponse.status);
+        let arrayBuffer: ArrayBuffer | null = null;
+        let mimeType = "image/jpeg";
+
+        // Try direct storage download first (bypasses URL signing entirely)
+        const storageResult = await downloadFromStorage(photoUrl, supabaseAdmin);
+        if (storageResult) {
+          arrayBuffer = storageResult.arrayBuffer;
+          mimeType = storageResult.mimeType;
         } else {
-          const contentLength = photoResponse.headers.get("content-length");
-          const size = contentLength ? parseInt(contentLength) : 0;
-          
-          if (size > RESOURCE_LIMITS.maxImageSize) {
-            console.warn(`Photo size (${size} bytes) exceeds limit. Using URL reference instead.`);
+          // Fallback: plain HTTP fetch for non-storage URLs
+          console.log("Fetching original photo via HTTP:", photoUrl);
+          const photoResponse = await fetchWithTimeout(photoUrl);
+          if (!photoResponse.ok) {
+            console.error("Failed to fetch photo:", photoResponse.status);
           } else {
-            const arrayBuffer = await photoResponse.arrayBuffer();
+            arrayBuffer = await photoResponse.arrayBuffer();
+            mimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
+          }
+        }
+
+        if (arrayBuffer) {
+          if (arrayBuffer.byteLength > RESOURCE_LIMITS.maxImageSize) {
+            console.warn(`Photo size (${arrayBuffer.byteLength} bytes) exceeds limit.`);
+          } else {
             photoBase64 = arrayBufferToBase64(arrayBuffer);
-            photoMimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
+            photoMimeType = mimeType;
             console.log(`Photo fetched (${arrayBuffer.byteLength} bytes) and converted to base64`);
-            
-            // Auto-detect dimensions from PNG/JPEG headers if not provided
+
             if (format === "original" && (!originalWidth || !originalHeight)) {
               const bytes = new Uint8Array(arrayBuffer);
               const detected = detectImageDimensions(bytes, photoMimeType);
