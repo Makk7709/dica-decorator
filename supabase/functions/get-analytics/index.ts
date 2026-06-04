@@ -184,27 +184,44 @@ serve(async (req) => {
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
-    // Get top users
-    const { data: topUsersData } = await supabaseAdmin
+    // Get top users (query projects then profiles separately — no FK relationship)
+    const { data: topUsersData, error: topUsersError } = await supabaseAdmin
       .from("projects")
-      .select("user_id, profiles(first_name, last_name)")
+      .select("user_id")
       .gte("created_at", startDate.toISOString());
 
+    if (topUsersError) {
+      console.error("Top users query error:", topUsersError.message);
+    }
+
     const userCounts: Record<string, { name: string; count: number }> = {};
-    topUsersData?.forEach((item: any) => {
+    (topUsersData || []).forEach((item: any) => {
+      if (!item.user_id) return;
       if (!userCounts[item.user_id]) {
-        const name = item.profiles?.first_name && item.profiles?.last_name
-          ? `${item.profiles.first_name} ${item.profiles.last_name}`
-          : "Utilisateur";
-        userCounts[item.user_id] = { name, count: 0 };
+        userCounts[item.user_id] = { name: "Utilisateur", count: 0 };
       }
       userCounts[item.user_id].count++;
     });
+
+    const userIds = Object.keys(userCounts);
+    if (userIds.length > 0) {
+      const { data: profilesData } = await supabaseAdmin
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", userIds);
+      (profilesData || []).forEach((p: any) => {
+        if (userCounts[p.id]) {
+          const fullName = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+          if (fullName) userCounts[p.id].name = fullName;
+        }
+      });
+    }
 
     const topUsers = Object.entries(userCounts)
       .map(([id, data]) => ({ id, name: data.name, value: data.count }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
+
 
     // Get usage by category
     const { data: categoryData } = await supabaseAdmin
