@@ -46,14 +46,16 @@ const projectTypeLabels: Record<ProjectType, string> = {
   autre: "Autre",
 };
 // Génère une URL de miniature optimisée via Supabase Storage Transform
-const getThumbUrl = (url: string): string => {
+// width = taille d'affichage CSS (sera multipliée par le DPR pour la netteté retina)
+const getThumbUrl = (url: string, width = 200, quality = 85): string => {
   if (!url) return url;
-  // Supabase storage URLs: add render/image/public transform
+  const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 3) : 2;
+  const renderWidth = Math.round(width * dpr);
   if (url.includes('/storage/v1/object/public/')) {
     return url.replace(
       '/storage/v1/object/public/',
       '/storage/v1/render/image/public/'
-    ) + '?width=200&quality=60';
+    ) + `?width=${renderWidth}&quality=${quality}&resize=cover`;
   }
   return url;
 };
@@ -187,7 +189,7 @@ export const DecorSelectorDialog = ({
                       {selectedDecor ? (
                         <>
                           <img
-                            src={getThumbUrl(selectedDecor.texture_image_url)}
+                            src={getThumbUrl(selectedDecor.texture_image_url, 40, 90)}
                             alt={selectedDecor.name}
                             className="w-10 h-10 rounded object-cover"
                             loading="eager"
@@ -403,7 +405,7 @@ export const DecorSelectorDialog = ({
                                       </div>
                                     )}
                                     <img
-                                      src={getThumbUrl(decor.texture_image_url)}
+                                      src={getThumbUrl(decor.texture_image_url, 220, 88)}
                                       alt={decor.name}
                                       className="h-24 w-full object-cover transition-transform hover:scale-105"
                                       loading="lazy"
