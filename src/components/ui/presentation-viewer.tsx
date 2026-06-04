@@ -368,12 +368,21 @@ export const PresentationViewer: React.FC<PresentationViewerProps> = ({
   return (
     <div
       ref={containerRef}
+      role="button"
+      tabIndex={0}
+      aria-label="Présentation interactive"
       className={cn(
         'relative w-full h-full bg-black overflow-hidden',
         'select-none',
         className
       )}
       onClick={() => setShowUI(true)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setShowUI(true);
+        }
+      }}
     >
       {/* Slides */}
       <div className="absolute inset-0">

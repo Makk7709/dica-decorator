@@ -482,7 +482,7 @@ const Dashboard = () => {
                 {/* Content */}
                 <div className="space-y-2">
                   {editingProjectId === project.id ? (
-                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       <Input
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
@@ -520,6 +520,7 @@ const Dashboard = () => {
                       <h3 
                         className="font-semibold text-base text-foreground line-clamp-1 group-hover:text-primary transition-colors duration-200 flex-1"
                         onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
                       >
                         {project.title}
                       </h3>

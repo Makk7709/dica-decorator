@@ -298,17 +298,9 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
               borderColor: sliderColor,
               width: '44px',
               height: '44px',
-              ...(orientation === 'horizontal'
-                ? {
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                  }
-                : {
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                  }),
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
             }}
           >
             <div className="flex items-center gap-0.5" style={{ color: sliderColor }}>
@@ -331,9 +323,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
               position < 15 && 'opacity-0'
             )}
             style={{
-              ...(orientation === 'horizontal'
-                ? { left: '12px', top: '12px' }
-                : { left: '12px', top: '12px' }),
+              left: '12px',
+              top: '12px',
             }}
           >
             {beforeLabel}

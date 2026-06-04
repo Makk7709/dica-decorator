@@ -37,7 +37,7 @@ const createMockQueryBuilder = (data: any = null, error: any = null) => ({
   in: vi.fn().mockReturnThis(),
   order: vi.fn().mockReturnThis(),
   single: vi.fn().mockResolvedValue({ data, error }),
-  then: vi.fn().mockResolvedValue({ data, error }),
+  then: vi.fn().mockResolvedValue({ data, error }), // NOSONAR: thenable mock required for `await supabase.from(...).select(...)` chain
 });
 
 // ============================================================================

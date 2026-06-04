@@ -183,7 +183,7 @@ export const CatalogManagement = () => {
   });
 
   // Extraire toutes les catégories uniques
-  const allCategories = [...new Set(decors.map(d => d.category))].sort();
+  const allCategories = [...new Set(decors.map(d => d.category))].sort((a, b) => a.localeCompare(b));
 
   // Grouper par catégorie
   const decorsByCategory = filteredDecors.reduce((acc, decor) => {
@@ -348,12 +348,21 @@ export const CatalogManagement = () => {
                       return (
                         <div
                           key={decor.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={isSelected}
                           className={`relative rounded-lg border-2 transition-all cursor-pointer overflow-hidden ${
                             isSelected 
                               ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
                               : 'border-transparent hover:border-muted-foreground/30'
                           }`}
                           onClick={() => toggleLink(activeCatalog, decor.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleLink(activeCatalog, decor.id);
+                            }
+                          }}
                         >
                           <div className="aspect-square relative">
                             <img

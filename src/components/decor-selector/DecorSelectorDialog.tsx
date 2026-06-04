@@ -110,7 +110,7 @@ export const DecorSelectorDialog = ({
         if (d.category) cats.add(d.category);
       }
     }
-    return Array.from(cats).sort();
+    return Array.from(cats).sort((a, b) => a.localeCompare(b));
   }, [decorsByCatalog]);
 
   // Filtrer les décors par recherche et catégorie
