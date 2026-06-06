@@ -264,7 +264,7 @@ const Dashboard = () => {
               onClick={() => navigate("/ai-creations")}
               className="sm:hidden text-primary rounded-xl"
             >
-              <Wand2 className="h-5 w-5" />
+              <BookOpen className="h-5 w-5" />
             </Button>
 
             <Button
