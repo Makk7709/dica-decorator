@@ -3,7 +3,12 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import jsxA11y from "eslint-plugin-jsx-a11y";
+import sonarjs from "eslint-plugin-sonarjs";
 import tseslint from "typescript-eslint";
+
+// Seuil de complexité cognitive (SonarLint S3776). 15 est le défaut SonarQube.
+// Cf. docs/audit/sonar-baseline-2026-06-06/lot4-foundation-report.md (LOT 4 vague 1).
+const COGNITIVE_COMPLEXITY_THRESHOLD = 15;
 
 // Composants shadcn/ui purs exclus de l'audit a11y ESLint (cf.
 // docs/adr/0001-exclusion-shadcn-ui-de-l-audit-sonar.md). Ces fichiers
@@ -76,11 +81,27 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      sonarjs,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // LOT 4 vague 1 — Mesure de la complexité cognitive (S3776) et de
+      // l'imbrication (S2004). Configurées en `warn` volontairement : l'objectif
+      // est de RENDRE LA MÉTRIQUE REPRODUCTIBLE en CI sans transformer le lint
+      // existant (0 erreur) en échec avant les refactos prévus en vague 2.
+      "sonarjs/cognitive-complexity": ["warn", COGNITIVE_COMPLEXITY_THRESHOLD],
+      "sonarjs/no-nested-functions": ["warn", { threshold: 4 }],
+    },
+  },
+  {
+    // Tests E2E Playwright : contexte hors-React. La fixture d'authentification
+    // utilise l'API `use()` de Playwright, que `react-hooks/rules-of-hooks`
+    // confond avec le hook React `use`. On neutralise donc cette règle ici.
+    files: ["e2e/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/rules-of-hooks": "off",
     },
   },
 );

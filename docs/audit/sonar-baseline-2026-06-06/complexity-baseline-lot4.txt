@@ -1,0 +1,83 @@
+=== Baseline complexité cognitive (SonarJS S3776) + imbrication (S2004) — LOT 4 vague 1 ===
+Date            : 2026-06-06
+Branche         : audit/tier1-2026-05-07
+Outil           : eslint-plugin-sonarjs@4.0.3
+Règles activées : sonarjs/cognitive-complexity (warn, seuil 15) ; sonarjs/no-nested-functions (warn, seuil 4)
+Commande exacte : npx eslint .
+
+NB : SonarJS mesure la complexité PAR FONCTION. La 'complexité d'une page'
+     retenue dans le rapport = complexité de sa fonction la plus complexe.
+     Une page sans ligne ci-dessous a toutes ses fonctions <= 15 (conforme).
+
+============================ SORTIE BRUTE npx eslint . ============================
+
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/admin/user-projects-dialog.tsx
+  47:39  warning  Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed  sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/onboarding/OnboardingChecklist.tsx
+  49:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/contexts/AuthContext.tsx
+  17:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/contexts/ThemeContext.tsx
+  103:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/lib/image-compression.ts
+  64:18  warning  Refactor this code to not nest functions more than 4 levels deep  sonarjs/no-nested-functions
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/Auth.tsx
+  25:17  warning  Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed  sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/Creative.tsx
+  374:82  warning  Refactor this function to reduce its Cognitive Complexity from 36 to the 15 allowed  sonarjs/cognitive-complexity
+  536:39  warning  Refactor this function to reduce its Cognitive Complexity from 25 to the 15 allowed  sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/Presentation.tsx
+  98:113  warning  Refactor this code to not nest functions more than 4 levels deep  sonarjs/no-nested-functions
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/ProjectDetail.tsx
+    63:26  warning  Refactor this function to reduce its Cognitive Complexity from 16 to the 15 allowed                                                                       sonarjs/cognitive-complexity
+   112:6   warning  React Hook useEffect has missing dependencies: 'loadFavorites', 'loadProject', and 'loadUserProfile'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   240:32  warning  Refactor this function to reduce its Cognitive Complexity from 16 to the 15 allowed                                                                       sonarjs/cognitive-complexity
+  1105:61  warning  Refactor this code to not nest functions more than 4 levels deep                                                                                          sonarjs/no-nested-functions
+  1170:67  warning  Refactor this code to not nest functions more than 4 levels deep                                                                                          sonarjs/no-nested-functions
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/favorites.service.test.ts
+  26:21  warning  Refactor this code to not nest functions more than 4 levels deep  sonarjs/no-nested-functions
+  31:49  warning  Refactor this code to not nest functions more than 4 levels deep  sonarjs/no-nested-functions
+  32:51  warning  Refactor this code to not nest functions more than 4 levels deep  sonarjs/no-nested-functions
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/image-export.service.ts
+  194:16  warning  Refactor this function to reduce its Cognitive Complexity from 21 to the 15 allowed  sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/reseller-brochure-pdf.service.ts
+  231:17  warning  Refactor this function to reduce its Cognitive Complexity from 26 to the 15 allowed  sonarjs/cognitive-complexity
+  809:17  warning  Refactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed  sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/test/test-utils.tsx
+  27:7  warning  Fast refresh only works when a file only exports components. Move your component(s) to a separate file  react-refresh/only-export-components
+  50:1  warning  This rule can't verify that `export *` only exports components                                          react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/supabase/functions/apply-decor/index.ts
+  157:19  warning  Refactor this function to reduce its Cognitive Complexity from 104 to the 15 allowed  sonarjs/cognitive-complexity
+  864:20  warning  Refactor this function to reduce its Cognitive Complexity from 32 to the 15 allowed   sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/supabase/functions/creative-chat/index.ts
+  117:19  warning  Refactor this function to reduce its Cognitive Complexity from 127 to the 15 allowed  sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/supabase/functions/creative-chat/orchestrator.ts
+  426:10  warning  Refactor this function to reduce its Cognitive Complexity from 44 to the 15 allowed  sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/supabase/functions/generate-magazine-captions/index.ts
+  39:19  warning  Refactor this function to reduce its Cognitive Complexity from 41 to the 15 allowed  sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/supabase/functions/get-analytics/index.ts
+  19:19  warning  Refactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed  sonarjs/cognitive-complexity
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/supabase/functions/get-users-admin/index.ts
+  59:19  warning  Refactor this function to reduce its Cognitive Complexity from 44 to the 15 allowed  sonarjs/cognitive-complexity
+
+✖ 29 problems (0 errors, 29 warnings)
+
