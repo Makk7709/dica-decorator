@@ -223,7 +223,7 @@ describe('ResellerBrochurePdfService', () => {
 
   describe('Subtitle logic', () => {
     it('should show "DÉCOR MAGAZINE" as subtitle when reseller branding', () => {
-      {
+      const branding: ResellerBranding = {
         enabled: true,
         companyName: 'Mon Revendeur',
         contactName: '',
@@ -233,6 +233,7 @@ describe('ResellerBrochurePdfService', () => {
         city: '',
         postalCode: '',
       };
+      void branding;
       
       // Quand revendeur, le sous-titre reste "DÉCOR MAGAZINE"
       const subtitle = 'DÉCOR  MAGAZINE';
