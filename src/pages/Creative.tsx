@@ -872,7 +872,7 @@ ${exampleRefs}
                           key={index}
                           className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                         >
-                          <div className="flex flex-col gap-2 max-w-[80%]">
+                          <div className={`flex flex-col gap-2 max-w-[80%] ${message.role === "user" ? "items-end" : "items-start"}`}>
                             <div
                               className={`rounded-lg px-4 py-3 ${
                                 message.role === "user"
