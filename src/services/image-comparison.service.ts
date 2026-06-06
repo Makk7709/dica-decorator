@@ -170,9 +170,9 @@ const SUPPORTED_FORMATS = ['jpg', 'jpeg', 'png', 'webp', 'svg'];
 
 export class ImageComparisonService {
   private config: ComparisonConfig;
-  private state: ComparisonState;
-  private stateListeners: Array<(state: ComparisonState) => void> = [];
-  private errorListeners: Array<(error: ComparisonError) => void> = [];
+  private readonly state: ComparisonState;
+  private readonly stateListeners: Array<(state: ComparisonState) => void> = [];
+  private readonly errorListeners: Array<(error: ComparisonError) => void> = [];
   private animationFrame: number | null = null;
   private exportHandler: ((pair: ImagePair, options: ExportOptions) => Promise<ComparisonExport>) | null = null;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;

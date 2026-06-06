@@ -50,7 +50,7 @@ export interface AnalyticsExportData {
 // ============================================================================
 
 export class AnalyticsExportService {
-  private supportedFormats: ExportFormat[] = ['json', 'excel', 'pdf'];
+  private readonly supportedFormats: ExportFormat[] = ['json', 'excel', 'pdf'];
 
   /**
    * Check if a format is supported

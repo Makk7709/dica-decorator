@@ -392,7 +392,7 @@ describe('ImageComparisonService', () => {
     });
 
     it('should use smoothSetPosition with requestAnimationFrame', () => {
-      const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => {
         cb(0);
         return 0;
       });
@@ -695,7 +695,7 @@ describe('ImageComparisonService', () => {
     });
 
     it('should use requestAnimationFrame for smooth updates', () => {
-      const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => {
         cb(0);
         return 0;
       });

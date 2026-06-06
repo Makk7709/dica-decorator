@@ -52,8 +52,8 @@ interface GeminiApiRequest {
 
 // Service à implémenter
 class GeminiImageService {
-  private config: GeminiImageConfig;
-  private apiKey: string;
+  private readonly config: GeminiImageConfig;
+  private readonly apiKey: string;
 
   constructor(apiKey: string, config?: Partial<GeminiImageConfig>) {
     if (!apiKey || apiKey.trim() === '') {

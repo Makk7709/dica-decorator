@@ -144,9 +144,9 @@ const EXPIRATION_PRESETS: Record<ExpirationPreset, number | null> = {
 
 export class ShareLinkService {
   private config: ShareLinkConfig;
-  private links: Map<string, ShareLinkData> = new Map();
-  private accessLogs: Map<string, AccessLog[]> = new Map();
-  private errorListeners: Array<(error: ShareLinkError) => void> = [];
+  private readonly links: Map<string, ShareLinkData> = new Map();
+  private readonly accessLogs: Map<string, AccessLog[]> = new Map();
+  private readonly errorListeners: Array<(error: ShareLinkError) => void> = [];
 
   constructor() {
     this.config = { ...DEFAULT_CONFIG };
@@ -318,7 +318,7 @@ export class ShareLinkService {
     const hashStr = (hash >>> 0).toString(16).padStart(8, '0');
     let hash2 = 0x811c9dc5;
     for (let i = 0; i < hashStr.length; i++) {
-      hash2 ^= hashStr.charCodeAt(i);
+      hash2 ^= hashStr.codePointAt(i);
       hash2 = Math.imul(hash2, 0x01000193);
     }
     for (let i = 0; i < data.length; i++) {
@@ -336,10 +336,10 @@ export class ShareLinkService {
     if (storedHash.startsWith('pbkdf2_sha256$')) {
       const parts = storedHash.split('$');
       if (parts.length !== 4) return false;
-      const iterations = parseInt(parts[1], 10);
+      const iterations = Number.parseInt(parts[1], 10);
       const saltHex = parts[2];
       const expectedHashHex = parts[3];
-      const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
+      const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => Number.parseInt(b, 16)));
       const encoder = new TextEncoder();
       const keyMaterial = await crypto.subtle.importKey(
         'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']

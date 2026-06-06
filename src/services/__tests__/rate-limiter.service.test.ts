@@ -58,7 +58,7 @@ describe('RateLimiterService', () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         gte: vi.fn().mockResolvedValue({
-          data: Array(10).fill({}), // 10 renders
+          data: new Array(10).fill({}), // 10 renders
           error: null,
           count: 10,
         }),
@@ -81,7 +81,7 @@ describe('RateLimiterService', () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         gte: vi.fn().mockResolvedValue({
-          data: Array(50).fill({}),
+          data: new Array(50).fill({}),
           error: null,
           count: 50,
         }),
@@ -104,7 +104,7 @@ describe('RateLimiterService', () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         gte: vi.fn().mockResolvedValue({
-          data: Array(55).fill({}),
+          data: new Array(55).fill({}),
           error: null,
           count: 55,
         }),

@@ -111,12 +111,12 @@ export class PresentationService {
   private autoplayInterval: ReturnType<typeof setInterval> | null = null;
   private autoplayConfig: AutoplayConfig | null = null;
   
-  private stateListeners: Array<(state: PresentationState) => void> = [];
-  private slideChangeListeners: Array<(slide: Slide, index: number, direction: NavigationDirection) => void> = [];
-  private exitListeners: Array<() => void> = [];
-  private playListeners: Array<() => void> = [];
-  private pauseListeners: Array<() => void> = [];
-  private errorListeners: Array<(error: PresentationError) => void> = [];
+  private readonly stateListeners: Array<(state: PresentationState) => void> = [];
+  private readonly slideChangeListeners: Array<(slide: Slide, index: number, direction: NavigationDirection) => void> = [];
+  private readonly exitListeners: Array<() => void> = [];
+  private readonly playListeners: Array<() => void> = [];
+  private readonly pauseListeners: Array<() => void> = [];
+  private readonly errorListeners: Array<(error: PresentationError) => void> = [];
 
   constructor() {
     this.config = { ...DEFAULT_CONFIG };

@@ -20,7 +20,7 @@ const passwordSchema = z
   .min(8, "Le mot de passe doit contenir au moins 8 caractères")
   .regex(/[A-Z]/, "Le mot de passe doit contenir au moins une majuscule")
   .regex(/[a-z]/, "Le mot de passe doit contenir au moins une minuscule")
-  .regex(/[0-9]/, "Le mot de passe doit contenir au moins un chiffre")
+  .regex(/\d/, "Le mot de passe doit contenir au moins un chiffre")
   .regex(/[^A-Za-z0-9]/, "Le mot de passe doit contenir au moins un caractère spécial");
 
 const Auth = () => {
@@ -57,7 +57,7 @@ const Auth = () => {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(loginData.email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${globalThis.location.origin}/auth`,
       });
       if (error) throw error;
       toast.success("Un email de réinitialisation a été envoyé. Vérifiez votre boîte mail.", { duration: 8000 });
@@ -182,7 +182,7 @@ const Auth = () => {
     setIsGoogleLoading(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: globalThis.location.origin,
       });
       if (result.error) {
         toast.error("Erreur lors de la connexion avec Google");

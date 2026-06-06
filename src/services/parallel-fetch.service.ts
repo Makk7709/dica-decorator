@@ -51,7 +51,7 @@ const DEFAULT_OPTIONS: Required<ParallelFetchOptions> = {
 // ============================================================================
 
 export class ParallelFetchService {
-  private options: Required<ParallelFetchOptions>;
+  private readonly options: Required<ParallelFetchOptions>;
 
   constructor(options: ParallelFetchOptions = {}) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
@@ -253,7 +253,7 @@ export class ParallelFetchService {
 
       // Check content-length header for size validation
       const contentLength = response.headers.get('content-length');
-      if (contentLength && parseInt(contentLength) > maxSize) {
+      if (contentLength && Number.parseInt(contentLength) > maxSize) {
         return {
           success: false,
           error: `Image size ${contentLength} exceeds max size ${maxSize}`,

@@ -173,8 +173,8 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleTouchMove);
-      window.addEventListener('touchend', handleInteractionEnd);
+      globalThis.addEventListener('touchmove', handleTouchMove);
+      globalThis.addEventListener('touchend', handleInteractionEnd);
     }
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);

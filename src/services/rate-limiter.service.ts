@@ -101,8 +101,8 @@ export class QuotaExceededError extends Error {
 
 export class RateLimiterService {
   constructor(
-    private supabase: SupabaseClient,
-    private config: RateLimitConfig
+    private readonly supabase: SupabaseClient,
+    private readonly config: RateLimitConfig
   ) {}
 
   /**

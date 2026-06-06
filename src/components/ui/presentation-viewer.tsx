@@ -313,8 +313,8 @@ export const PresentationViewer: React.FC<PresentationViewerProps> = ({
       service.handleKeyDown(e);
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [service]);
 
   // Hide UI on inactivity
@@ -331,9 +331,9 @@ export const PresentationViewer: React.FC<PresentationViewerProps> = ({
       }, 3000);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    globalThis.addEventListener('mousemove', handleMouseMove);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      globalThis.removeEventListener('mousemove', handleMouseMove);
       if (hideUITimeoutRef.current) clearTimeout(hideUITimeoutRef.current);
     };
   }, [state.isPlaying, state.isPaused]);

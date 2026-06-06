@@ -387,7 +387,7 @@ describe('Workflow complet de téléchargement', () => {
 
 describe('Fallback de téléchargement', () => {
   let originalFetch: typeof global.fetch;
-  let originalOpen: typeof window.open;
+  let originalOpen: typeof globalThis.open;
   
   beforeEach(() => {
     originalFetch = globalThis.fetch;
