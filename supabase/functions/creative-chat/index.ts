@@ -170,6 +170,7 @@ serve(async (req) => {
     // BUILD STRUCTURED DECOR CONTEXT FROM CATALOGS (replaces flat frontend list)
     // ========================================================================
     let decorContext: string;
+    const allDecorRefs: string[] = [];
     try {
       // Fetch all active catalogs with their linked decors
       const { data: catalogs, error: catErr } = await supabaseAdmin
@@ -183,7 +184,7 @@ serve(async (req) => {
 
       // For each catalog, fetch linked decors
       const catalogSections: string[] = [];
-      const allDecorRefs: string[] = [];
+      // allDecorRefs declared in outer scope
       
       for (const cat of (catalogs || [])) {
         const { data: links } = await supabaseAdmin
@@ -778,7 +779,10 @@ Réponds en français de manière claire et professionnelle.`;
       });
     }
 
-    // Transform Gemini SSE to OpenAI-compatible format for frontend
+    // Transform Gemini SSE to OpenAI-compatible format + post-stream RAG validation
+    const validRefsSet = new Set(allDecorRefs.map((r) => r.toUpperCase()));
+    let assistantBuffer = "";
+
     const transformStream = new TransformStream({
       transform(chunk, controller) {
         const text = new TextDecoder().decode(chunk);
@@ -788,25 +792,41 @@ Réponds en français de manière claire et professionnelle.`;
           if (line.startsWith('data: ')) {
             try {
               const jsonStr = line.slice(6);
-              if (jsonStr.trim() === '[DONE]') {
-                controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
-                return;
-              }
+              if (jsonStr.trim() === '[DONE]') continue;
               
               const parsed = JSON.parse(jsonStr);
               const content = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
               
               if (content) {
-                const openaiFormat = {
-                  choices: [{ delta: { content } }]
-                };
+                assistantBuffer += content;
+                const openaiFormat = { choices: [{ delta: { content } }] };
                 controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(openaiFormat)}\n\n`));
               }
-            } catch (e) {
+            } catch (_e) {
               // Skip malformed JSON
             }
           }
         }
+      },
+      flush(controller) {
+        // RAG safety net: detect any mentioned reference NOT in the catalog
+        if (validRefsSet.size > 0 && assistantBuffer) {
+          // Match patterns like "Réf: 1234_AB_CD", "Ref 1234_AB", "(Réf: XXXX)"
+          const refRegex = /(?:R[ée]f(?:[ée]rence)?\.?\s*:?\s*|\()([A-Z0-9][A-Z0-9_\-]{2,})/gi;
+          const mentioned = new Set<string>();
+          let m: RegExpExecArray | null;
+          while ((m = refRegex.exec(assistantBuffer)) !== null) {
+            mentioned.add(m[1].toUpperCase());
+          }
+          const invented = [...mentioned].filter((ref) => !validRefsSet.has(ref));
+          if (invented.length > 0) {
+            console.warn("⚠️ RAG violation - invented refs:", invented);
+            const warning = `\n\n---\n⚠️ **Vérification catalogue** : la ou les références suivantes ne figurent pas dans le catalogue DICA officiel et ne doivent pas être prises en compte : ${invented.map((r) => `\`${r}\``).join(", ")}. Demande à l'assistant de proposer des alternatives valides.`;
+            const warnFormat = { choices: [{ delta: { content: warning } }] };
+            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(warnFormat)}\n\n`));
+          }
+        }
+        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
       }
     });
 
