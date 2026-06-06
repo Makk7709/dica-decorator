@@ -91,7 +91,7 @@ const BLOCKED_PORTS = new Set([
 // ============================================================================
 
 export class UrlValidatorService {
-  constructor(private config: UrlValidationConfig) {}
+  constructor(private readonly config: UrlValidationConfig) {}
 
   /**
    * Validates a URL for SSRF vulnerabilities

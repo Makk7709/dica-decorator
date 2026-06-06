@@ -215,6 +215,7 @@ export class AnalyticsService {
         start.setDate(start.getDate() - 7);
         break;
       case '30d':
+      default:
         start = new Date(now);
         start.setDate(start.getDate() - 30);
         break;
@@ -229,16 +230,13 @@ export class AnalyticsService {
         start = new Date(now.getFullYear(), 0, 1);
         break;
       case 'custom':
-        if (!custom || !custom.start || !custom.end) {
+        if (!custom?.start || !custom?.end) {
           throw new AnalyticsError('Custom period requires start and end dates', 'INVALID_PERIOD');
         }
         if (custom.start > custom.end) {
           throw new AnalyticsError('Start date must be before end date', 'INVALID_DATE_RANGE');
         }
         return { start: custom.start, end: custom.end };
-      default:
-        start = new Date(now);
-        start.setDate(start.getDate() - 30);
     }
 
     return { start, end };
@@ -293,9 +291,10 @@ export class AnalyticsService {
 
     const firstValue = data[0].value;
     const lastValue = data[data.length - 1].value;
-    const percentageChange = firstValue > 0 
-      ? ((lastValue - firstValue) / firstValue) * 100 
-      : (lastValue > 0 ? 100 : 0);
+    const fallbackChange = lastValue > 0 ? 100 : 0;
+    const percentageChange = firstValue > 0
+      ? ((lastValue - firstValue) / firstValue) * 100
+      : fallbackChange;
 
     let direction: TrendDirection;
     if (percentageChange > 5) {
@@ -399,17 +398,19 @@ export class AnalyticsService {
 
   private generateSummary(metrics: GlobalMetrics, trends: Record<MetricType, TrendData>): string {
     const parts: string[] = [];
-    
-    parts.push(`Rapport d'activité DICA Decorator`);
-    parts.push(`Total: ${metrics.totalProjects} projets, ${metrics.totalRenders} rendus`);
-    parts.push(`Utilisateurs: ${metrics.activeUsers}/${metrics.totalUsers} actifs (${metrics.engagementRate.toFixed(0)}%)`);
-    
+
+    parts.push(
+      `Rapport d'activité DICA Decorator`,
+      `Total: ${metrics.totalProjects} projets, ${metrics.totalRenders} rendus`,
+      `Utilisateurs: ${metrics.activeUsers}/${metrics.totalUsers} actifs (${metrics.engagementRate.toFixed(0)}%)`,
+    );
+
     if (trends.renders.direction === 'up') {
       parts.push(`Tendance rendus: +${trends.renders.percentageChange.toFixed(0)}%`);
     } else if (trends.renders.direction === 'down') {
       parts.push(`Tendance rendus: ${trends.renders.percentageChange.toFixed(0)}%`);
     }
-    
+
     return parts.join('. ');
   }
 
@@ -417,16 +418,17 @@ export class AnalyticsService {
     if (format === 'json') {
       return JSON.stringify(report, null, 2);
     }
-    
+
     // CSV format
-    const lines: string[] = [];
-    lines.push('Metric,Value');
-    lines.push(`Total Projects,${report.metrics.totalProjects}`);
-    lines.push(`Total Renders,${report.metrics.totalRenders}`);
-    lines.push(`Total Users,${report.metrics.totalUsers}`);
-    lines.push(`Active Users,${report.metrics.activeUsers}`);
-    lines.push(`Engagement Rate,${report.metrics.engagementRate}%`);
-    
+    const lines: string[] = [
+      'Metric,Value',
+      `Total Projects,${report.metrics.totalProjects}`,
+      `Total Renders,${report.metrics.totalRenders}`,
+      `Total Users,${report.metrics.totalUsers}`,
+      `Active Users,${report.metrics.activeUsers}`,
+      `Engagement Rate,${report.metrics.engagementRate}%`,
+    ];
+
     return lines.join('\n');
   }
 
@@ -449,10 +451,11 @@ export class AnalyticsService {
   }
 
   private calculateComparison(current: number, previous: number): ComparisonMetric {
-    const change = previous > 0 
-      ? ((current - previous) / previous) * 100 
-      : (current > 0 ? 100 : 0);
-    
+    const fallbackChange = current > 0 ? 100 : 0;
+    const change = previous > 0
+      ? ((current - previous) / previous) * 100
+      : fallbackChange;
+
     let direction: TrendDirection;
     if (change > 0) {
       direction = 'up';

@@ -90,7 +90,7 @@ const Creative = () => {
   const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
   const [zoomedImage, setZoomedImage] = useState<string | null>(null); // Image en plein écran
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -171,7 +171,7 @@ const Creative = () => {
           const fileName = `creative-${Date.now()}.png`;
           const filePath = `${user.id}/creative/${fileName}`;
           
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from("project-photos")
             .upload(filePath, blob, {
               contentType: 'image/png',
@@ -341,7 +341,7 @@ ${exampleRefs}
     setIsUploading(true);
     try {
       const fileName = `source-${Date.now()}.${file.name.split('.').pop()}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("project-photos")
         .upload(`${user.id}/${fileName}`, file);
 
@@ -778,24 +778,32 @@ ${exampleRefs}
               {/* Catalogue status */}
               <div className="mb-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/60 px-4 py-3">
+                  {(() => {
+                    let catalogStatusNode: React.ReactNode;
+                    if (isDecorsLoading) {
+                      catalogStatusNode = (
+                        <span className="inline-flex items-center gap-2 text-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Chargement…
+                        </span>
+                      );
+                    } else if (decorsLoadError) {
+                      catalogStatusNode = <span className="text-destructive">Indisponible</span>;
+                    } else {
+                      catalogStatusNode = <span className="text-foreground">{decors.length} disponibles</span>;
+                    }
+                    return (
                   <div className="text-sm">
                     <span className="text-muted-foreground">Catalogue décors :</span>{" "}
-                    {isDecorsLoading ? (
-                      <span className="inline-flex items-center gap-2 text-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Chargement…
-                      </span>
-                    ) : decorsLoadError ? (
-                      <span className="text-destructive">Indisponible</span>
-                    ) : (
-                      <span className="text-foreground">{decors.length} disponibles</span>
-                    )}
+                    {catalogStatusNode}
                     {decorsLoadError ? (
                       <div className="mt-1 text-xs text-muted-foreground">
                         {decorsLoadError}
                       </div>
                     ) : null}
                   </div>
+                    );
+                  })()}
 
                   <Button
                     type="button"
@@ -856,11 +864,11 @@ ${exampleRefs}
                                       role="button"
                                       tabIndex={0}
                                       className="relative group cursor-pointer"
-                                      onClick={() => setZoomedImage(message.imageUrl!)}
+                                      onClick={() => setZoomedImage(message.imageUrl ?? null)}
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter' || e.key === ' ') {
                                           e.preventDefault();
-                                          setZoomedImage(message.imageUrl!);
+                                          setZoomedImage(message.imageUrl ?? null);
                                         }
                                       }}
                                     >
@@ -881,7 +889,7 @@ ${exampleRefs}
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setZoomedImage(message.imageUrl!)}
+                                        onClick={() => setZoomedImage(message.imageUrl ?? null)}
                                       >
                                         <Maximize2 className="h-4 w-4 mr-2" />
                                         Agrandir
@@ -896,7 +904,7 @@ ${exampleRefs}
                                         variant="outline"
                                         size="sm"
                                         onClick={() => {
-                                          setSelectedImageUrl(message.imageUrl!);
+                                          setSelectedImageUrl(message.imageUrl ?? null);
                                           setSaveToProjectDialogOpen(true);
                                         }}
                                       >
@@ -1114,11 +1122,11 @@ ${exampleRefs}
                           role="button"
                           tabIndex={0}
                           className="relative group cursor-pointer"
-                          onClick={() => setZoomedImage(favorite.image_data!)}
+                          onClick={() => setZoomedImage(favorite.image_data)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              setZoomedImage(favorite.image_data!);
+                              setZoomedImage(favorite.image_data);
                             }
                           }}
                         >

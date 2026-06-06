@@ -286,8 +286,7 @@ const ProjectDetail = () => {
         
         // Traitement en une seule passe
         if (allRendersData) {
-          for (let i = 0; i < allRendersData.length; i++) {
-            const render = allRendersData[i];
+          for (const render of allRendersData) {
             if (render.decor_id === null) {
               // Création de l'assistant IA
               allCreativeImports.push({
@@ -423,7 +422,7 @@ const ProjectDetail = () => {
         catalogId,
       }));
 
-      const { data, error } = await supabase.functions.invoke("apply-decor", {
+      const { error } = await supabase.functions.invoke("apply-decor", {
         body: {
           photoUrl: selectedPhoto.original_image_url,
           textureUrl: primaryDecor.texture_image_url,
@@ -529,7 +528,7 @@ const ProjectDetail = () => {
       if (deleteError) throw deleteError;
 
       // Generate new render with same parameters
-      const { data, error } = await supabase.functions.invoke("apply-decor", {
+      const { error } = await supabase.functions.invoke("apply-decor", {
         body: {
           photoUrl: photo.original_image_url,
           textureUrl: decor.texture_image_url,
@@ -940,14 +939,14 @@ const ProjectDetail = () => {
             )}
             
             {/* Liste des créations IA */}
-            {creativeImports.length > 0 && (
-            <div className={`grid gap-4 ${
-              creativeImports.length === 1 
-                ? "grid-cols-1 max-w-md" 
-                : creativeImports.length === 2
-                  ? "grid-cols-2"
-                  : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-            }`}>
+            {creativeImports.length > 0 && (() => {
+              let creativesGridCols: string;
+              if (creativeImports.length === 1) creativesGridCols = "grid-cols-1 max-w-md";
+              else if (creativeImports.length === 2) creativesGridCols = "grid-cols-2";
+              else creativesGridCols = "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+              return (
+            <div className={`grid gap-4 ${creativesGridCols}`}>
+
               {creativeImports.map((creative, index) => (
                 <div 
                   key={creative.id}
@@ -1028,7 +1027,8 @@ const ProjectDetail = () => {
                 </div>
               ))}
             </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
@@ -1331,7 +1331,7 @@ const ProjectDetail = () => {
                     Fermer
                   </Button>
                   <ImageExportDropdown
-                    imageUrl={zoomedImage!}
+                    imageUrl={zoomedImage}
                     filename={`dica-render-${Date.now()}`}
                     variant="secondary"
                     className="h-10 px-4 bg-white hover:bg-gray-100 shadow-lg text-gray-800 border border-gray-200"
