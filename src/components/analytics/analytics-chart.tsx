@@ -75,7 +75,7 @@ interface TooltipProps {
   label?: string;
 }
 
-const CustomTooltip: React.FC<TooltipProps> = ({ active, payload, label }) => {
+const CustomTooltip: React.FC<Readonly<TooltipProps>> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg border bg-background p-3 shadow-lg">
@@ -186,7 +186,7 @@ const PieChartComponent: React.FC<{
 // Main Component
 // ============================================================================
 
-export const AnalyticsChart: React.FC<AnalyticsChartProps> = ({
+export const AnalyticsChart: React.FC<Readonly<AnalyticsChartProps>> = ({
   title,
   type,
   data,

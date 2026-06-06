@@ -45,7 +45,7 @@ export function ImageExportDropdown({
   size = 'sm',
   className = '',
   showLabel = true,
-}: ImageExportDropdownProps) {
+}: Readonly<ImageExportDropdownProps>) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<ImageExportFormat | null>(null);
 

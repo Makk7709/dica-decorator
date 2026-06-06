@@ -37,6 +37,13 @@ interface DecorSelectorDialogProps {
   originalDimensions?: { width: number; height: number } | null;
 }
 
+// Calcule la classe Tailwind grid-cols-X selon le nombre de catalogues affichés
+function getCatalogsGridColsClass(count: number): string {
+  if (count <= 1) return 'grid-cols-1';
+  if (count === 2) return 'grid-cols-2';
+  return 'grid-cols-3';
+}
+
 // Labels pour les types de projet
 const projectTypeLabels: Record<ProjectType, string> = {
   ascenseur: "Ascenseur",
@@ -60,7 +67,7 @@ export const DecorSelectorDialog = ({
   showReferences,
   onShowReferencesChange,
   originalDimensions,
-}: DecorSelectorDialogProps) => {
+}: Readonly<DecorSelectorDialogProps>) => {
   const { catalogs, decorsByCatalog, isLoading, error } = useCatalogsWithDecors(projectType);
   const [activeTab, setActiveTab] = useState<string>("");
 
@@ -276,7 +283,7 @@ export const DecorSelectorDialog = ({
           {/* Affichage des catalogues avec tabs */}
           {!isLoading && !error && hasCatalogs && catalogs.length > 0 && (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className={`grid w-full h-auto ${catalogs.length === 1 ? 'grid-cols-1' : catalogs.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              <TabsList className={`grid w-full h-auto ${getCatalogsGridColsClass(catalogs.length)}`}>
                 {catalogs.map((catalog) => {
                   const decorsCount = decorsByCatalog[catalog.id]?.length || 0;
                   const isSelected = !!decorSelection[catalog.id];

@@ -55,6 +55,12 @@ interface UserData {
   role: "admin" | "client";
 }
 
+function getSubmitLabel(uploadingImage: boolean, isSubmitting: boolean): string {
+  if (uploadingImage) return "Upload en cours...";
+  if (isSubmitting) return "Enregistrement...";
+  return "Enregistrer";
+}
+
 const Admin = () => {
   const navigate = useNavigate();
   const { userRole, signOut, user } = useAuth();
@@ -885,7 +891,7 @@ const Admin = () => {
                         Annuler
                       </Button>
                       <Button type="submit" disabled={isSubmitting || uploadingImage}>
-                        {uploadingImage ? "Upload en cours..." : isSubmitting ? "Enregistrement..." : "Enregistrer"}
+                        {getSubmitLabel(uploadingImage, isSubmitting)}
                       </Button>
                     </div>
                   </form>
@@ -1047,7 +1053,7 @@ const Admin = () => {
                         Annuler
                       </Button>
                       <Button type="submit" disabled={isSubmitting || uploadingImage}>
-                        {uploadingImage ? "Upload en cours..." : isSubmitting ? "Enregistrement..." : "Enregistrer"}
+                        {getSubmitLabel(uploadingImage, isSubmitting)}
                       </Button>
                     </div>
                   </form>

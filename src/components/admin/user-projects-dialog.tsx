@@ -44,7 +44,7 @@ export const UserProjectsDialog = ({
   targetUserId,
   targetUserEmail,
   adminUserId,
-}: UserProjectsDialogProps) => {
+}: Readonly<UserProjectsDialogProps>) => {
   const [isLoading, setIsLoading] = useState(true);
   const [userProjects, setUserProjects] = useState<UserProjectSummary | null>(null);
   const [selectedProject, setSelectedProject] = useState<ProjectWithRenders | null>(null);
@@ -260,7 +260,7 @@ const ProjectCard = ({
   onViewDetails,
   getUseCaseLabel,
   getUseCaseColor 
-}: ProjectCardProps) => (
+}: Readonly<ProjectCardProps>) => (
   <div className="p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors">
     <div className="flex items-start justify-between gap-4">
       <div className="flex-1 min-w-0">
@@ -313,7 +313,7 @@ const ProjectDetailsView = ({
   project,
   getUseCaseLabel,
   getUseCaseColor 
-}: ProjectDetailsViewProps) => (
+}: Readonly<ProjectDetailsViewProps>) => (
   <div className="space-y-6 pr-4">
     {/* Project Header */}
     <div className="p-4 rounded-lg bg-muted/50">

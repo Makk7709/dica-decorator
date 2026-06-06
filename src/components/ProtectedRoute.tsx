@@ -17,7 +17,7 @@ const LoadingSpinner = memo(() => (
 LoadingSpinner.displayName = "LoadingSpinner";
 
 // ProtectedRoute optimisé avec memo
-export const ProtectedRoute = memo(({ children, requireAdmin = false }: ProtectedRouteProps) => {
+export const ProtectedRoute = memo(({ children, requireAdmin = false }: Readonly<ProtectedRouteProps>) => {
   const { user, isLoading, userRole } = useAuth();
 
   // Afficher le spinner uniquement pendant le chargement initial

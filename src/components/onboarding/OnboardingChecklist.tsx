@@ -102,7 +102,7 @@ export const getDefaultChecklistItems = (
 // Component
 // ============================================================================
 
-export const OnboardingChecklist: React.FC<OnboardingChecklistProps> = ({
+export const OnboardingChecklist: React.FC<Readonly<OnboardingChecklistProps>> = ({
   items,
   onDismiss,
   className = '',

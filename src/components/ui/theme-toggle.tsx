@@ -13,7 +13,7 @@ export function ThemeToggle({
   className, 
   size = "icon",
   variant = "ghost" 
-}: ThemeToggleProps) {
+}: Readonly<ThemeToggleProps>) {
   const { resolvedTheme, toggleTheme } = useTheme();
 
   return (

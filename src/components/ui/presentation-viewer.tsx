@@ -231,7 +231,7 @@ const ThumbnailStrip: React.FC<{
 // Main Component
 // ============================================================================
 
-export const PresentationViewer: React.FC<PresentationViewerProps> = ({
+export const PresentationViewer: React.FC<Readonly<PresentationViewerProps>> = ({
   slides,
   autoStart = false,
   autoplayInterval = 5000,

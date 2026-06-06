@@ -71,7 +71,7 @@ export function ResellerBrandingSettings({
   onToggleCoBranding,
   onSaveBranding,
   readOnly = false,
-}: ResellerBrandingSettingsProps) {
+}: Readonly<ResellerBrandingSettingsProps>) {
   const { toast } = useToast();
   const service = ResellerBrochurePdfService.getInstance();
 

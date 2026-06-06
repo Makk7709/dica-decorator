@@ -55,7 +55,7 @@ export function ResellerBrochureExportButton({
   className,
   onExportComplete,
   onExportError,
-}: ResellerBrochureExportButtonProps) {
+}: Readonly<ResellerBrochureExportButtonProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);

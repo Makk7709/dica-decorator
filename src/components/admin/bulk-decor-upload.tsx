@@ -62,7 +62,7 @@ const parseFileName = (fileName: string): { name: string; referenceCode: string 
   return { name: displayName, referenceCode };
 };
 
-export const BulkDecorUpload = ({ onComplete }: BulkDecorUploadProps) => {
+export const BulkDecorUpload = ({ onComplete }: Readonly<BulkDecorUploadProps>) => {
   const [files, setFiles] = useState<FileToUpload[]>([]);
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [selectedCatalogId, setSelectedCatalogId] = useState<string>("");

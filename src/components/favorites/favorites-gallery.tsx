@@ -35,7 +35,7 @@ interface FavoritesGalleryProps {
 // Composant Principal
 // ============================================================================
 
-export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) {
+export function FavoritesGallery({ projectId, onClose }: Readonly<FavoritesGalleryProps>) {
   const { user } = useAuth();
 
   // État
@@ -342,7 +342,7 @@ interface FavoriteCardProps {
   onToggleSelect: () => void;
 }
 
-function FavoriteCard({ favorite, isSelected, onToggleSelect }: FavoriteCardProps) {
+function FavoriteCard({ favorite, isSelected, onToggleSelect }: Readonly<FavoriteCardProps>) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (

@@ -4,7 +4,7 @@ interface AppFooterProps {
   className?: string;
 }
 
-export const AppFooter = ({ className = "" }: AppFooterProps) => {
+export const AppFooter = ({ className = "" }: Readonly<AppFooterProps>) => {
   return (
     <footer className={`border-t border-border/30 py-4 ${className}`}>
       <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">

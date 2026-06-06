@@ -12,7 +12,7 @@ interface NavLinkCompatProps extends Omit<NavLinkProps, "className"> {
   prefetch?: boolean;
 }
 
-const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
+const NavLink = forwardRef<HTMLAnchorElement, Readonly<NavLinkCompatProps>>(
   ({ className, activeClassName, pendingClassName, to, prefetch = true, onMouseEnter, ...props }, ref) => {
     const queryClient = useQueryClient();
     const { user } = useAuth();

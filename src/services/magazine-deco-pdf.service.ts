@@ -78,16 +78,16 @@ export class MagazineDecoPdfService {
           ? await this.loadSingleImageWithBase64(options.images[i].originalUrl!)
           : null;
         
-        await this.renderEditorialArticlePage(
-          pdf, 
+        await this.renderEditorialArticlePage({
+          pdf,
           originalImage,
-          loadedImages[i], 
+          renderedImage: loadedImages[i],
           options,
-          pageCaptions, // Use image-specific captions
-          pageWidth, 
-          pageHeight, 
-          i + 2
-        );
+          aiCaptions: pageCaptions, // Use image-specific captions
+          pageWidth,
+          pageHeight,
+          pageNumber: i + 2,
+        });
       }
       
       // PAGE FINALE - Certifications & Contact DICA
@@ -499,17 +499,21 @@ export class MagazineDecoPdfService {
 
   /**
    * PAGE 2+ - Editorial avec composition multi-images (AVANT/APRÈS côte à côte)
+   *
+   * Params regroupés en objet (cf. SonarLint S107) pour limiter le nombre
+   * d'arguments positionnels et améliorer la lisibilité aux sites d'appel.
    */
-  private async renderEditorialArticlePage(
-    pdf: jsPDF,
-    originalImage: LoadedImage | null,
-    renderedImage: LoadedImage,
-    options: MagazineDecoOptions,
-    aiCaptions: MagazineAICaption | undefined,
-    pageWidth: number,
-    pageHeight: number,
-    pageNumber: number
-  ) {
+  private async renderEditorialArticlePage(params: {
+    pdf: jsPDF;
+    originalImage: LoadedImage | null;
+    renderedImage: LoadedImage;
+    options: MagazineDecoOptions;
+    aiCaptions: MagazineAICaption | undefined;
+    pageWidth: number;
+    pageHeight: number;
+    pageNumber: number;
+  }) {
+    const { pdf, originalImage, renderedImage, options, aiCaptions, pageWidth, pageHeight, pageNumber } = params;
     const { margins, colors } = MAGAZINE_DECO_CONFIG;
     
     // ═══════════════════════════════════════════════════════════════════

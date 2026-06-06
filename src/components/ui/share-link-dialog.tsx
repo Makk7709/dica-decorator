@@ -201,7 +201,7 @@ const LinkCard: React.FC<{
 // Main Component
 // ============================================================================
 
-export const ShareLinkDialog: React.FC<ShareLinkDialogProps> = ({
+export const ShareLinkDialog: React.FC<Readonly<ShareLinkDialogProps>> = ({
   projectId,
   projectTitle,
   userId,

@@ -17,7 +17,7 @@ export function PremiumLayout({
   className,
   showPlates = true,
   backgroundImage
-}: PremiumLayoutProps) {
+}: Readonly<PremiumLayoutProps>) {
   return (
     <div className={cn("min-h-screen bg-stratifie relative", className)}>
       {/* Background image optionnel */}
@@ -73,7 +73,7 @@ export function PremiumHeader({
   subtitle, 
   action,
   className 
-}: PremiumHeaderProps) {
+}: Readonly<PremiumHeaderProps>) {
   return (
     <header className={cn(
       "header-premium sticky top-0 z-50 px-6 py-4",
@@ -113,7 +113,7 @@ export function PremiumCard({
   children, 
   className,
   hover = true 
-}: PremiumCardProps) {
+}: Readonly<PremiumCardProps>) {
   return (
     <div className={cn(
       "card-premium p-6",
@@ -138,7 +138,7 @@ export function SectionTitle({
   title, 
   subtitle,
   className 
-}: SectionTitleProps) {
+}: Readonly<SectionTitleProps>) {
   return (
     <div className={cn("space-y-1", className)}>
       <h2 className="section-title text-2xl md:text-3xl">{title}</h2>

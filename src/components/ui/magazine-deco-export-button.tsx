@@ -45,7 +45,7 @@ export function MagazineDecoExportButton({
   className,
   onExportComplete,
   onExportError,
-}: MagazineDecoExportButtonProps) {
+}: Readonly<MagazineDecoExportButtonProps>) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [progress, setProgress] = useState(0);

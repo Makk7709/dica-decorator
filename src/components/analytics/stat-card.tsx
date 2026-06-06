@@ -29,7 +29,7 @@ export interface StatCardProps {
   isLoading?: boolean;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({
+export const StatCard: React.FC<Readonly<StatCardProps>> = ({
   title,
   value,
   icon: Icon,
@@ -40,8 +40,13 @@ export const StatCard: React.FC<StatCardProps> = ({
   className,
   isLoading = false,
 }) => {
-  const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
-  
+  const trendIcons: Record<TrendDirection, LucideIcon> = {
+    up: TrendingUp,
+    down: TrendingDown,
+    stable: Minus,
+  };
+  const TrendIcon = trend ? trendIcons[trend] : Minus;
+
   const trendColors = {
     up: 'text-green-500',
     down: 'text-red-500',

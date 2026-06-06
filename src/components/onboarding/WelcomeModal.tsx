@@ -100,7 +100,7 @@ const BENEFITS = [
 // Component
 // ============================================================================
 
-export const WelcomeModal: React.FC<WelcomeModalProps> = ({
+export const WelcomeModal: React.FC<Readonly<WelcomeModalProps>> = ({
   open,
   onOpenChange,
   onComplete,

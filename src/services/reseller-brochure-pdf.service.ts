@@ -180,16 +180,16 @@ export class ResellerBrochurePdfService {
           ? await this.loadSingleImageWithBase64(options.images[i].originalUrl!)
           : null;
         
-        await this.renderEditorialArticlePage(
-          pdf, 
+        await this.renderEditorialArticlePage({
+          pdf,
           originalImage,
-          loadedImages[i], 
+          renderedImage: loadedImages[i],
           options,
-          pageCaptions,
-          pageWidth, 
-          pageHeight, 
-          i + 2
-        );
+          aiCaptions: pageCaptions,
+          pageWidth,
+          pageHeight,
+          pageNumber: i + 2,
+        });
       }
       
       // PAGE FINALE - Certifications & Contact (DICA ou Revendeur)
@@ -525,16 +525,23 @@ export class ResellerBrochurePdfService {
     }
   }
 
-  private async renderEditorialArticlePage(
-    pdf: jsPDF,
-    originalImage: LoadedImage | null,
-    renderedImage: LoadedImage,
-    options: ResellerBrochureOptions,
-    aiCaptions: MagazineAICaption | undefined,
-    pageWidth: number,
-    pageHeight: number,
-    pageNumber: number
-  ) {
+  /**
+   * Page éditoriale de la brochure revendeur.
+   *
+   * Params regroupés en objet (cf. SonarLint S107) pour limiter le nombre
+   * d'arguments positionnels et améliorer la lisibilité aux sites d'appel.
+   */
+  private async renderEditorialArticlePage(params: {
+    pdf: jsPDF;
+    originalImage: LoadedImage | null;
+    renderedImage: LoadedImage;
+    options: ResellerBrochureOptions;
+    aiCaptions: MagazineAICaption | undefined;
+    pageWidth: number;
+    pageHeight: number;
+    pageNumber: number;
+  }) {
+    const { pdf, originalImage, renderedImage, options, aiCaptions, pageWidth, pageHeight, pageNumber } = params;
     const { margins, colors } = MAGAZINE_DECO_CONFIG;
     const branding = options.resellerBranding;
     

@@ -50,7 +50,7 @@ export interface BeforeAfterSliderProps {
 // Component
 // ============================================================================
 
-export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
+export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
   beforeImage,
   afterImage,
   beforeLabel = 'Photo originale',
