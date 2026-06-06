@@ -1027,7 +1027,8 @@ const ProjectDetail = () => {
                 </div>
               ))}
             </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
