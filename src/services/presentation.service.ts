@@ -247,7 +247,7 @@ export class PresentationService {
 
   goTo(index: number): void {
     const clampedIndex = Math.max(0, Math.min(index, this.slides.length - 1));
-    const direction: NavigationDirection = clampedIndex > this.currentIndex ? 'next' : 'previous';
+    clampedIndex > this.currentIndex ? 'next' : 'previous';
     this.currentIndex = clampedIndex;
     this.notifyStateChange();
   }

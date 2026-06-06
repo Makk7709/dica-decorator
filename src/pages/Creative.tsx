@@ -887,7 +887,7 @@ ${exampleRefs}
                                         Agrandir
                                       </Button>
                                       <ImageExportDropdown
-                                        imageUrl={message.imageUrl!}
+                                        imageUrl={message.imageUrl}
                                         filename={`dica-creative-${Date.now()}`}
                                         variant="outline"
                                         size="sm"

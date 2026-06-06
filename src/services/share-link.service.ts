@@ -339,7 +339,7 @@ export class ShareLinkService {
       const iterations = Number.parseInt(parts[1], 10);
       const saltHex = parts[2];
       const expectedHashHex = parts[3];
-      const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => Number.parseInt(b, 16)));
+      const salt = new Uint8Array(saltHex.match(/.{2}/g).map(b => Number.parseInt(b, 16)));
       const encoder = new TextEncoder();
       const keyMaterial = await crypto.subtle.importKey(
         'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']
@@ -384,7 +384,7 @@ export class ShareLinkService {
     const requiresPassword = link.isPasswordProtected;
     
     if (link.isPasswordProtected && password) {
-      if (!this.verifyPassword(password, link.passwordHash!)) {
+      if (!this.verifyPassword(password, link.passwordHash)) {
         errors.push('invalid_password');
       }
     }
