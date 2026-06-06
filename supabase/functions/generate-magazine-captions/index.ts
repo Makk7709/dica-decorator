@@ -71,7 +71,7 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
     const { data: { user: verifiedUser }, error: authError } = await supabaseAdmin.auth.admin.getUserById(payload.sub as string);
     
     if (authError || !verifiedUser) {
@@ -118,7 +118,7 @@ serve(async (req) => {
     };
 
     const contextLabel = contextLabels[projectType] || "espace";
-    const forbiddenContexts = Object.keys(contextLabels)
+    Object.keys(contextLabels)
       .filter(k => k !== projectType)
       .map(k => contextLabels[k]);
 

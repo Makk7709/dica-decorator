@@ -5,18 +5,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import {
-  assertSafeFetchUrl,
-  SsrfBlockedError,
-} from "../_shared/ssrf-guard.ts";
-
-// Whitelist des hostnames autorisés pour fetch sortant (defense-in-depth SSRF).
-// On autorise uniquement Supabase Storage (urls signées + buckets publics
-// internes) et les fonts/CDN strictement nécessaires.
-const ALLOWED_FETCH_HOST_SUFFIXES = [
-  "supabase.co",
-  "supabase.in",
-];
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,28 +44,9 @@ function buildGeminiUrl(apiKey: string): string {
 }
 
 /**
- * Représentation minimale (best-effort) d'une réponse Gemini.
- * Les réponses réelles peuvent contenir d'autres champs ; on ne valide
- * que ce qui est strictement consommé.
- */
-interface GeminiResponsePart {
-  inline_data?: { data?: string; mime_type?: string };
-  inlineData?: { data?: string; mimeType?: string };
-  text?: string;
-}
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: GeminiResponsePart[];
-    };
-  }>;
-}
-
-/**
  * Parse Gemini response and extract image data
  */
-function parseGeminiResponse(response: GeminiResponse): { imageBase64: string | null; textResponse: string | null } {
+function parseGeminiResponse(response: any): { imageBase64: string | null; textResponse: string | null } {
   const parts = response?.candidates?.[0]?.content?.parts || [];
   
   let imageBase64: string | null = null;
@@ -117,6 +86,46 @@ function getErrorMessage(statusCode: number): string {
 }
 
 /**
+ * Retry helper with exponential backoff for transient errors (503, 429)
+ */
+async function fetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  { timeout = 30000, maxRetries = 1, retryableStatuses = [503, 429] } = {}
+): Promise<Response> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetchWithTimeout(url, options, timeout);
+      
+      if (!retryableStatuses.includes(response.status) || attempt === maxRetries) {
+        return response;
+      }
+      
+      // Consume body to avoid resource leak
+      await response.text();
+      
+      const delay = Math.min(1500 * Math.pow(2, attempt) + Math.random() * 500, 4000);
+      console.log(`Retryable error ${response.status}, attempt ${attempt + 1}/${maxRetries}. Waiting ${Math.round(delay)}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.log(`Fetch error on attempt ${attempt + 1}/${maxRetries}: ${err}`);
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+  
+  // Should never reach here, but TypeScript needs it
+  throw new Error("Max retries exceeded");
+}
+
+/** Fallback model when primary is unavailable */
+const FALLBACK_MODEL = "gemini-2.5-flash";
+
+function buildFallbackGeminiUrl(apiKey: string): string {
+  return `${GEMINI_CONFIG.apiEndpoint}/${FALLBACK_MODEL}:generateContent?key=${apiKey}`;
+}
+
+/**
  * Fetch with timeout to prevent hanging
  */
 async function fetchWithTimeout(url: string, options?: RequestInit, timeout = RESOURCE_LIMITS.fetchTimeout): Promise<Response> {
@@ -135,6 +144,38 @@ async function fetchWithTimeout(url: string, options?: RequestInit, timeout = RE
 }
 
 /**
+ * Télécharge directement le contenu d'un objet depuis Supabase Storage
+ * en utilisant le client admin (bypass des URLs signées/publiques).
+ * Fonctionne pour buckets publics ET privés. Retourne null si l'URL ne
+ * pointe pas vers Supabase Storage.
+ */
+async function downloadFromStorage(
+  url: string,
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+): Promise<{ arrayBuffer: ArrayBuffer; mimeType: string } | null> {
+  if (!url) return null;
+  const match = url.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/([^?]+)/);
+  if (!match) return null;
+  const bucket = match[1];
+  const path = decodeURIComponent(match[2]);
+  try {
+    const { data, error } = await supabaseAdmin.storage.from(bucket).download(path);
+    if (error || !data) {
+      console.warn(`[apply-decor] storage.download failed for ${bucket}/${path}:`, error?.message);
+      return null;
+    }
+    const arrayBuffer = await data.arrayBuffer();
+    const mimeType = data.type || "image/jpeg";
+    console.log(`[apply-decor] storage.download ok for ${bucket}/${path} (${arrayBuffer.byteLength} bytes)`);
+    return { arrayBuffer, mimeType };
+  } catch (e) {
+    console.warn(`[apply-decor] storage.download exception:`, e instanceof Error ? e.message : e);
+    return null;
+  }
+}
+
+/**
  * Convert ArrayBuffer to base64 in chunks to avoid memory issues
  */
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -148,6 +189,94 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   }
   
   return btoa(binary);
+}
+
+/**
+ * Map arbitrary width/height to closest Gemini-supported aspect ratio.
+ * Supported ratios for gemini-3-pro-image-preview:
+ *   "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+ */
+function mapToSupportedAspectRatio(width: number, height: number): string {
+  if (!width || !height) return "1:1";
+  const target = width / height;
+  const candidates: Array<{ label: string; value: number }> = [
+    { label: "1:1", value: 1 },
+    { label: "2:3", value: 2 / 3 },
+    { label: "3:2", value: 3 / 2 },
+    { label: "3:4", value: 3 / 4 },
+    { label: "4:3", value: 4 / 3 },
+    { label: "4:5", value: 4 / 5 },
+    { label: "5:4", value: 5 / 4 },
+    { label: "9:16", value: 9 / 16 },
+    { label: "16:9", value: 16 / 9 },
+    { label: "21:9", value: 21 / 9 },
+  ];
+  let best = candidates[0];
+  let bestDiff = Math.abs(Math.log(target / best.value));
+  for (const c of candidates) {
+    const diff = Math.abs(Math.log(target / c.value));
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = c;
+    }
+  }
+  return best.label;
+}
+
+/**
+ * Compute the aspect ratio string sent to the Gemini image model based on the
+ * format requested by the user and the source photo dimensions.
+ */
+function computeAspectRatio(
+  format: string,
+  width?: number,
+  height?: number
+): string {
+  switch (format) {
+    case "portrait":
+      return "9:16";
+    case "landscape":
+      return "16:9";
+    case "square":
+      return "1:1";
+    case "original":
+    default:
+      if (width && height) return mapToSupportedAspectRatio(width, height);
+      return "1:1";
+  }
+}
+
+/**
+ * Detect image dimensions from raw bytes (JPEG/PNG headers)
+ */
+function detectImageDimensions(bytes: Uint8Array, mimeType: string): { width: number; height: number } | null {
+  try {
+    // PNG: width at bytes 16-19, height at bytes 20-23 (big-endian)
+    if (mimeType.includes("png") && bytes.length > 24) {
+      if (bytes[0] === 0x89 && bytes[1] === 0x50) {
+        const width = (bytes[16] << 24) | (bytes[17] << 16) | (bytes[18] << 8) | bytes[19];
+        const height = (bytes[20] << 24) | (bytes[21] << 16) | (bytes[22] << 8) | bytes[23];
+        if (width > 0 && height > 0 && width < 20000 && height < 20000) {
+          return { width, height };
+        }
+      }
+    }
+    // JPEG: search for SOF0/SOF2 markers (0xFF 0xC0 or 0xFF 0xC2)
+    if (mimeType.includes("jpeg") || mimeType.includes("jpg")) {
+      for (let i = 0; i < bytes.length - 9; i++) {
+        if (bytes[i] === 0xFF && (bytes[i + 1] === 0xC0 || bytes[i + 1] === 0xC2)) {
+          const height = (bytes[i + 5] << 8) | bytes[i + 6];
+          const width = (bytes[i + 7] << 8) | bytes[i + 8];
+          if (width > 0 && height > 0 && width < 20000 && height < 20000) {
+            return { width, height };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to detect image dimensions:", e);
+  }
+  return null;
 }
 
 // ============================================================================
@@ -203,6 +332,25 @@ serve(async (req) => {
     
     const user = verifiedUser;
     console.log("Authenticated user:", user.id);
+
+    // ========================================================================
+    // Quota Pre-Check - Atomic check before expensive AI call
+    // ========================================================================
+    const supabase = supabaseAdmin;
+
+    const { data: quotaAllowed, error: quotaCheckError } = await supabase.rpc(
+      'check_and_increment_quota',
+      { p_user_id: user.id }
+    );
+
+    if (quotaCheckError || quotaAllowed === false) {
+      console.warn("Quota exceeded for user:", user.id);
+      return new Response(
+        JSON.stringify({ error: "Quota de rendus épuisé. Contactez votre administrateur." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ========================================================================
     const { 
       photoUrl, 
@@ -213,11 +361,15 @@ serve(async (req) => {
       renderCount = 1, 
       format = "square", 
       showReferences = false, 
-      originalWidth, 
-      originalHeight,
+      originalWidth: _origW, 
+      originalHeight: _origH,
       // Nouveau: Support multi-décor (Parois + Sol pour ascenseur)
       allDecors 
     } = await req.json();
+    
+    // Mutable dimensions (can be auto-detected from photo)
+    let originalWidth = _origW;
+    let originalHeight = _origH;
     
     // Get origin from request headers for constructing absolute URLs
     const requestOrigin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, '') || "";
@@ -227,6 +379,8 @@ serve(async (req) => {
     
     // Déterminer si c'est un mode multi-décor (ascenseur avec Parois + Sol)
     const isMultiDecorMode = allDecors && Array.isArray(allDecors) && allDecors.length > 1 && useCase === "ascenseur";
+    // Mode ascenseur avec allDecors (même 1 seul décor) pour déterminer la surface
+    const isElevatorWithCatalogInfo = allDecors && Array.isArray(allDecors) && allDecors.length >= 1 && useCase === "ascenseur";
     
     console.log("Applying decor:", {
       photoUrl,
@@ -250,9 +404,10 @@ serve(async (req) => {
       throw new Error("GOOGLE_AI_API_KEY not configured");
     }
 
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    console.log("Lovable AI Gateway available:", !!LOVABLE_API_KEY);
+
     // Fetch decor information to get name and reference code
-    // Reuse supabaseAdmin created earlier for auth verification
-    const supabase = supabaseAdmin;
 
     // Pour le mode multi-décor, on récupère les infos de tous les décors
     interface DecorInfo {
@@ -266,8 +421,8 @@ serve(async (req) => {
     
     const decorsInfo: DecorInfo[] = [];
     
-    if (isMultiDecorMode) {
-      // Mode multi-décor : récupérer les infos de tous les décors
+    if (isMultiDecorMode || isElevatorWithCatalogInfo) {
+      // Mode multi-décor OU single-décor ascenseur avec info catalogue : récupérer les infos de tous les décors
       console.log("Multi-decor mode: fetching info for all decors");
       
       for (const decorData of allDecors) {
@@ -278,18 +433,36 @@ serve(async (req) => {
           .single();
           
         if (!decorInfoError && decorInfo) {
-          // Déterminer le type de surface basé sur le catalogId ou le nom
+          // Déterminer le type de surface via le catalogId (fiable)
           let surfaceType: 'walls' | 'floors' | 'general' = 'general';
-          const nameLower = (decorData.name || decorInfo.name || '').toLowerCase();
-          const refLower = (decorData.referenceCode || decorInfo.reference_code || '').toLowerCase();
           
-          // Heuristique pour déterminer walls vs floors basée sur le catalog_decor_links
-          // Pour l'instant, on utilise l'ordre: premier = walls, deuxième = floors
-          const decorIndex = allDecors.indexOf(decorData);
-          if (decorIndex === 0) {
-            surfaceType = 'walls';
-          } else if (decorIndex === 1) {
-            surfaceType = 'floors';
+          if (decorData.catalogId) {
+            // Récupérer le code du catalogue pour déterminer la surface
+            const { data: catalogData } = await supabase
+              .from("catalogs")
+              .select("code")
+              .eq("id", decorData.catalogId)
+              .single();
+            
+            if (catalogData) {
+              const code = catalogData.code;
+              console.log(`Decor ${decorInfo.name} -> catalog code: ${code}`);
+              if (code === 'elevator_walls') {
+                surfaceType = 'walls';
+              } else if (code === 'elevator_floors') {
+                surfaceType = 'floors';
+              }
+            }
+          }
+          
+          // Fallback: si pas de catalogId, utiliser le nom comme indice
+          if (surfaceType === 'general') {
+            const nameLower = (decorData.name || decorInfo.name || '').toLowerCase();
+            if (nameLower.includes('paroi') || nameLower.includes('wall')) {
+              surfaceType = 'walls';
+            } else if (nameLower.includes('sol') || nameLower.includes('floor') || nameLower.includes('grip')) {
+              surfaceType = 'floors';
+            }
           }
           
           decorsInfo.push({
@@ -405,7 +578,8 @@ RÈGLE #3: FIDÉLITÉ ABSOLUE DE LA TEXTURE
 → Finition: PRÉSERVÉE (mat reste mat, brillant reste brillant)
 
 RÈGLE #4: ALIGNEMENT DU GRAIN
-→ Bois: veinage selon orientation des panneaux originaux
+→ Bois: veinage TOUJOURS VERTICAL (de haut en bas), JAMAIS horizontal
+→ Les panneaux bois DICA ont un grain qui court du HAUT vers le BAS
 → Métal brossé: lignes de brossage dans la direction correcte
 → Marbre: veines continues sans rupture artificielle
 
@@ -460,35 +634,66 @@ RÈGLE ABSOLUE: Chaque texture va sur sa surface respective.
 NE PAS mélanger les textures. NE PAS inventer de surfaces.
 ═══════════════════════════════════════════════════════════════════`;
         } else {
-          // Mode simple décor pour ascenseur
-          surfaceRules = `═══════════════════════════════════════════════════════════════════
-IDENTIFICATION DES SURFACES - PAS DE SUGGESTION D'ESPACE
+          // Mode simple décor pour ascenseur - déterminer la surface cible
+          // Vérifier si on a l'info catalogue pour ce décor unique
+          const singleDecorSurface = decorsInfo[0]?.surfaceType || 'general';
+          console.log(`Single decor elevator mode - surface type: ${singleDecorSurface}`);
+          
+          if (singleDecorSurface === 'floors') {
+            // Décor SOL sélectionné seul → appliquer uniquement sur le sol
+            surfaceRules = `═══════════════════════════════════════════════════════════════════
+IDENTIFICATION DES SURFACES - DÉCOR SOL UNIQUEMENT
 ═══════════════════════════════════════════════════════════════════
 
-⚠️ ATTENTION: Tu travailles sur la PHOTO RÉELLE fournie, quel que soit le type d'espace
-(bureau, cuisine, salon, chambre, etc.). Le contexte "ascenseur" sert UNIQUEMENT à 
-identifier les TYPES de surfaces compatibles, PAS à suggérer de générer un ascenseur.
+⚠️ ATTENTION: Ce décor est un DÉCOR DE SOL. Tu DOIS l'appliquer 
+UNIQUEMENT sur le sol/plancher visible dans la photo.
 
-SURFACES COMPATIBLES avec le décor:
-• Panneaux muraux verticaux
-• Surfaces de portes/battants
-• Sections murales basses (soubassements)
-• Revêtements muraux lisses
+SURFACES COMPATIBLES avec le décor (SOL UNIQUEMENT):
+• Le sol / plancher de la cabine
+• Les surfaces horizontales au niveau du sol
 
 SURFACES INTERDITES (ne JAMAIS modifier):
+• Panneaux muraux et parois verticales ← NE PAS TOUCHER
+• Portes et battants ← NE PAS TOUCHER
 • Plafonds et luminaires
-• Sols et planchers
 • Éléments techniques (boutons, interrupteurs, prises)
 • Barres de maintien, poignées, quincaillerie
 • Miroirs et surfaces vitrées
 • Indicateurs et signalétique
 • Structures apparentes
-• Accessoires décoratifs ou techniques
 
-RÈGLE ABSOLUE: Travaille UNIQUEMENT sur la photo fournie. Si c'est un bureau, 
-reste sur le bureau. Si c'est une cuisine, reste sur la cuisine. NE JAMAIS inventer 
-un autre type d'espace.
+RÈGLE ABSOLUE: Ce décor va EXCLUSIVEMENT sur le SOL.
+NE JAMAIS appliquer sur les murs ou parois.
 ═══════════════════════════════════════════════════════════════════`;
+          } else {
+            // Décor PAROIS sélectionné seul (ou general) → appliquer sur les murs
+            surfaceRules = `═══════════════════════════════════════════════════════════════════
+IDENTIFICATION DES SURFACES - DÉCOR PAROIS/MURS UNIQUEMENT
+═══════════════════════════════════════════════════════════════════
+
+⚠️ ATTENTION: Ce décor est un DÉCOR DE PAROI. Tu DOIS l'appliquer 
+UNIQUEMENT sur les panneaux muraux et surfaces verticales.
+
+SURFACES COMPATIBLES avec le décor (PAROIS UNIQUEMENT):
+• Panneaux muraux verticaux
+• Surfaces de portes/battants
+• Sections murales basses (soubassements)
+• Revêtements muraux lisses
+• Cloisons et parois verticales
+
+SURFACES INTERDITES (ne JAMAIS modifier):
+• Sols et planchers ← NE PAS TOUCHER
+• Plafonds et luminaires
+• Éléments techniques (boutons, interrupteurs, prises)
+• Barres de maintien, poignées, quincaillerie
+• Miroirs et surfaces vitrées
+• Indicateurs et signalétique
+• Structures apparentes
+
+RÈGLE ABSOLUE: Ce décor va EXCLUSIVEMENT sur les PAROIS/MURS.
+NE JAMAIS appliquer sur le sol.
+═══════════════════════════════════════════════════════════════════`;
+          }
         }
         break;
       case "van":
@@ -671,10 +876,15 @@ Keep natural stone appearance with elegant veining.`;
     } else if (category.includes("bois")) {
       materialRules = `Material type: WOOD
 Visual properties to preserve:
-- Wood grain oriented to match existing panels
+- ⚠️ CRITICAL: Wood grain MUST be oriented VERTICALLY (top to bottom)
+- DICA wood panels have VERTICAL grain direction by default
+- The veining/grain lines run from TOP to BOTTOM of each panel, NEVER horizontally
+- If the panel is on a wall: grain runs floor-to-ceiling (vertical)
+- If the panel is on a door: grain runs top-to-bottom (vertical)
 - Warm, non-metallic light
 - Wood structure: NO icy or glossy effects
-Keep natural wood texture and warmth.`;
+- Preserve natural wood color warmth and tonal variations
+Keep natural wood texture with STRICT VERTICAL grain orientation.`;
     } else if (category.includes("déco") || category.includes("deco")) {
       materialRules = `Material type: DECORATIVE
 Visual properties to preserve:
@@ -714,7 +924,8 @@ RÉSULTAT ATTENDU:
 pas de générer une nouvelle scène. La photo du client EST ta base de travail.
 ═══════════════════════════════════════════════════════════════════`;
 
-    // Layer 4: Format/Aspect ratio directive
+    // Layer 4: Format/Aspect ratio directive - DEFERRED until after dimension auto-detection
+    // (moved to after photo fetch to ensure originalWidth/originalHeight are available)
     const getFormatInstructions = () => {
       switch (format) {
         case "portrait":
@@ -738,21 +949,39 @@ L'image générée DOIT être au format PAYSAGE (ratio 16:9).
         case "original":
           if (originalWidth && originalHeight) {
             const ratio = (originalWidth / originalHeight).toFixed(2);
+            const orientation = originalWidth > originalHeight ? 'PAYSAGE (plus large que haute)' : 
+                               originalWidth < originalHeight ? 'PORTRAIT (plus haute que large)' : 'CARRÉE';
             return `═══════════════════════════════════════════════════════════════════
-🖼️ FORMAT DE SORTIE: ORIGINAL (${originalWidth}×${originalHeight})
+🖼️ FORMAT DE SORTIE: ORIGINAL - CRITIQUE
 ═══════════════════════════════════════════════════════════════════
-L'image générée DOIT CONSERVER le format EXACT de la photo source.
-• Ratio d'aspect: ${ratio}:1 (largeur:hauteur)
-• Dimensions originales: ${originalWidth}×${originalHeight} pixels
-• NE PAS recadrer, NE PAS modifier les proportions
-• Préserver l'intégralité de la composition originale
+🚨 RÈGLE ABSOLUE: L'image de sortie DOIT avoir EXACTEMENT les mêmes
+proportions que la photo d'entrée. C'est NON NÉGOCIABLE.
+
+• Dimensions source: ${originalWidth}×${originalHeight} pixels
+• Ratio d'aspect EXACT: ${ratio}:1 (largeur:hauteur)
+• Orientation: ${orientation}
+• L'image générée doit être ${orientation}
+
+❌ INTERDIT:
+• NE JAMAIS générer une image carrée si la source n'est pas carrée
+• NE JAMAIS recadrer ou modifier les proportions
+• NE JAMAIS ajouter des bandes noires ou modifier le cadrage
+• Si la source est en paysage → la sortie DOIT être en paysage
+• Si la source est en portrait → la sortie DOIT être en portrait
+
+✅ OBLIGATOIRE:
+• Conserver EXACTEMENT le même cadrage que la photo source
+• Conserver EXACTEMENT les mêmes proportions largeur/hauteur
+• L'image de sortie doit être superposable à l'image source
 ═══════════════════════════════════════════════════════════════════`;
           }
           return `═══════════════════════════════════════════════════════════════════
 🖼️ FORMAT DE SORTIE: ORIGINAL
 ═══════════════════════════════════════════════════════════════════
-L'image générée DOIT CONSERVER le format EXACT de la photo source.
+🚨 RÈGLE ABSOLUE: L'image générée DOIT avoir EXACTEMENT les mêmes
+proportions et le même cadrage que la photo source fournie.
 • NE PAS recadrer, NE PAS modifier les proportions
+• NE JAMAIS générer une image carrée si la source ne l'est pas
 • Préserver l'intégralité de la composition originale
 ═══════════════════════════════════════════════════════════════════`;
         default: // square
@@ -766,11 +995,165 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
 ═══════════════════════════════════════════════════════════════════`;
       }
     };
-    
-    const formatInstructions = getFormatInstructions();
-    console.log(`Format instructions for: ${format}`);
+    // NOTE: prompt assembly is DEFERRED to after photo fetch for dimension auto-detection
+    // See "Build Final Prompt" section below
 
-    // Assemble final prompt with TASK DEFINITION FIRST
+    // ========================================================================
+    // Fetch Source Images
+    // ========================================================================
+    
+    let photoBase64: string | null = null;
+    let photoMimeType = "image/jpeg";
+    
+    // Structure pour stocker les textures (supporte multi-décor)
+    interface TextureData {
+      base64: string;
+      mimeType: string;
+      decorInfo: DecorInfo;
+    }
+    const textures: TextureData[] = [];
+
+    // Helper function to fetch a texture
+    async function fetchTexture(url: string): Promise<{ base64: string; mimeType: string } | null> {
+      let textureLoaded = false;
+      let base64 = "";
+      let mimeType = "image/jpeg";
+      
+      // Strategy 0: Direct storage download via admin client (works for private buckets)
+      const storageResult = await downloadFromStorage(url, supabaseAdmin);
+      if (storageResult) {
+        base64 = arrayBufferToBase64(storageResult.arrayBuffer);
+        mimeType = storageResult.mimeType;
+        textureLoaded = true;
+        console.log(`Texture loaded via storage.download (${storageResult.arrayBuffer.byteLength} bytes)`);
+        return { base64, mimeType };
+      }
+      
+      // Extract filename from texture URL path
+      const textureFilename = url.split('/').pop() || '';
+      
+      // Strategy 1: Try Supabase Storage bucket (most reliable)
+      const supabaseStorageUrl = `https://urkftxznsynmvkskytih.supabase.co/storage/v1/object/public/decor-textures/${textureFilename}`;
+      console.log("Trying Supabase Storage URL:", supabaseStorageUrl);
+      
+      try {
+        const storageResponse = await fetchWithTimeout(supabaseStorageUrl, undefined, 10000);
+        const storageContentType = storageResponse.headers.get("content-type") ?? "";
+        
+        if (storageResponse.ok && storageContentType.startsWith("image/")) {
+          const arrayBuffer = await storageResponse.arrayBuffer();
+          base64 = arrayBufferToBase64(arrayBuffer);
+          mimeType = storageContentType;
+          textureLoaded = true;
+          console.log(`Texture loaded from Supabase Storage (${arrayBuffer.byteLength} bytes)`);
+        } else {
+          console.warn("Supabase Storage failed:", storageResponse.status, storageContentType);
+        }
+      } catch (e) {
+        console.warn("Supabase Storage fetch error:", e instanceof Error ? e.message : e);
+      }
+      
+      // Strategy 2: Try origin-based URL if Supabase Storage failed
+      if (!textureLoaded && !url.startsWith("http") && requestOrigin) {
+        const originUrl = `${requestOrigin}${url}`;
+        console.log("Trying origin-based URL:", originUrl);
+        
+        try {
+          const originResponse = await fetchWithTimeout(originUrl, undefined, 10000);
+          const originContentType = originResponse.headers.get("content-type") ?? "";
+          
+          if (originResponse.ok && originContentType.startsWith("image/")) {
+            const arrayBuffer = await originResponse.arrayBuffer();
+            base64 = arrayBufferToBase64(arrayBuffer);
+            mimeType = originContentType;
+            textureLoaded = true;
+            console.log(`Texture loaded from origin URL (${arrayBuffer.byteLength} bytes)`);
+          }
+        } catch (e) {
+          console.warn("Origin URL fetch error:", e instanceof Error ? e.message : e);
+        }
+      }
+      
+      // Strategy 3: Try the original URL (might be absolute already)
+      if (!textureLoaded && url.startsWith("http")) {
+        console.log("Trying original absolute URL:", url);
+        
+        try {
+          const response = await fetchWithTimeout(url);
+          const contentType = response.headers.get("content-type") ?? "";
+          
+          if (response.ok && contentType.startsWith("image/")) {
+            const arrayBuffer = await response.arrayBuffer();
+            base64 = arrayBufferToBase64(arrayBuffer);
+            mimeType = contentType;
+            textureLoaded = true;
+            console.log(`Texture loaded from original URL (${arrayBuffer.byteLength} bytes)`);
+          }
+        } catch (e) {
+          console.warn("Original URL fetch error:", e instanceof Error ? e.message : e);
+        }
+      }
+      
+      return textureLoaded ? { base64, mimeType } : null;
+    }
+
+    // Fetch original photo - prefer direct storage download (works for private buckets)
+    try {
+      if (photoUrl) {
+        let arrayBuffer: ArrayBuffer | null = null;
+        let mimeType = "image/jpeg";
+
+        // Try direct storage download first (bypasses URL signing entirely)
+        const storageResult = await downloadFromStorage(photoUrl, supabaseAdmin);
+        if (storageResult) {
+          arrayBuffer = storageResult.arrayBuffer;
+          mimeType = storageResult.mimeType;
+        } else {
+          // Fallback: plain HTTP fetch for non-storage URLs
+          console.log("Fetching original photo via HTTP:", photoUrl);
+          const photoResponse = await fetchWithTimeout(photoUrl);
+          if (!photoResponse.ok) {
+            console.error("Failed to fetch photo:", photoResponse.status);
+          } else {
+            arrayBuffer = await photoResponse.arrayBuffer();
+            mimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
+          }
+        }
+
+        if (arrayBuffer) {
+          if (arrayBuffer.byteLength > RESOURCE_LIMITS.maxImageSize) {
+            console.warn(`Photo size (${arrayBuffer.byteLength} bytes) exceeds limit.`);
+          } else {
+            photoBase64 = arrayBufferToBase64(arrayBuffer);
+            photoMimeType = mimeType;
+            console.log(`Photo fetched (${arrayBuffer.byteLength} bytes) and converted to base64`);
+
+            if (format === "original" && (!originalWidth || !originalHeight)) {
+              const bytes = new Uint8Array(arrayBuffer);
+              const detected = detectImageDimensions(bytes, photoMimeType);
+              if (detected) {
+                originalWidth = detected.width;
+                originalHeight = detected.height;
+                console.log(`Auto-detected photo dimensions: ${originalWidth}×${originalHeight}`);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching/converting photo:", e);
+      if (e instanceof Error && e.name === "AbortError") {
+        console.error("Photo fetch timed out");
+      }
+    }
+
+    // ========================================================================
+    // Build Final Prompt (AFTER dimension auto-detection)
+    // ========================================================================
+    const formatInstructions = getFormatInstructions();
+    const computedAspectRatio = computeAspectRatio(format, originalWidth, originalHeight);
+    console.log(`Format: ${format}, dimensions: ${originalWidth}x${originalHeight}, aspectRatio sent to Gemini: ${computedAspectRatio}`);
+
     const prompt = `${taskDefinition}
 
 ${imperativeRules}
@@ -845,151 +1228,6 @@ L'annotation doit être:
 
     console.log(`Calling Gemini API (${GEMINI_CONFIG.model})...`);
 
-    // ========================================================================
-    // Fetch Source Images
-    // ========================================================================
-    
-    let photoBase64: string | null = null;
-    let photoMimeType = "image/jpeg";
-    
-    // Structure pour stocker les textures (supporte multi-décor)
-    interface TextureData {
-      base64: string;
-      mimeType: string;
-      decorInfo: DecorInfo;
-    }
-    const textures: TextureData[] = [];
-
-    // Helper function to fetch a texture
-    async function fetchTexture(url: string): Promise<{ base64: string; mimeType: string } | null> {
-      let textureLoaded = false;
-      let base64 = "";
-      let mimeType = "image/jpeg";
-      
-      // Extract filename from texture URL path
-      const textureFilename = url.split('/').pop() || '';
-      
-      // Strategy 1: Try Supabase Storage bucket (most reliable)
-      const supabaseStorageUrl = `https://urkftxznsynmvkskytih.supabase.co/storage/v1/object/public/decor-textures/${textureFilename}`;
-      console.log("Trying Supabase Storage URL:", supabaseStorageUrl);
-      
-      try {
-        const storageResponse = await fetchWithTimeout(supabaseStorageUrl, undefined, 10000);
-        const storageContentType = storageResponse.headers.get("content-type") ?? "";
-        
-        if (storageResponse.ok && storageContentType.startsWith("image/")) {
-          const arrayBuffer = await storageResponse.arrayBuffer();
-          base64 = arrayBufferToBase64(arrayBuffer);
-          mimeType = storageContentType;
-          textureLoaded = true;
-          console.log(`Texture loaded from Supabase Storage (${arrayBuffer.byteLength} bytes)`);
-        } else {
-          console.warn("Supabase Storage failed:", storageResponse.status, storageContentType);
-        }
-      } catch (e) {
-        console.warn("Supabase Storage fetch error:", e instanceof Error ? e.message : e);
-      }
-      
-      // Strategy 2: Try origin-based URL if Supabase Storage failed
-      if (!textureLoaded && !url.startsWith("http") && requestOrigin) {
-        const originUrl = `${requestOrigin}${url}`;
-        console.log("Trying origin-based URL:", originUrl);
-        
-        try {
-          const originResponse = await fetchWithTimeout(originUrl, undefined, 10000);
-          const originContentType = originResponse.headers.get("content-type") ?? "";
-          
-          if (originResponse.ok && originContentType.startsWith("image/")) {
-            const arrayBuffer = await originResponse.arrayBuffer();
-            base64 = arrayBufferToBase64(arrayBuffer);
-            mimeType = originContentType;
-            textureLoaded = true;
-            console.log(`Texture loaded from origin URL (${arrayBuffer.byteLength} bytes)`);
-          }
-        } catch (e) {
-          console.warn("Origin URL fetch error:", e instanceof Error ? e.message : e);
-        }
-      }
-      
-      // Strategy 3: Try the original URL (might be absolute already)
-      // SSRF guard: bloque les fetch sortants vers réseau interne / metadata cloud.
-      if (!textureLoaded && url.startsWith("http")) {
-        try {
-          assertSafeFetchUrl(url, {
-            allowedHostSuffixes: ALLOWED_FETCH_HOST_SUFFIXES,
-          });
-        } catch (ssrfErr) {
-          if (ssrfErr instanceof SsrfBlockedError) {
-            console.warn("Texture URL blocked by SSRF guard:", ssrfErr.message);
-            return null;
-          }
-          throw ssrfErr;
-        }
-        console.log("Trying original absolute URL:", url);
-
-        try {
-          const response = await fetchWithTimeout(url);
-          const contentType = response.headers.get("content-type") ?? "";
-          
-          if (response.ok && contentType.startsWith("image/")) {
-            const arrayBuffer = await response.arrayBuffer();
-            base64 = arrayBufferToBase64(arrayBuffer);
-            mimeType = contentType;
-            textureLoaded = true;
-            console.log(`Texture loaded from original URL (${arrayBuffer.byteLength} bytes)`);
-          }
-        } catch (e) {
-          console.warn("Original URL fetch error:", e instanceof Error ? e.message : e);
-        }
-      }
-      
-      return textureLoaded ? { base64, mimeType } : null;
-    }
-
-    // Fetch original photo with timeout and size check
-    // SSRF guard: bloque les fetch sortants vers réseau interne / metadata cloud.
-    try {
-      if (photoUrl) {
-        try {
-          assertSafeFetchUrl(photoUrl, {
-            allowedHostSuffixes: ALLOWED_FETCH_HOST_SUFFIXES,
-          });
-        } catch (ssrfErr) {
-          if (ssrfErr instanceof SsrfBlockedError) {
-            console.warn("Photo URL blocked by SSRF guard:", ssrfErr.message);
-            return new Response(
-              JSON.stringify({ error: "Invalid photo URL: not allowed" }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-            );
-          }
-          throw ssrfErr;
-        }
-        console.log("Fetching original photo for Gemini:", photoUrl);
-        const photoResponse = await fetchWithTimeout(photoUrl);
-        
-        if (!photoResponse.ok) {
-          console.error("Failed to fetch photo:", photoResponse.status);
-        } else {
-          const contentLength = photoResponse.headers.get("content-length");
-          const size = contentLength ? parseInt(contentLength) : 0;
-          
-          if (size > RESOURCE_LIMITS.maxImageSize) {
-            console.warn(`Photo size (${size} bytes) exceeds limit. Using URL reference instead.`);
-          } else {
-            const arrayBuffer = await photoResponse.arrayBuffer();
-            photoBase64 = arrayBufferToBase64(arrayBuffer);
-            photoMimeType = photoResponse.headers.get("content-type") ?? "image/jpeg";
-            console.log(`Photo fetched (${arrayBuffer.byteLength} bytes) and converted to base64`);
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Error fetching/converting photo:", e);
-      if (e instanceof Error && e.name === "AbortError") {
-        console.error("Photo fetch timed out");
-      }
-    }
-
     // Fetch all decor textures
     try {
       for (const decorInfo of decorsInfo) {
@@ -1036,10 +1274,7 @@ L'annotation doit être:
     // Build Request Payload
     // ========================================================================
     
-    type GeminiRequestPart =
-      | { text: string }
-      | { inlineData: { mimeType: string; data: string } };
-    const requestParts: GeminiRequestPart[] = [{ text: prompt }];
+    const requestParts: any[] = [{ text: prompt }];
     
     // Add photo first
     if (photoBase64) {
@@ -1067,7 +1302,7 @@ L'annotation doit être:
       console.log(`Added texture for ${texture.decorInfo.surfaceType}: ${texture.decorInfo.name}`);
     }
 
-    // Build Gemini API URL
+    // Build Gemini API URL (fallback only)
     const geminiUrl = buildGeminiUrl(GOOGLE_AI_API_KEY);
 
     // ========================================================================
@@ -1080,98 +1315,203 @@ L'annotation doit être:
       console.log(`Generating render ${i + 1}/${safeRenderCount}...`);
       
       try {
-        const geminiResponse = await fetchWithTimeout(geminiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                role: "user",
-                parts: requestParts,
-              },
-            ],
-            generationConfig: {
-              responseModalities: GEMINI_CONFIG.responseModalities,
-            },
-          }),
-        }, 60000); // 60s timeout for Gemini API
+        let imageBase64: string | null = null;
+        let textResponse: string | null = null;
 
-        // Handle errors with detailed logging
-        if (!geminiResponse.ok) {
-          const errorText = await geminiResponse.text();
-          console.error("Google AI error:", geminiResponse.status, errorText);
-          throw new Error(getErrorMessage(geminiResponse.status));
-        }
-
-        const geminiData = await geminiResponse.json();
-        console.log(`Gemini response ${i + 1} received successfully`);
-
-        // Parse response
-        const { imageBase64, textResponse } = parseGeminiResponse(geminiData);
-        
-        if (!imageBase64) {
-          console.error("No image data found in response");
-          throw new Error("Aucune image générée dans la réponse Gemini");
-        }
-
-        // Return data URL directly
-        const resultUrl = `data:image/png;base64,${imageBase64}`;
-        generatedUrls.push(resultUrl);
-        
-        console.log(`Image ${i + 1} generated successfully, saving to database`);
-
-        // Save result to database
-        const { error: insertError } = await supabase
-          .from("render_results")
-          .insert({
-            project_photo_id: photoId,
-            decor_id: decorId,
-            result_image_url: resultUrl,
-          });
-
-        if (insertError) {
-          console.error("Error saving render result:", insertError);
-          throw new Error("Erreur lors de la sauvegarde du rendu");
-        }
-
-        console.log(`Render result ${i + 1} saved successfully`);
-        
-        // Increment user quota usage
-        try {
-          // Get user_id from project_photos -> projects
-          const { data: photoData } = await supabase
-            .from("project_photos")
-            .select("project_id")
-            .eq("id", photoId)
-            .single();
+        // ================================================================
+        // PRIMARY: Use Lovable AI Gateway (better availability)
+        // ================================================================
+        if (LOVABLE_API_KEY) {
+          console.log("Using Lovable AI Gateway (primary)...");
           
-          if (photoData) {
-            const { data: projectData } = await supabase
-              .from("projects")
-              .select("user_id")
-              .eq("id", photoData.project_id)
-              .single();
-            
-            if (projectData) {
-              // Increment quota_used for this user
-              const { error: quotaError } = await supabase.rpc('increment_quota_used', {
-                p_user_id: projectData.user_id
+          // Convert requestParts to OpenAI-compatible format
+          const contentParts: any[] = [];
+          for (const part of requestParts) {
+            if (part.text) {
+              contentParts.push({ type: "text", text: part.text });
+            }
+            if (part.inlineData) {
+              contentParts.push({
+                type: "image_url",
+                image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
               });
-              
-              if (quotaError) {
-                console.error("Error incrementing quota:", quotaError);
-                // Don't throw - we don't want to fail the generation if quota update fails
-              } else {
-                console.log(`Quota incremented for user ${projectData.user_id}`);
-              }
             }
           }
-        } catch (quotaError) {
-          console.error("Error updating quota:", quotaError);
-          // Non-blocking error - generation was successful
+
+          try {
+            const gatewayResponse = await fetchWithTimeout(
+              "https://ai.gateway.lovable.dev/v1/chat/completions",
+              {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  model: "google/gemini-3-pro-image-preview",
+                  messages: [{ role: "user", content: contentParts }],
+                  modalities: ["image", "text"],
+                  // Force the output aspect ratio so Avant/Après are perfectly superposable
+                  image_config: { aspect_ratio: computedAspectRatio },
+                  imageConfig: { aspectRatio: computedAspectRatio },
+                  extra_body: {
+                    google: {
+                      generation_config: {
+                        image_config: { aspect_ratio: computedAspectRatio },
+                      },
+                    },
+                  },
+                }),
+              },
+              55000 // 55s timeout - gateway handles its own retries
+            );
+
+            if (gatewayResponse.ok) {
+              const data = await gatewayResponse.json();
+              const choice = data.choices?.[0]?.message;
+              
+              // Debug: log response structure to understand format
+              console.log("Gateway response keys:", JSON.stringify({
+                hasChoices: !!data.choices,
+                choiceKeys: choice ? Object.keys(choice) : [],
+                contentType: typeof choice?.content,
+                hasImages: !!choice?.images,
+                contentIsArray: Array.isArray(choice?.content),
+              }));
+
+              let gatewayImageUrl: string | null = null;
+
+              // Strategy 1: choice.images[].image_url.url
+              if (choice?.images?.[0]?.image_url?.url) {
+                gatewayImageUrl = choice.images[0].image_url.url;
+              }
+              
+              // Strategy 2: content is array with image_url parts
+              if (!gatewayImageUrl && Array.isArray(choice?.content)) {
+                for (const part of choice.content) {
+                  if (part.type === "image_url" && part.image_url?.url) {
+                    gatewayImageUrl = part.image_url.url;
+                    break;
+                  }
+                  if (part.type === "image" && part.image_url?.url) {
+                    gatewayImageUrl = part.image_url.url;
+                    break;
+                  }
+                  if (part.type === "text" && typeof part.text === "string") {
+                    textResponse = part.text;
+                  }
+                }
+              }
+
+              // Strategy 3: content is string (text only)
+              if (typeof choice?.content === "string") {
+                textResponse = choice.content;
+              }
+
+              if (gatewayImageUrl) {
+                console.log(`Gateway image found (${gatewayImageUrl.substring(0, 50)}...)`);
+                // Extract base64 from data URL if needed
+                if (gatewayImageUrl.startsWith("data:")) {
+                  const commaIdx = gatewayImageUrl.indexOf(",");
+                  imageBase64 = commaIdx >= 0 ? gatewayImageUrl.substring(commaIdx + 1) : null;
+                } else {
+                  // It's a regular URL, use it directly
+                  imageBase64 = null;
+                  const resultUrl = gatewayImageUrl;
+                  generatedUrls.push(resultUrl);
+                  console.log(`Image ${i + 1} generated via Gateway (URL), saving to database`);
+
+                  const { error: insertError } = await supabase
+                    .from("render_results")
+                    .insert({ project_photo_id: photoId, decor_id: decorId, result_image_url: resultUrl });
+                  if (insertError) {
+                    console.error("Error saving render result:", insertError);
+                    throw new Error("Erreur lors de la sauvegarde du rendu");
+                  }
+                  imageBase64 = "__ALREADY_SAVED__";
+                }
+              }
+              
+              if (imageBase64 && imageBase64 !== "__ALREADY_SAVED__") {
+                console.log(`Image ${i + 1} generated via Gateway successfully`);
+              } else if (!imageBase64) {
+                console.warn("Gateway returned no image, falling back to direct API...");
+                // Log first 500 chars of raw response for debugging
+                console.warn("Raw gateway response preview:", JSON.stringify(data).substring(0, 500));
+              }
+            } else {
+              const errText = await gatewayResponse.text();
+              console.warn(`Gateway error ${gatewayResponse.status}: ${errText.substring(0, 200)}, falling back to direct API...`);
+            }
+          } catch (gatewayErr) {
+            console.warn(`Gateway call failed: ${gatewayErr}, falling back to direct API...`);
+          }
         }
+
+        // ================================================================
+        // FALLBACK: Direct Google AI API
+        // ================================================================
+        if (!imageBase64) {
+          console.log("Using direct Google AI API (fallback)...");
+          
+          const geminiRequestBody = JSON.stringify({
+            contents: [{ role: "user", parts: requestParts }],
+            generationConfig: {
+              responseModalities: GEMINI_CONFIG.responseModalities,
+              // Force aspect ratio so Avant/Après stay perfectly superposable
+              imageConfig: { aspectRatio: computedAspectRatio },
+            },
+          });
+
+          const geminiResponse = await fetchWithTimeout(geminiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: geminiRequestBody,
+          }, 30000);
+
+          if (!geminiResponse.ok) {
+            const errorText = await geminiResponse.text();
+            console.error("Google AI error:", geminiResponse.status, errorText);
+            throw new Error(getErrorMessage(geminiResponse.status));
+          }
+
+          const geminiData = await geminiResponse.json();
+          const parsed = parseGeminiResponse(geminiData);
+          imageBase64 = parsed.imageBase64;
+          textResponse = parsed.textResponse;
+          
+          if (!imageBase64) {
+            console.error("No image data found in response");
+            throw new Error("Aucune image générée dans la réponse Gemini");
+          }
+          console.log(`Image ${i + 1} generated via direct API successfully`);
+        }
+
+        // Save result if not already saved by gateway URL path
+        if (imageBase64 && imageBase64 !== "__ALREADY_SAVED__") {
+          const resultUrl = `data:image/png;base64,${imageBase64}`;
+          generatedUrls.push(resultUrl);
+        
+          console.log(`Image ${i + 1} generated successfully, saving to database`);
+
+          // Save result to database
+          const { error: insertError } = await supabase
+            .from("render_results")
+            .insert({
+              project_photo_id: photoId,
+              decor_id: decorId,
+              result_image_url: resultUrl,
+            });
+
+          if (insertError) {
+            console.error("Error saving render result:", insertError);
+            throw new Error("Erreur lors de la sauvegarde du rendu");
+          }
+
+          console.log(`Render result ${i + 1} saved successfully`);
+        }
+        
+        // Quota already incremented atomically at the start via check_and_increment_quota
         
       } catch (renderError) {
         console.error(`Error generating render ${i + 1}:`, renderError);

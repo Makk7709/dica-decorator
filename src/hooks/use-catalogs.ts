@@ -113,7 +113,7 @@ export const useCatalogsByProjectType = (projectType: ProjectType) => {
 export const useDecorsByCatalog = (catalogId: string | null) => {
   return useQuery({
     queryKey: [CATALOG_DECORS_QUERY_KEY, catalogId],
-    queryFn: () => fetchDecorsByCatalog(catalogId!),
+    queryFn: () => fetchDecorsByCatalog(catalogId),
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 30, // 30 minutes en cache
     enabled: !!catalogId,

@@ -12,18 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  OrganizationService,
-  OrganizationNotFoundError,
-  MemberAlreadyExistsError,
-  InvitationExpiredError,
-  type Organization,
-  type OrganizationMember,
-  type OrganizationInvitation,
-  type CreateOrganizationInput,
-  type UpdateOrganizationInput,
-  type SubscriptionTier,
-} from '../organization.service';
+import {OrganizationService, OrganizationNotFoundError, MemberAlreadyExistsError, InvitationExpiredError, type Organization, type CreateOrganizationInput, type UpdateOrganizationInput, type SubscriptionTier} from '../organization.service';
 import { createMockSupabaseClient } from '@/test/test-utils';
 
 describe('OrganizationService', () => {

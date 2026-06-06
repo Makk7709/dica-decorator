@@ -22,13 +22,15 @@ import { magazineDecoPdfService } from '@/services/magazine-deco-pdf.service';
 import type { 
   PlaquetteProject, 
   PlaquetteDecor, 
-  PlaquetteImage 
+  PlaquetteImage,
+  ResellerBranding,
 } from '@/types/plaquette.types';
 
 export interface MagazineDecoExportButtonProps {
   project: PlaquetteProject;
   decor: PlaquetteDecor;
   images: PlaquetteImage[];
+  resellerBranding?: ResellerBranding | null;
   variant?: 'default' | 'outline' | 'secondary' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   className?: string;
@@ -40,6 +42,7 @@ export function MagazineDecoExportButton({
   project,
   decor,
   images,
+  resellerBranding,
   variant = 'outline',
   size = 'default',
   className,
@@ -127,7 +130,8 @@ export function MagazineDecoExportButton({
         project,
         decor,
         images: orderedImages,
-        generateAICaptions: true
+        generateAICaptions: true,
+        resellerBranding,
       });
 
       setProgress(90);
@@ -140,7 +144,7 @@ export function MagazineDecoExportButton({
         link.download = result.filename;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        link.remove();
         URL.revokeObjectURL(url);
 
         setProgress(100);

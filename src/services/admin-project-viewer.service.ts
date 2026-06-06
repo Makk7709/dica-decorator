@@ -318,7 +318,7 @@ export class AdminProjectViewerService {
       const decor = r.decor_id ? decorsMap.get(r.decor_id) || null : null;
       const isCreativeImport = r.decor_id === null;
 
-      rendersByPhoto.get(photoId)!.push({
+      rendersByPhoto.get(photoId).push({
         id: r.id,
         resultImageUrl: r.result_image_url,
         decor,

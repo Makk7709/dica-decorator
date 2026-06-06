@@ -5,11 +5,13 @@
 
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
+import { signStorageUrl } from '@/lib/signed-storage';
 import type { 
   MagazineDecoOptions, 
   MagazineDecoResult, 
   MagazineAICaption 
 } from '@/types/magazine-deco.types';
+import type { ResellerBranding } from '@/types/plaquette.types';
 import { MAGAZINE_DECO_CONFIG } from '@/types/magazine-deco.types';
 import type { PlaquetteImage } from '@/types/plaquette.types';
 import { getErrorMessage } from '@/lib/utils';
@@ -94,7 +96,7 @@ export class MagazineDecoPdfService {
       
       // PAGE FINALE - Certifications & Contact DICA
       pdf.addPage();
-      await this.renderClosingPage(pdf, pageWidth, pageHeight);
+      await this.renderClosingPage(pdf, pageWidth, pageHeight, options.resellerBranding);
 
       // Generate blob
       const blob = pdf.output('blob');
@@ -144,6 +146,9 @@ export class MagazineDecoPdfService {
     };
     
     try {
+      const captionImageUrl = options.images[0]?.url
+        ? await signStorageUrl(options.images[0].url, 600)
+        : undefined;
       const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
         body: {
           projectName: options.project.name,
@@ -151,7 +156,7 @@ export class MagazineDecoPdfService {
           decorLabel: options.decor.name,
           decorReference: options.decor.referenceCode,
           decorCategory: options.decor.category,
-          imageUrl: options.images[0]?.url // Pass first image for analysis
+          imageUrl: captionImageUrl // Pass first image for analysis (signed for private buckets)
         }
       });
 
@@ -319,6 +324,99 @@ export class MagazineDecoPdfService {
     // Magazine code above barcode
     pdf.setFontSize(5);
     pdf.text("M 02650-894", barcodeX - 6, barcodeY - 3);
+
+    // ═══════════════════════════════════════════════════════════════════
+    // CO-BRANDING REVENDEUR sur la couverture (bas-gauche, élégant)
+    // ═══════════════════════════════════════════════════════════════════
+    await this.renderResellerCoverBlock(pdf, options.resellerBranding, pageWidth, pageHeight);
+  }
+
+  /**
+   * Bloc co-branding revendeur sur la couverture (bas-gauche)
+   * Logo + nom de la société dans un encart discret et premium
+   */
+  private async renderResellerCoverBlock(
+    pdf: jsPDF,
+    branding: ResellerBranding | null | undefined,
+    pageWidth: number,
+    pageHeight: number
+  ) {
+    if (!branding || !branding.enabled || !branding.companyName) return;
+
+    const blockX = 12;
+    const blockY = pageHeight - 32;
+    const blockHeight = 22;
+    const blockWidth = 80;
+
+    // Fond ivoire semi-transparent pour lisibilité sur image
+    pdf.setGState(pdf.GState({ opacity: 0.85 }));
+    pdf.setFillColor(255, 250, 240);
+    pdf.roundedRect(blockX, blockY, blockWidth, blockHeight, 2, 2, 'F');
+    pdf.setGState(pdf.GState({ opacity: 1.0 }));
+
+    // Logo (si fourni)
+    let textX = blockX + 5;
+    if (branding.logoUrl) {
+      try {
+        const logo = await this.loadSingleImageWithBase64(branding.logoUrl);
+        const logoSize = 14;
+        const logoRatio = logo.width / logo.height;
+        const logoW = logoRatio >= 1 ? logoSize : logoSize * logoRatio;
+        const logoH = logoRatio >= 1 ? logoSize / logoRatio : logoSize;
+        pdf.addImage(
+          logo.base64,
+          'PNG',
+          blockX + 4,
+          blockY + (blockHeight - logoH) / 2,
+          logoW,
+          logoH,
+          undefined,
+          'FAST'
+        );
+        textX = blockX + 4 + logoW + 4;
+      } catch (err) {
+        console.warn('[Magazine] Logo revendeur introuvable:', err);
+      }
+    }
+
+    // Label "Présenté par" en italique gris
+    pdf.setFont('Times', 'italic');
+    pdf.setFontSize(6.5);
+    pdf.setTextColor(120, 120, 120);
+    pdf.text('PRÉSENTÉ PAR', textX, blockY + 7);
+
+    // Nom de la société (bold, couleur d'accent ou rouge DICA)
+    const accentHex = branding.accentColorHex || '#E94E5D';
+    const rgb = this.hexToRgb(accentHex);
+    pdf.setFont('Times', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(rgb.r, rgb.g, rgb.b);
+    const nameMaxWidth = blockWidth - (textX - blockX) - 5;
+    const nameLines = pdf.splitTextToSize(branding.companyName, nameMaxWidth);
+    pdf.text(nameLines[0], textX, blockY + 13);
+
+    // Tagline ou contact (petit, gris foncé)
+    const subtitle = branding.tagline || branding.website || branding.phone;
+    if (subtitle) {
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(7);
+      pdf.setTextColor(80, 80, 80);
+      const subLines = pdf.splitTextToSize(subtitle, nameMaxWidth);
+      pdf.text(subLines[0], textX, blockY + 18);
+    }
+  }
+
+  /**
+   * Convertit un hex (#RRGGBB) en {r,g,b}
+   */
+  private hexToRgb(hex: string): { r: number; g: number; b: number } {
+    const cleaned = hex.replace('#', '');
+    const bigint = parseInt(cleaned, 16);
+    return {
+      r: (bigint >> 16) & 255,
+      g: (bigint >> 8) & 255,
+      b: bigint & 255,
+    };
   }
 
   /**
@@ -456,7 +554,7 @@ export class MagazineDecoPdfService {
     }
     
     // Footer
-    this.renderFooter(pdf, pageWidth, pageHeight, 2);
+    this.renderFooter(pdf, pageWidth, pageHeight, 2, options.resellerBranding);
   }
 
   /**
@@ -734,11 +832,8 @@ export class MagazineDecoPdfService {
     pdf.setTextColor(235, 235, 235);
     pdf.text(pageNumber.toString(), pageWidth - margins.right - 15, pageHeight - margins.bottom + 5);
     
-    // Footer
-    pdf.setFont('Inter', 'normal');
-    pdf.setFontSize(5);
-    pdf.setTextColor(180, 180, 180);
-    pdf.text("Visuels non contractuels • www.dica-france.com", margins.left, pageHeight - 6);
+    // Footer (avec mention revendeur si co-branding actif)
+    this.renderFooter(pdf, pageWidth, pageHeight, pageNumber, options.resellerBranding);
   }
   
   /**
@@ -759,15 +854,16 @@ export class MagazineDecoPdfService {
    * Load single image with base64
    */
   private async loadSingleImageWithBase64(url: string): Promise<LoadedImage> {
-    const response = await fetch(url);
+    const signedUrl = await signStorageUrl(url);
+    const response = await fetch(signedUrl);
     if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
     
     const blob = await response.blob();
     const base64 = await this.blobToBase64(blob);
-    const dimensions = await this.getImageDimensions(url);
+    const dimensions = await this.getImageDimensions(signedUrl);
     
     return {
-      url,
+      url: signedUrl,
       base64,
       width: dimensions.width,
       height: dimensions.height
@@ -775,9 +871,15 @@ export class MagazineDecoPdfService {
   }
 
   /**
-   * Render footer on all pages
+   * Render footer on all pages (avec mention revendeur si co-branding actif)
    */
-  private renderFooter(pdf: jsPDF, pageWidth: number, pageHeight: number, pageNumber: number) {
+  private renderFooter(
+    pdf: jsPDF,
+    pageWidth: number,
+    pageHeight: number,
+    pageNumber: number,
+    branding?: ResellerBranding | null
+  ) {
     const { margins, typography, colors } = MAGAZINE_DECO_CONFIG;
     
     pdf.setFont(typography.body.fontFamily, 'normal');
@@ -790,6 +892,22 @@ export class MagazineDecoPdfService {
     const footerY = pageHeight - margins.bottom + 5;
     
     pdf.text(footerText, footerX, footerY);
+
+    // Mention revendeur à gauche si co-branding actif
+    if (branding && branding.enabled && branding.companyName) {
+      const accentHex = branding.accentColorHex || '#E94E5D';
+      const rgb = this.hexToRgb(accentHex);
+
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(7);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text('Présenté par ', margins.left, footerY);
+      const labelW = pdf.getTextWidth('Présenté par ');
+
+      pdf.setFont('Times', 'bold');
+      pdf.setTextColor(rgb.r, rgb.g, rgb.b);
+      pdf.text(branding.companyName, margins.left + labelW, footerY);
+    }
   }
 
   /**
@@ -800,17 +918,18 @@ export class MagazineDecoPdfService {
     
     const promises = images.map(async (img) => {
       try {
-        const response = await fetch(img.url);
+        const signedUrl = await signStorageUrl(img.url);
+        const response = await fetch(signedUrl);
         if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
         
         const blob = await response.blob();
         const base64 = await this.blobToBase64(blob);
         
         // Get dimensions
-        const dimensions = await this.getImageDimensions(img.url);
+        const dimensions = await this.getImageDimensions(signedUrl);
         
         return {
-          url: img.url,
+          url: signedUrl,
           base64,
           width: dimensions.width,
           height: dimensions.height
@@ -855,7 +974,8 @@ export class MagazineDecoPdfService {
   private async renderClosingPage(
     pdf: jsPDF,
     pageWidth: number,
-    pageHeight: number
+    pageHeight: number,
+    branding?: ResellerBranding | null
   ) {
     // Fond blanc cassé élégant
     pdf.setFillColor(253, 252, 250);
@@ -1032,6 +1152,46 @@ export class MagazineDecoPdfService {
     currentY += 5;
     pdf.text("info@dica-france.fr", marginX, currentY);
     pdf.text("www.dica-france.fr", marginX + 50, currentY);
+
+    // Bloc revendeur sur closing page si co-branding actif
+    if (branding && branding.enabled && branding.companyName) {
+      currentY += 18;
+      pdf.setDrawColor(220, 220, 220);
+      pdf.setLineWidth(0.2);
+      pdf.line(marginX, currentY - 8, pageWidth - marginX, currentY - 8);
+
+      pdf.setFont('Times', 'italic');
+      pdf.setFontSize(10);
+      pdf.setTextColor(140, 140, 140);
+      pdf.text('Magazine présenté par', marginX, currentY);
+
+      const accentHex = branding.accentColorHex || '#E94E5D';
+      const rgb = this.hexToRgb(accentHex);
+      pdf.setFont('Times', 'bold');
+      pdf.setFontSize(16);
+      pdf.setTextColor(rgb.r, rgb.g, rgb.b);
+      pdf.text(branding.companyName, marginX, currentY + 8);
+
+      pdf.setFont('Times', 'normal');
+      pdf.setFontSize(9);
+      pdf.setTextColor(80, 80, 80);
+      let bY = currentY + 14;
+      const contactLine: string[] = [];
+      if (branding.phone) contactLine.push(branding.phone);
+      if (branding.email) contactLine.push(branding.email);
+      if (branding.website) contactLine.push(branding.website);
+      if (contactLine.length) {
+        pdf.text(contactLine.join('  •  '), marginX, bY);
+        bY += 5;
+      }
+      const addr: string[] = [];
+      if (branding.addressLine1) addr.push(branding.addressLine1);
+      const cityLine = [branding.postalCode, branding.city].filter(Boolean).join(' ');
+      if (cityLine) addr.push(cityLine);
+      if (addr.length) {
+        pdf.text(addr.join(' — '), marginX, bY);
+      }
+    }
     
     // ═══════════════════════════════════════════════════════════════════
     // FOOTER DISCRET

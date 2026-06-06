@@ -8,12 +8,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { 
-  useCreativeImageExport,
-  CreativeExportState,
-  CreativeExportResult,
-} from '../use-creative-image-export';
+import {renderHook, act} from '@testing-library/react';
+import {useCreativeImageExport} from '../use-creative-image-export';
 import { ImageExportFormat } from '@/services/image-export.service';
 
 // ============================================================================

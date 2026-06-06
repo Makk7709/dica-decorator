@@ -85,8 +85,8 @@ export const FORMAT_TO_RATIO_MAP: Record<string, string> = {
 // ============================================================================
 
 export class GeminiImageService {
-  private config: GeminiImageConfig;
-  private apiKey: string;
+  private readonly config: GeminiImageConfig;
+  private readonly apiKey: string;
 
   constructor(apiKey: string, config?: Partial<GeminiImageConfig>) {
     if (!apiKey || apiKey.trim() === '') {

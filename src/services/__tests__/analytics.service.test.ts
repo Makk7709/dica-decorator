@@ -11,19 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  AnalyticsService,
-  AnalyticsConfig,
-  DateRange,
-  MetricType,
-  GlobalMetrics,
-  TrendData,
-  TopItem,
-  UsageByPeriod,
-  AnalyticsReport,
-  ChartData,
-  AnalyticsError,
-} from '../analytics.service';
+import {AnalyticsService, TopItem, UsageByPeriod, AnalyticsError} from '../analytics.service';
 
 describe('AnalyticsService', () => {
   let service: AnalyticsService;
@@ -309,7 +297,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should limit results', () => {
-      const mockDecors: TopItem[] = Array(20).fill(null).map((_, i) => ({
+      const mockDecors: TopItem[] = new Array(20).fill(null).map((_, i) => ({
         id: `d${i}`,
         name: `Decor ${i}`,
         value: 100 - i,
@@ -455,7 +443,7 @@ describe('AnalyticsService', () => {
     it('should limit data points', () => {
       service.configure({ maxDataPoints: 5 });
       
-      const mockTrend = Array(10).fill(null).map((_, i) => ({
+      const mockTrend = new Array(10).fill(null).map((_, i) => ({
         date: `2024-01-${i + 1}`,
         value: i * 10,
       }));

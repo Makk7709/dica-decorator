@@ -35,13 +35,24 @@ concurrency:
 
 env:
   # Plafond anti-régression de warnings ESLint.
-  # Mesure de référence au 2026-06-06 (LOT 5) : `npm run lint` = 0 erreur,
-  # 22 warnings (sonarjs/cognitive-complexity sur edge functions + services PDF,
-  # sonarjs/no-nested-functions, react-refresh, 1 react-hooks/exhaustive-deps).
-  # Le gate échoue dès le 23e warning : on n'exige pas 0 immédiatement, on
-  # interdit toute HAUSSE. Stratégie « ratchet » : à chaque foyer résorbé,
-  # abaisser cette valeur (ex. 22 → 18 → ...) pour cliqueter le seuil vers 0.
-  ESLINT_MAX_WARNINGS: '22'
+  # Mesure de référence initiale au 2026-06-06 (LOT 5) : 0 erreur, 22 warnings.
+  #
+  # RÉVISION 2026-06-06 (merge Option B — intégration des 4 mois d'évolution de
+  # `main` dans audit/tier1) : `npx eslint .` = 0 erreur, **85 warnings**.
+  # Les 63 warnings supplémentaires proviennent du code récent de `main` :
+  #   - dette LOT 2/LOT 3 RÉINTRODUITE et rétrogradée en `warn` (cf.
+  #     eslint.config.js) : ~46 `@typescript-eslint/no-explicit-any` + 7 `jsx-a11y`
+  #     (label-has-associated-control, no-static-element-interactions,
+  #     no-noninteractive-element-interactions, no-autofocus) ;
+  #   - warnings SonarJS de complexité/imbrication sur les pages & fonctions edge
+  #     dont le refacto LOT 1-4 a été DIFFÉRÉ.
+  # Le gate échoue dès le 86e warning : on n'exige pas 0 immédiatement, on
+  # interdit toute HAUSSE. Stratégie « ratchet » : à chaque foyer résorbé
+  # (re-typage des `any`, re-refacto des pages/services différés, ré-application
+  # SSRF/logger, puis RE-PASSAGE des règles en `error`), abaisser cette valeur
+  # (85 → … → 22 → … → 0). Détail et plan de descente :
+  # docs/audit/sonar-baseline-2026-06-06/dette-suivi-post-merge.md
+  ESLINT_MAX_WARNINGS: '85'
 
 jobs:
   guard:

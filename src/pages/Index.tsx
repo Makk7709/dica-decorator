@@ -8,7 +8,7 @@ const Index = () => {
 
   const handleVideoTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
     const video = e.currentTarget;
-    if (video.duration - video.currentTime <= 1) {
+    if (video.currentTime >= 6.2) {
       video.pause();
     }
   };
@@ -16,41 +16,27 @@ const Index = () => {
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-black">
       {/* Full-screen background video */}
-      <video 
+      <video
         className="absolute inset-0 w-full h-full object-cover"
         autoPlay
         muted
         playsInline
-        loop
         preload="auto"
-        poster="/images/dica-landing-hero.jpg"
         onTimeUpdate={handleVideoTimeUpdate}
       >
         <source src="/videos/dica-landing-hero.mp4" type="video/mp4" />
         Votre navigateur ne supporte pas la lecture vidéo.
       </video>
-      
+
       {/* Overlay for better text visibility */}
       <div className="absolute inset-0 bg-black/20" />
-      
-      {/* Logo DICA en haut */}
-      <div className="absolute top-6 left-6 z-20">
-        <img 
-          src="/images/dica-logo.svg" 
-          alt="DICA" 
-          width={140}
-          height={48}
-          fetchPriority="high"
-          className="h-10 md:h-12 w-auto opacity-90"
-        />
-      </div>
-      
+
       {/* Content */}
       <div className="relative z-10 text-center px-4 mt-[48vh]">
         <Button
           size="lg"
           onClick={() => navigate(user ? "/dashboard" : "/auth")}
-          className="h-14 px-24 text-xl font-semibold transition-all duration-300 bg-white text-black hover:bg-white hover:scale-105 w-full max-w-md rounded-full btn-halo-pulse"
+          className="h-14 px-24 text-xl font-semibold transition-all duration-300 bg-white text-black hover:bg-white hover:scale-105 w-full max-w-md rounded-full animate-glow-pulse hover:shadow-[0_0_30px_rgba(233,78,93,0.7),0_0_60px_rgba(233,78,93,0.4)]"
         >
           Entrer
         </Button>
@@ -58,7 +44,7 @@ const Index = () => {
 
       {/* Footer */}
       <div className="absolute bottom-4 left-0 right-0 z-20 text-center">
-        <Link 
+        <Link
           to="/mentions-legales"
           className="text-xs text-white/60 hover:text-white transition-colors underline-offset-4 hover:underline"
         >

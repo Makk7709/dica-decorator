@@ -4,27 +4,12 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Play,
-  Pause,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Maximize,
-  Minimize,
-  SkipBack,
-  SkipForward,
-  Grid,
-} from 'lucide-react';
+import {Play, Pause, ChevronLeft, ChevronRight, X, Maximize, Minimize, SkipBack, SkipForward} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import {
-  PresentationService,
-  Slide,
-  PresentationState,
-  SlideTransition,
-} from '@/services/presentation.service';
+import {PresentationService, Slide, PresentationState, SlideTransition} from '@/services/presentation.service';
 import { BeforeAfterSlider } from '@/components/ui/before-after-slider';
+import { SafeImage } from '@/components/ui/safe-image';
 
 // ============================================================================
 // Types
@@ -77,11 +62,10 @@ const SlideRenderer: React.FC<{
     case 'image':
       return (
         <div className={baseClasses}>
-          <img
+          <SafeImage
             src={slide.content}
             alt={slide.title || 'Slide'}
             className="max-w-full max-h-full object-contain"
-            draggable={false}
           />
           {slide.title && (
             <div className="absolute bottom-20 left-0 right-0 text-center">
@@ -212,7 +196,7 @@ const ThumbnailStrip: React.FC<{
         )}
       >
         {slide.type === 'image' || slide.type === 'comparison' ? (
-          <img
+          <SafeImage
             src={slide.content}
             alt=""
             className="w-full h-full object-cover"
@@ -231,7 +215,7 @@ const ThumbnailStrip: React.FC<{
 // Main Component
 // ============================================================================
 
-export const PresentationViewer: React.FC<Readonly<PresentationViewerProps>> = ({
+export const PresentationViewer: React.FC<PresentationViewerProps> = ({
   slides,
   autoStart = false,
   autoplayInterval = 5000,
@@ -313,8 +297,8 @@ export const PresentationViewer: React.FC<Readonly<PresentationViewerProps>> = (
       service.handleKeyDown(e);
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [service]);
 
   // Hide UI on inactivity
@@ -331,9 +315,9 @@ export const PresentationViewer: React.FC<Readonly<PresentationViewerProps>> = (
       }, 3000);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    globalThis.addEventListener('mousemove', handleMouseMove);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      globalThis.removeEventListener('mousemove', handleMouseMove);
       if (hideUITimeoutRef.current) clearTimeout(hideUITimeoutRef.current);
     };
   }, [state.isPlaying, state.isPaused]);
@@ -365,28 +349,24 @@ export const PresentationViewer: React.FC<Readonly<PresentationViewerProps>> = (
   const transitionCSS = service.getTransitionCSS();
   const currentSlide = slides[state.currentIndex];
 
-  const revealUI = () => setShowUI(true);
-  // Le viewer de présentation gère la navigation clavier (flèches, Esc…)
-  // via `document.addEventListener('keydown', …)` dans son service. Les
-  // gestionnaires `onClick` / `onKeyDown` ci-dessous servent uniquement à
-  // révéler l'UI overlay (équivalent d'un mouvement de souris). On annote
-  // donc la règle `no-noninteractive-element-interactions` car le rôle
-  // landmark `region` est sémantiquement correct ici (le widget actif
-  // est l'overlay, pas le conteneur).
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       ref={containerRef}
-      role="region"
-      aria-label="Visionneuse de présentation"
+      role="button"
+      tabIndex={0}
+      aria-label="Présentation interactive"
       className={cn(
         'relative w-full h-full bg-black overflow-hidden',
         'select-none',
         className
       )}
-      onClick={revealUI}
-      onKeyDown={revealUI}
-      onMouseMove={revealUI}
+      onClick={() => setShowUI(true)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          setShowUI(true);
+        }
+      }}
     >
       {/* Slides */}
       <div className="absolute inset-0">

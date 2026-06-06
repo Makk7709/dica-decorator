@@ -12,17 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  PresentationService,
-  PresentationConfig,
-  Slide,
-  SlideTransition,
-  PresentationState,
-  NavigationDirection,
-  PresentationError,
-  SlideType,
-  AutoplayConfig,
-} from '../presentation.service';
+import {PresentationService, Slide, PresentationError, SlideType} from '../presentation.service';
 
 describe('PresentationService', () => {
   let service: PresentationService;

@@ -50,7 +50,7 @@ export interface AnalyticsExportData {
 // ============================================================================
 
 export class AnalyticsExportService {
-  private supportedFormats: ExportFormat[] = ['json', 'excel', 'pdf'];
+  private readonly supportedFormats: ExportFormat[] = ['json', 'excel', 'pdf'];
 
   /**
    * Check if a format is supported
@@ -116,26 +116,29 @@ export class AnalyticsExportService {
     const sep = ';'; // French Excel uses semicolon
 
     // Header
-    lines.push(`DICA Analytics Report`);
-    lines.push(`Période: ${data.period}`);
-    lines.push(`Généré le: ${new Date(data.generatedAt).toLocaleDateString('fr-FR')}`);
-    lines.push('');
+    lines.push(
+      `DICA Analytics Report`,
+      `Période: ${data.period}`,
+      `Généré le: ${new Date(data.generatedAt).toLocaleDateString('fr-FR')}`,
+      '',
+    );
 
     // Metrics Section
-    lines.push('=== Métriques Globales ===');
-    lines.push(`Métrique${sep}Valeur`);
-    lines.push(`Total Projets${sep}${data.metrics.totalProjects}`);
-    lines.push(`Total Rendus${sep}${data.metrics.totalRenders}`);
-    lines.push(`Total Utilisateurs${sep}${data.metrics.totalUsers}`);
-    lines.push(`Total Décors${sep}${data.metrics.totalDecors}`);
-    lines.push(`Moyenne Rendus/Projet${sep}${data.metrics.averageRendersPerProject}`);
-    lines.push(`Taux d'engagement${sep}${data.metrics.engagementRate}%`);
-    lines.push('');
+    lines.push(
+      '=== Métriques Globales ===',
+      `Métrique${sep}Valeur`,
+      `Total Projets${sep}${data.metrics.totalProjects}`,
+      `Total Rendus${sep}${data.metrics.totalRenders}`,
+      `Total Utilisateurs${sep}${data.metrics.totalUsers}`,
+      `Total Décors${sep}${data.metrics.totalDecors}`,
+      `Moyenne Rendus/Projet${sep}${data.metrics.averageRendersPerProject}`,
+      `Taux d'engagement${sep}${data.metrics.engagementRate}%`,
+      '',
+    );
 
     // Renders Trend Section
     if (data.trends.renders.length > 0) {
-      lines.push('=== Tendance Rendus ===');
-      lines.push(`Date${sep}Valeur`);
+      lines.push('=== Tendance Rendus ===', `Date${sep}Valeur`);
       data.trends.renders.forEach(point => {
         lines.push(`${point.date}${sep}${point.value}`);
       });
@@ -144,8 +147,7 @@ export class AnalyticsExportService {
 
     // Projects Trend Section
     if (data.trends.projects.length > 0) {
-      lines.push('=== Tendance Projets ===');
-      lines.push(`Date${sep}Valeur`);
+      lines.push('=== Tendance Projets ===', `Date${sep}Valeur`);
       data.trends.projects.forEach(point => {
         lines.push(`${point.date}${sep}${point.value}`);
       });
@@ -154,8 +156,7 @@ export class AnalyticsExportService {
 
     // Top Decors Section
     if (data.topDecors.length > 0) {
-      lines.push('=== Top Décors ===');
-      lines.push(`Nom${sep}Utilisations`);
+      lines.push('=== Top Décors ===', `Nom${sep}Utilisations`);
       data.topDecors.forEach(decor => {
         lines.push(`${this.escapeCSV(decor.name)}${sep}${decor.value}`);
       });
@@ -164,8 +165,7 @@ export class AnalyticsExportService {
 
     // Top Users Section
     if (data.topUsers.length > 0) {
-      lines.push('=== Utilisateurs les plus actifs ===');
-      lines.push(`Nom${sep}Rendus`);
+      lines.push('=== Utilisateurs les plus actifs ===', `Nom${sep}Rendus`);
       data.topUsers.forEach(user => {
         lines.push(`${this.escapeCSV(user.name)}${sep}${user.value}`);
       });

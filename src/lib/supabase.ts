@@ -9,7 +9,7 @@ export interface AuthState {
 
 export const authService = {
   async signUp(email: string, password: string) {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${globalThis.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -21,14 +21,7 @@ export const authService = {
     
     if (error) throw error;
     
-    // Assign client role by default
-    if (data.user) {
-      await supabase.from("user_roles").insert({
-        user_id: data.user.id,
-        role: "client",
-      });
-    }
-    
+    // Role assignment is handled by the handle_new_user database trigger
     return data;
   },
 

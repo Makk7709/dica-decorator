@@ -13,14 +13,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  AuthGuardService,
-  UnauthorizedError,
-  ForbiddenError,
-  type UserContext,
-  type PermissionCheck,
-  type AuthGuardConfig,
-} from '../auth-guard.service';
+import {AuthGuardService, UnauthorizedError, ForbiddenError, type AuthGuardConfig} from '../auth-guard.service';
 import { createMockSupabaseClient } from '@/test/test-utils';
 
 describe('AuthGuardService', () => {

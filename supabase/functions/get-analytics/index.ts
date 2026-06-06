@@ -146,8 +146,7 @@ serve(async (req) => {
       .order("created_at", { ascending: true });
 
     // Group by date
-    interface DatedRow { created_at: string }
-    const groupByDate = (data: readonly DatedRow[] | null) => {
+    const groupByDate = (data: any[]) => {
       const grouped: Record<string, number> = {};
       data?.forEach((item) => {
         const date = new Date(item.created_at).toLocaleDateString("fr-FR");
@@ -166,26 +165,18 @@ serve(async (req) => {
       .not("decor_id", "is", null)
       .gte("created_at", startDate.toISOString());
 
-    interface DecorRow { name: string | null; reference_code: string | null }
-    interface RenderResultRow {
-      decor_id: string | null;
-      decors: DecorRow | DecorRow[] | null;
-    }
     const decorCounts: Record<string, { name: string; code: string; count: number }> = {};
-    (topDecorsData as RenderResultRow[] | null)?.forEach((item) => {
-      if (!item.decor_id || !item.decors) return;
-      // Supabase peut renvoyer la relation décor en object ou array selon
-      // la cardinalité du select — on normalise.
-      const decor = Array.isArray(item.decors) ? item.decors[0] : item.decors;
-      if (!decor) return;
-      if (!decorCounts[item.decor_id]) {
-        decorCounts[item.decor_id] = {
-          name: decor.name ?? "(inconnu)",
-          code: decor.reference_code ?? "(inconnu)",
-          count: 0,
-        };
+    topDecorsData?.forEach((item: any) => {
+      if (item.decor_id && item.decors) {
+        if (!decorCounts[item.decor_id]) {
+          decorCounts[item.decor_id] = {
+            name: item.decors.name,
+            code: item.decors.reference_code,
+            count: 0,
+          };
+        }
+        decorCounts[item.decor_id].count++;
       }
-      decorCounts[item.decor_id].count++;
     });
 
     const topDecors = Object.entries(decorCounts)
@@ -193,33 +184,44 @@ serve(async (req) => {
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
-    // Get top users
-    const { data: topUsersData } = await supabaseAdmin
+    // Get top users (query projects then profiles separately — no FK relationship)
+    const { data: topUsersData, error: topUsersError } = await supabaseAdmin
       .from("projects")
-      .select("user_id, profiles(first_name, last_name)")
+      .select("user_id")
       .gte("created_at", startDate.toISOString());
 
-    interface ProfileRow { first_name: string | null; last_name: string | null }
-    interface ProjectRow {
-      user_id: string;
-      profiles: ProfileRow | ProfileRow[] | null;
+    if (topUsersError) {
+      console.error("Top users query error:", topUsersError.message);
     }
+
     const userCounts: Record<string, { name: string; count: number }> = {};
-    (topUsersData as ProjectRow[] | null)?.forEach((item) => {
-      const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+    (topUsersData || []).forEach((item: any) => {
+      if (!item.user_id) return;
       if (!userCounts[item.user_id]) {
-        const name = profile?.first_name && profile?.last_name
-          ? `${profile.first_name} ${profile.last_name}`
-          : "Utilisateur";
-        userCounts[item.user_id] = { name, count: 0 };
+        userCounts[item.user_id] = { name: "Utilisateur", count: 0 };
       }
       userCounts[item.user_id].count++;
     });
+
+    const userIds = Object.keys(userCounts);
+    if (userIds.length > 0) {
+      const { data: profilesData } = await supabaseAdmin
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", userIds);
+      (profilesData || []).forEach((p: any) => {
+        if (userCounts[p.id]) {
+          const fullName = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+          if (fullName) userCounts[p.id].name = fullName;
+        }
+      });
+    }
 
     const topUsers = Object.entries(userCounts)
       .map(([id, data]) => ({ id, name: data.name, value: data.count }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
+
 
     // Get usage by category
     const { data: categoryData } = await supabaseAdmin
@@ -227,12 +229,9 @@ serve(async (req) => {
       .select("decors(category)")
       .gte("created_at", startDate.toISOString());
 
-    interface DecorCategoryRow { category: string | null }
-    interface CategoryItem { decors: DecorCategoryRow | DecorCategoryRow[] | null }
     const categoryCounts: Record<string, number> = {};
-    (categoryData as CategoryItem[] | null)?.forEach((item) => {
-      const decor = Array.isArray(item.decors) ? item.decors[0] : item.decors;
-      const category = decor?.category || "autre";
+    categoryData?.forEach((item: any) => {
+      const category = item.decors?.category || "autre";
       categoryCounts[category] = (categoryCounts[category] || 0) + 1;
     });
 

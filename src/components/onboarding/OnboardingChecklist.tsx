@@ -7,20 +7,10 @@
  */
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Check, 
-  Circle,
-  LogIn,
-  FolderPlus,
-  Image,
-  Palette,
-  Sparkles,
-  ChevronRight,
-  X,
-} from 'lucide-react';
+import {Check, LogIn, FolderPlus, Image, Palette, Sparkles, ChevronRight, X} from 'lucide-react';
 
 // ============================================================================
 // Types

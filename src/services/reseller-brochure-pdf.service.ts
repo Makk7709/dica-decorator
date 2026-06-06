@@ -10,14 +10,14 @@
 
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
-import type { ResellerBranding, PlaquetteImage } from '@/types/plaquette.types';
+import { signStorageUrl } from '@/lib/signed-storage';
+import type { ResellerBranding } from '@/types/plaquette.types';
 import type { 
   MagazineDecoOptions, 
   MagazineDecoResult, 
   MagazineAICaption 
 } from '@/types/magazine-deco.types';
 import { MAGAZINE_DECO_CONFIG } from '@/types/magazine-deco.types';
-import { getErrorMessage } from '@/lib/utils';
 
 // Extended options with reseller branding and client customization
 export interface ResellerBrochureOptions extends MagazineDecoOptions {
@@ -181,16 +181,16 @@ export class ResellerBrochurePdfService {
           ? await this.loadSingleImageWithBase64(options.images[i].originalUrl!)
           : null;
         
-        await this.renderEditorialArticlePage({
-          pdf,
+        await this.renderEditorialArticlePage(
+          pdf, 
           originalImage,
-          renderedImage: loadedImages[i],
+          loadedImages[i], 
           options,
-          aiCaptions: pageCaptions,
-          pageWidth,
-          pageHeight,
-          pageNumber: i + 2,
-        });
+          pageCaptions,
+          pageWidth, 
+          pageHeight, 
+          i + 2
+        );
       }
       
       // PAGE FINALE - Certifications & Contact (DICA ou Revendeur)
@@ -216,11 +216,11 @@ export class ResellerBrochurePdfService {
         aiCaptions: coverCaptions
       };
 
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error("❌ Brochure Revendeur generation error:", error);
       return {
         success: false,
-        error: getErrorMessage(error, "Unknown error")
+        error: error.message || "Unknown error"
       };
     }
   }
@@ -489,6 +489,9 @@ export class ResellerBrochurePdfService {
     };
     
     try {
+      const captionImageUrl = options.images[0]?.url
+        ? await signStorageUrl(options.images[0].url, 600)
+        : undefined;
       const { data, error } = await supabase.functions.invoke('generate-magazine-captions', {
         body: {
           projectName: options.project.name,
@@ -496,7 +499,7 @@ export class ResellerBrochurePdfService {
           decorLabel: options.decor.name,
           decorReference: options.decor.referenceCode,
           decorCategory: options.decor.category,
-          imageUrl: options.images[0]?.url
+          imageUrl: captionImageUrl
         }
       });
 
@@ -526,23 +529,16 @@ export class ResellerBrochurePdfService {
     }
   }
 
-  /**
-   * Page éditoriale de la brochure revendeur.
-   *
-   * Params regroupés en objet (cf. SonarLint S107) pour limiter le nombre
-   * d'arguments positionnels et améliorer la lisibilité aux sites d'appel.
-   */
-  private async renderEditorialArticlePage(params: {
-    pdf: jsPDF;
-    originalImage: LoadedImage | null;
-    renderedImage: LoadedImage;
-    options: ResellerBrochureOptions;
-    aiCaptions: MagazineAICaption | undefined;
-    pageWidth: number;
-    pageHeight: number;
-    pageNumber: number;
-  }) {
-    const { pdf, originalImage, renderedImage, options, aiCaptions, pageWidth, pageHeight, pageNumber } = params;
+  private async renderEditorialArticlePage(
+    pdf: jsPDF,
+    originalImage: LoadedImage | null,
+    renderedImage: LoadedImage,
+    options: ResellerBrochureOptions,
+    aiCaptions: MagazineAICaption | undefined,
+    pageWidth: number,
+    pageHeight: number,
+    pageNumber: number
+  ) {
     const { margins, colors } = MAGAZINE_DECO_CONFIG;
     const branding = options.resellerBranding;
     
@@ -748,32 +744,34 @@ export class ResellerBrochurePdfService {
   }
 
   private async loadSingleImageWithBase64(url: string): Promise<LoadedImage> {
-    const response = await fetch(url);
+    const signedUrl = await signStorageUrl(url);
+    const response = await fetch(signedUrl);
     if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
     
     const blob = await response.blob();
     const base64 = await this.blobToBase64(blob);
-    const dimensions = await this.getImageDimensions(url);
+    const dimensions = await this.getImageDimensions(signedUrl);
     
     return {
-      url,
+      url: signedUrl,
       base64,
       width: dimensions.width,
       height: dimensions.height
     };
   }
 
-  private async loadImagesWithBase64(images: PlaquetteImage[]): Promise<LoadedImage[]> {
+  private async loadImagesWithBase64(images: any[]): Promise<LoadedImage[]> {
     const promises = images.map(async (img) => {
-      const response = await fetch(img.url);
+      const signedUrl = await signStorageUrl(img.url);
+      const response = await fetch(signedUrl);
       if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);
       
       const blob = await response.blob();
       const base64 = await this.blobToBase64(blob);
-      const dimensions = await this.getImageDimensions(img.url);
+      const dimensions = await this.getImageDimensions(signedUrl);
       
       return {
-        url: img.url,
+        url: signedUrl,
         base64,
         width: dimensions.width,
         height: dimensions.height

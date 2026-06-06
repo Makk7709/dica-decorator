@@ -12,12 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  ProjectRenameService,
-  ProjectRenameResult,
-  ProjectRenameError,
-  ProjectRenameValidation,
-} from '../project-rename.service';
+import {ProjectRenameService} from '../project-rename.service';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock Supabase

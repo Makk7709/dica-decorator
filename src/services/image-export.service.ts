@@ -6,6 +6,8 @@
  * @date Décembre 2025
  */
 
+import { signStorageUrl } from '@/lib/signed-storage';
+
 /**
  * Formats d'export supportés
  */
@@ -213,6 +215,8 @@ export class ImageExportService {
         throw new Error(`Erreur de conversion du data URL: ${message}`);
       }
     } else {
+      // Résoudre les URLs Supabase Storage privées en URLs signées
+      imageUrl = await signStorageUrl(imageUrl);
       // Timeout de 30 secondes pour les URLs HTTP
       const timeoutMs = 30000;
       const controller = new AbortController();
@@ -353,7 +357,8 @@ export class ImageExportService {
       return this.dataUrlToBlob(imageUrl);
     }
 
-    const response = await fetch(imageUrl, {
+    const signedUrl = await signStorageUrl(imageUrl);
+    const response = await fetch(signedUrl, {
       mode: 'cors',
       credentials: 'omit',
     });

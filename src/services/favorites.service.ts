@@ -265,10 +265,10 @@ export class FavoritesService {
 
     // Filtrer par date
     if (filter.dateFrom) {
-      filtered = filtered.filter(fav => fav.createdAt >= filter.dateFrom!);
+      filtered = filtered.filter(fav => fav.createdAt >= filter.dateFrom);
     }
     if (filter.dateTo) {
-      filtered = filtered.filter(fav => fav.createdAt <= filter.dateTo!);
+      filtered = filtered.filter(fav => fav.createdAt <= filter.dateTo);
     }
 
     // Pagination

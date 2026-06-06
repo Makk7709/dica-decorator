@@ -3,32 +3,61 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Sparkles, Loader2, Heart, Star, FolderPlus, ImagePlus, X, Home } from "lucide-react";
+import { ArrowLeft, Send, Wand2, Loader2, Heart, Star, FolderPlus, ImagePlus, X, Home, Maximize2 } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PremiumLayout, ContentContainer } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ImageExportDropdown } from "@/components/ui/image-export-dropdown";
-import { CreativeMessage } from "@/components/creative/CreativeMessage";
-import { FavoriteCard } from "@/components/creative/FavoriteCard";
-import type { Decor, Favorite, Project, UploadedImage } from "@/components/creative/types";
-import {
-  buildDecorContext,
-  parseJsonChatResponse,
-  sendCreativeChatRequest,
-  streamAssistantText,
-} from "@/lib/creative-chat";
-import {
-  createCreativeProject,
-  ensureProjectPhoto,
-  saveCreativeRenderResult,
-  uploadCreativeImageToStorage,
-} from "@/lib/creative-storage";
-import type { Message } from "@/components/creative/types";
+import { SafeImage } from "@/components/ui/safe-image";
+
+interface DecorReference {
+  reference: string;
+  label: string;
+}
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  imageUrl?: string;
+  sourceImageUrls?: string[];  // Support multiple images
+  sourceImageUrl?: string;     // Keep for backward compat
+  decorReferences?: DecorReference[];  // References des décors DICA utilisés
+}
+
+interface UploadedImage {
+  url: string;
+  label: string;
+}
+
+interface Decor {
+  id: string;
+  name: string;
+  reference_code: string;
+  category: string;
+  usage_contexts: string[];
+  texture_image_url: string;
+}
+
+interface Favorite {
+  id: string;
+  title: string;
+  prompt: string;
+  response: string;
+  image_data: string | null;
+  created_at: string;
+}
+
+interface Project {
+  id: string;
+  title: string;
+  use_case: string;
+}
 
 const Creative = () => {
   const navigate = useNavigate();
@@ -61,7 +90,7 @@ const Creative = () => {
   const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
   const [zoomedImage, setZoomedImage] = useState<string | null>(null); // Image en plein écran
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -142,7 +171,7 @@ const Creative = () => {
           const fileName = `creative-${Date.now()}.png`;
           const filePath = `${user.id}/creative/${fileName}`;
           
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from("project-photos")
             .upload(filePath, blob, {
               contentType: 'image/png',
@@ -242,6 +271,54 @@ const Creative = () => {
     }
   };
 
+  const buildDecorContext = () => {
+    if (decors.length === 0) {
+      console.warn("Aucun décor disponible pour le contexte");
+      return "Aucun décor DICA disponible actuellement.";
+    }
+
+    const decorsByCategory = decors.reduce((acc, decor) => {
+      if (!acc[decor.category]) {
+        acc[decor.category] = [];
+      }
+      acc[decor.category].push(decor);
+      return acc;
+    }, {} as Record<string, Decor[]>);
+
+    const allReferences = decors.map(d => d.reference_code);
+    
+    // Pick up to 3 real examples from the catalog
+    const exampleRefs = decors.slice(0, 3).map(d => `- "${d.reference_code}" ✅ ${d.name}`).join('\n');
+
+    let context = `════════════════════════════════════════════════════════════════
+🚨 CATALOGUE DICA - LISTE STRICTE (${decors.length} décors)
+════════════════════════════════════════════════════════════════
+
+⛔ RÈGLE ABSOLUE: UNIQUEMENT les références ci-dessous.
+⛔ INVENTER une référence = ERREUR FATALE BLOQUÉE.
+
+📋 RÉFÉRENCES VALIDES:
+${allReferences.join('\n')}
+
+✅ EXEMPLES CORRECTS:
+${exampleRefs}
+
+📚 DÉTAIL PAR CATÉGORIE:
+`;
+
+    for (const [category, categoryDecors] of Object.entries(decorsByCategory)) {
+      context += `\n📁 ${category.toUpperCase()}:\n`;
+      categoryDecors.forEach(decor => {
+        context += `  • "${decor.reference_code}" = ${decor.name}\n`;
+      });
+    }
+
+    context += `\n⛔ COPIE les références EXACTEMENT. Ne modifie PAS, n'invente PAS.\n`;
+
+    console.log(`Contexte décors construit: ${decors.length} décors dans ${Object.keys(decorsByCategory).length} catégories`);
+    return context;
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -264,7 +341,7 @@ const Creative = () => {
     setIsUploading(true);
     try {
       const fileName = `source-${Date.now()}.${file.name.split('.').pop()}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("project-photos")
         .upload(`${user.id}/${fileName}`, file);
 
@@ -295,44 +372,128 @@ const Creative = () => {
   };
 
   const streamChat = async (userMessage: string, sourceImages?: UploadedImage[]) => {
-    const decorContext = buildDecorContext(decors);
-
-    // Récupère le jeton de session pour l'authentification de l'edge function.
+    const decorContext = buildDecorContext();
+    const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/creative-chat`;
+    
+    // Get the user's session token for authentication
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) {
       throw new Error("Session expirée - veuillez vous reconnecter");
     }
-
-    const resp = await sendCreativeChatRequest({
-      messages,
-      userMessage,
-      decorContext,
-      sourceImages,
-      showReferences,
-      accessToken: session.access_token,
+    
+    // Build source images array with labels for the prompt
+    const sourceImageUrls = sourceImages?.map(img => img.url) || [];
+    const imageLabels = sourceImages?.map(img => img.label) || [];
+    
+    const resp = await fetch(chatUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ 
+        messages: [...messages, { role: "user", content: userMessage }],
+        decorContext,
+        sourceImageUrls,  // Array of image URLs
+        imageLabels,      // Array of labels for each image
+        showReferences,   // Afficher les références DICA sur l'image
+      }),
     });
+
+    if (!resp.ok) {
+      if (resp.status === 429 || resp.status === 402) {
+        const errorData = await resp.json();
+        throw new Error(errorData.error);
+      }
+      throw new Error("Échec de la connexion au service IA");
+    }
 
     const contentType = resp.headers.get("content-type") || "";
 
-    // Réponse JSON : message unique (image ou texte) consommé sans streaming.
+    // Si la réponse est en JSON, on la consomme ici et on NE tente PAS de streamer ensuite.
     if (contentType.includes("application/json")) {
       const data = await resp.json();
-      setMessages((prev) => [...prev, parseJsonChatResponse(data)]);
-      return;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.type === "image") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: data.text,
+            imageUrl: data.imageUrl,
+            decorReferences: data.decorReferences || [],
+          },
+        ]);
+        return;
+      }
+
+      if (data?.type === "text" && typeof data?.content === "string") {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
+        return;
+      }
+
+      throw new Error("Réponse inattendue du service IA");
     }
 
-    // Réponse en flux : message assistant vide mis à jour au fil du stream.
-    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-    await streamAssistantText(resp, (assistantContent) => {
-      setMessages((prev) => {
-        const newMessages = [...prev];
-        newMessages[newMessages.length - 1] = {
-          role: "assistant",
-          content: assistantContent,
-        };
-        return newMessages;
-      });
-    });
+    // Stream text response
+    if (!resp.body) {
+      throw new Error("Échec de la connexion au service IA");
+    }
+
+    const reader = resp.body.getReader();
+
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+    let streamDone = false;
+    let assistantContent = "";
+
+    // Add empty assistant message that we'll update
+    setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+
+    while (!streamDone) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      textBuffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex: number;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        let line = textBuffer.slice(0, newlineIndex);
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") {
+          streamDone = true;
+          break;
+        }
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) {
+            assistantContent += content;
+            setMessages(prev => {
+              const newMessages = [...prev];
+              newMessages[newMessages.length - 1] = {
+                role: "assistant",
+                content: assistantContent
+              };
+              return newMessages;
+            });
+          }
+        } catch {
+          textBuffer = line + "\n" + textBuffer;
+          break;
+        }
+      }
+    }
   };
 
   const handleSend = async () => {
@@ -378,13 +539,36 @@ const Creative = () => {
       toast.error("Erreur: utilisateur ou image manquant");
       return;
     }
-
+    
+    console.log("Starting saveImageToProject...", { 
+      selectedImageUrl: selectedImageUrl.substring(0, 100) + "...",
+      selectedProjectId,
+      newProjectTitle 
+    });
+    
     setIsSavingToProject(true);
     try {
-      // Crée le projet si nécessaire, sinon réutilise le projet sélectionné.
       let projectId = selectedProjectId;
+      
+      // Create new project if needed
       if (!projectId && newProjectTitle.trim()) {
-        projectId = await createCreativeProject(user.id, newProjectTitle.trim());
+        console.log("Creating new project:", newProjectTitle.trim());
+        const { data: newProject, error: projectError } = await supabase
+          .from("projects")
+          .insert({
+            user_id: user.id,
+            title: newProjectTitle.trim(),
+            use_case: "autre"
+          })
+          .select()
+          .single();
+
+        if (projectError) {
+          console.error("Project creation error:", projectError);
+          throw projectError;
+        }
+        projectId = newProject.id;
+        console.log("New project created:", projectId);
       }
 
       if (!projectId) {
@@ -392,12 +576,111 @@ const Creative = () => {
         return;
       }
 
-      // Résout l'URL publique (upload du base64 si besoin), garantit une photo
-      // projet puis enregistre le rendu (zoom, export, plaquette).
-      const publicUrl = await uploadCreativeImageToStorage(selectedImageUrl, user.id);
-      const photoId = await ensureProjectPhoto(projectId, publicUrl);
-      await saveCreativeRenderResult(photoId, publicUrl);
+      let publicUrl: string;
+      
+      // Check if the image is base64 or already a URL
+      if (selectedImageUrl.startsWith('data:image')) {
+        console.log("Converting base64 to storage...");
+        
+        try {
+          // Extract base64 data and convert to blob manually
+          const base64Data = selectedImageUrl.split(',')[1];
+          const mimeType = selectedImageUrl.split(':')[1]?.split(';')[0] || 'image/png';
+          
+          // Decode base64 to binary
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: mimeType });
+          
+          console.log("Blob created:", { size: blob.size, type: blob.type });
+          
+          // Upload to storage in creative subfolder
+          const extension = mimeType.split('/')[1] || 'png';
+          const fileName = `creative-${Date.now()}.${extension}`;
+          const filePath = `${user.id}/creative/${fileName}`;
+          
+          console.log("Uploading to storage:", filePath);
+          
+          const { error: uploadError } = await supabase.storage
+            .from("project-photos")
+            .upload(filePath, blob, {
+              contentType: mimeType,
+              upsert: false
+            });
 
+          if (uploadError) {
+            console.error("Storage upload error:", uploadError);
+            throw new Error(`Erreur upload: ${uploadError.message}`);
+          }
+
+          // Get public URL
+          const { data } = supabase.storage
+            .from("project-photos")
+            .getPublicUrl(filePath);
+          
+          publicUrl = data.publicUrl;
+          console.log("Image uploaded to storage:", publicUrl);
+        } catch (conversionError: unknown) {
+          console.error("Base64 conversion error:", conversionError);
+          const message = conversionError instanceof Error ? conversionError.message : "Erreur inconnue";
+          throw new Error(`Erreur de conversion d'image: ${message}`);
+        }
+      } else {
+        // Already a URL, use directly
+        publicUrl = selectedImageUrl;
+        console.log("Using existing URL:", publicUrl);
+      }
+
+      // Check if project has photos, if not create one
+      const { data: existingPhotos } = await supabase
+        .from("project_photos")
+        .select("id")
+        .eq("project_id", projectId)
+        .limit(1);
+
+      let photoId: string;
+      
+      if (!existingPhotos || existingPhotos.length === 0) {
+        console.log("Creating new photo entry for project:", projectId);
+        // Create a photo entry for the project (using the creative image as source)
+        const { data: newPhoto, error: photoError } = await supabase
+          .from("project_photos")
+          .insert({
+            project_id: projectId,
+            original_image_url: publicUrl
+          })
+          .select()
+          .single();
+
+        if (photoError) {
+          console.error("Photo creation error:", photoError);
+          throw photoError;
+        }
+        photoId = newPhoto.id;
+      } else {
+        photoId = existingPhotos[0].id;
+      }
+
+      console.log("Saving render result with photoId:", photoId);
+      
+      // Save as RENDER RESULT for full features (zoom, export, plaquette)
+      const { error: renderError } = await supabase
+        .from("render_results")
+        .insert({
+          project_photo_id: photoId,
+          result_image_url: publicUrl,
+          decor_id: null // Creative generation - no specific decor
+        });
+
+      if (renderError) {
+        console.error("Render result error:", renderError);
+        throw renderError;
+      }
+
+      console.log("Image saved successfully!");
       toast.success("✅ Image ajoutée avec zoom, export et plaquette disponibles !");
       setSaveToProjectDialogOpen(false);
       setSelectedImageUrl(null);
@@ -430,7 +713,7 @@ const Creative = () => {
           
           <div className="flex items-center gap-2 md:gap-3">
             <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+              <Wand2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />
             </div>
             <div className="hidden sm:block">
               <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">Assistant Créatif</h1>
@@ -462,7 +745,7 @@ const Creative = () => {
                 value="chat" 
                 className="h-10 px-6 rounded-lg text-foreground data-[state=active]:bg-card data-[state=active]:shadow-sm"
               >
-                <Sparkles className="mr-2 h-4 w-4" />
+                <Wand2 className="mr-2 h-4 w-4" />
                 Nouvelle création
               </TabsTrigger>
               <TabsTrigger 
@@ -481,7 +764,7 @@ const Creative = () => {
               <div className="mb-6 pb-6 border-b border-border/50">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-                    <Sparkles className="h-6 w-6 text-primary" />
+                    <Wand2 className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <h2 className="text-xl font-semibold mb-1">Studio Créatif DICA</h2>
@@ -495,24 +778,32 @@ const Creative = () => {
               {/* Catalogue status */}
               <div className="mb-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/60 px-4 py-3">
+                  {(() => {
+                    let catalogStatusNode: React.ReactNode;
+                    if (isDecorsLoading) {
+                      catalogStatusNode = (
+                        <span className="inline-flex items-center gap-2 text-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Chargement…
+                        </span>
+                      );
+                    } else if (decorsLoadError) {
+                      catalogStatusNode = <span className="text-destructive">Indisponible</span>;
+                    } else {
+                      catalogStatusNode = <span className="text-foreground">{decors.length} disponibles</span>;
+                    }
+                    return (
                   <div className="text-sm">
                     <span className="text-muted-foreground">Catalogue décors :</span>{" "}
-                    {isDecorsLoading ? (
-                      <span className="inline-flex items-center gap-2 text-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Chargement…
-                      </span>
-                    ) : decorsLoadError ? (
-                      <span className="text-destructive">Indisponible</span>
-                    ) : (
-                      <span className="text-foreground">{decors.length} disponibles</span>
-                    )}
+                    {catalogStatusNode}
                     {decorsLoadError ? (
                       <div className="mt-1 text-xs text-muted-foreground">
                         {decorsLoadError}
                       </div>
                     ) : null}
                   </div>
+                    );
+                  })()}
 
                   <Button
                     type="button"
@@ -531,20 +822,141 @@ const Creative = () => {
                 <ScrollArea className="h-[450px] pr-4 scrollbar-minimal">
                     <div className="space-y-4">
                       {messages.map((message, index) => (
-                        <CreativeMessage
+                        <div
                           key={index}
-                          message={message}
-                          index={index}
-                          onZoom={setZoomedImage}
-                          onSaveToProject={(imageUrl) => {
-                            setSelectedImageUrl(imageUrl);
-                            setSaveToProjectDialogOpen(true);
-                          }}
-                          onSaveFavorite={(messageIndex) => {
-                            setSelectedMessageIndex(messageIndex);
-                            setSaveDialogOpen(true);
-                          }}
-                        />
+                          className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                        >
+                          <div className="flex flex-col gap-2 max-w-[80%]">
+                            <div
+                              className={`rounded-lg px-4 py-3 ${
+                                message.role === "user"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
+                              }`}
+                            >
+                              {message.sourceImageUrls && message.sourceImageUrls.length > 0 && message.role === "user" && (
+                                <div className="mb-2 flex flex-wrap gap-2">
+                                  {message.sourceImageUrls.map((url, idx) => (
+                                    <SafeImage 
+                                      key={idx}
+                                      src={url} 
+                                      alt={`Photo source ${idx + 1}`} 
+                                      className="rounded-lg h-16 w-16 object-cover"
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                              {message.sourceImageUrl && !message.sourceImageUrls && message.role === "user" && (
+                                <div className="mb-2">
+                                  <SafeImage 
+                                    src={message.sourceImageUrl} 
+                                    alt="Photo source" 
+                                    className="rounded-lg max-h-40 w-auto"
+                                  />
+                                </div>
+                              )}
+                              {message.imageUrl ? (
+                                <div className="space-y-3">
+                                  <p className="whitespace-pre-wrap text-sm text-foreground">{message.content}</p>
+                                  <div className="space-y-2">
+                                    {/* Image avec overlay de zoom */}
+                                    <div 
+                                      role="button"
+                                      tabIndex={0}
+                                      className="relative group cursor-pointer"
+                                      onClick={() => setZoomedImage(message.imageUrl ?? null)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault();
+                                          setZoomedImage(message.imageUrl ?? null);
+                                        }
+                                      }}
+                                    >
+                                      <SafeImage 
+                                        src={message.imageUrl} 
+                                        alt="Visualisation générée" 
+                                        className="rounded-lg w-full max-w-2xl transition-transform hover:scale-[1.02]"
+                                      />
+                                      {/* Overlay avec icône zoom */}
+                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-lg flex items-center justify-center">
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-black/90 rounded-full p-3 shadow-lg">
+                                          <Maximize2 className="h-6 w-6 text-primary" />
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                      {/* Bouton Zoom */}
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setZoomedImage(message.imageUrl ?? null)}
+                                      >
+                                        <Maximize2 className="h-4 w-4 mr-2" />
+                                        Agrandir
+                                      </Button>
+                                      <ImageExportDropdown
+                                        imageUrl={message.imageUrl}
+                                        filename={`dica-creative-${Date.now()}`}
+                                        variant="outline"
+                                        size="sm"
+                                      />
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedImageUrl(message.imageUrl ?? null);
+                                          setSaveToProjectDialogOpen(true);
+                                        }}
+                                      >
+                                        <FolderPlus className="h-4 w-4 mr-2" />
+                                        Enregistrer dans un projet
+                                      </Button>
+                                    </div>
+                                    
+                                    {/* Références DICA utilisées */}
+                                    {message.decorReferences && message.decorReferences.length > 0 && (
+                                      <div className="mt-3 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20">
+                                        <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1.5">
+                                          <span className="text-sm">🏷️</span>
+                                          Décors DICA utilisés
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                          {message.decorReferences.map((decor, idx) => (
+                                            <div
+                                              key={idx}
+                                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-black/40 border border-border/50 shadow-sm"
+                                            >
+                                              <span className="text-xs font-medium text-foreground">{decor.label}</span>
+                                              <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded">
+                                                {decor.reference}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="whitespace-pre-wrap text-sm text-foreground">{message.content}</p>
+                              )}
+                            </div>
+                            {message.role === "assistant" && index > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="self-start"
+                                onClick={() => {
+                                  setSelectedMessageIndex(index);
+                                  setSaveDialogOpen(true);
+                                }}
+                              >
+                                <Heart className="h-4 w-4 mr-2" />
+                                Sauvegarder en favori
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       ))}
                       <div ref={messagesEndRef} />
                     </div>
@@ -559,7 +971,7 @@ const Creative = () => {
                       <div className="flex flex-wrap gap-3">
                         {uploadedImages.map((img, index) => (
                           <div key={index} className="relative group">
-                            <img 
+                            <SafeImage 
                               src={img.url} 
                               alt={img.label} 
                               className="rounded-lg h-20 w-20 object-cover border-2 border-primary"
@@ -699,13 +1111,92 @@ const Creative = () => {
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {favorites.map((favorite, index) => (
-                    <FavoriteCard
-                      key={favorite.id}
-                      favorite={favorite}
-                      index={index}
-                      onZoom={setZoomedImage}
-                      onDelete={deleteFavorite}
-                    />
+                    <div 
+                      key={favorite.id} 
+                      className="rounded-xl border border-border/50 bg-card hover:shadow-md transition-all overflow-hidden animate-slide-up"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      {/* Image si présente */}
+                      {favorite.image_data && (
+                        <div 
+                          role="button"
+                          tabIndex={0}
+                          className="relative group cursor-pointer"
+                          onClick={() => setZoomedImage(favorite.image_data)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setZoomedImage(favorite.image_data);
+                            }
+                          }}
+                        >
+                          <SafeImage 
+                            src={favorite.image_data} 
+                            alt={favorite.title}
+                            className="w-full aspect-square object-cover"
+                          />
+                          {/* Badge favori */}
+                          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                            <Heart className="h-3 w-3 fill-current" />
+                            Favori
+                          </div>
+                          {/* Overlay au survol */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <div className="flex gap-2">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 px-3 bg-white hover:bg-white shadow-md"
+                              >
+                                <Maximize2 className="h-3.5 w-3.5 mr-1.5 text-foreground" />
+                                <span className="text-foreground text-xs">Agrandir</span>
+                              </Button>
+                              <ImageExportDropdown
+                                imageUrl={favorite.image_data || ''}
+                                filename={`dica-favorite-${favorite.id}`}
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 px-3 bg-white hover:bg-white shadow-md"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Infos */}
+                      <div className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-foreground truncate">{favorite.title}</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {new Date(favorite.created_at).toLocaleDateString("fr-FR", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric"
+                              })}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteFavorite(favorite.id)}
+                            className="text-red-500 hover:text-red-600 hover:bg-red-50 shrink-0 h-8 w-8 p-0"
+                          >
+                            <Heart className="h-4 w-4 fill-current" />
+                          </Button>
+                        </div>
+                        
+                        {/* Prompt */}
+                        <p className="text-xs text-muted-foreground line-clamp-2">{favorite.prompt}</p>
+                        
+                        {/* Message si pas d'image */}
+                        {!favorite.image_data && (
+                          <div className="mt-3 p-3 rounded-lg bg-muted/50">
+                            <p className="text-xs text-muted-foreground line-clamp-3">{favorite.response}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -769,9 +1260,9 @@ const Creative = () => {
               <div className="space-y-4">
                 {projects.length > 0 && (
                   <div className="space-y-2">
-                    <label htmlFor="creative-existing-project" className="text-sm font-medium text-foreground">Projet existant</label>
+                    <label className="text-sm font-medium text-foreground">Projet existant</label>
                     <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                      <SelectTrigger id="creative-existing-project">
+                      <SelectTrigger>
                         <SelectValue placeholder="Sélectionner un projet" />
                       </SelectTrigger>
                       <SelectContent>
@@ -795,9 +1286,8 @@ const Creative = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="creative-new-project-title" className="text-sm font-medium text-foreground">Nouveau projet</label>
+                  <label className="text-sm font-medium text-foreground">Nouveau projet</label>
                   <Input
-                    id="creative-new-project-title"
                     value={newProjectTitle}
                     onChange={(e) => {
                       setNewProjectTitle(e.target.value);
@@ -872,21 +1362,13 @@ const Creative = () => {
                   </Button>
                 </div>
 
-                {/* Image zoomée — wrappée pour intercepter le click et
-                    éviter que le Dialog ne se ferme si on clique l'image
-                    (le fond noir conserve son comportement de fermeture). */}
+                {/* Image zoomée */}
                 {zoomedImage && (
-                  // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
-                  <div
-                    className="max-w-full max-h-[90vh]"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <img
-                      src={zoomedImage}
-                      alt="Visualisation en plein écran"
-                      className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                    />
-                  </div>
+                  <SafeImage
+                    src={zoomedImage}
+                    alt="Visualisation en plein écran"
+                    className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                  />
                 )}
               </div>
             </DialogContent>

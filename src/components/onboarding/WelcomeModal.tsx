@@ -6,28 +6,11 @@
  * @version 1.0.0
  */
 
-import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import React, {useState} from 'react';
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Sparkles, 
-  Image, 
-  FolderKanban, 
-  Palette, 
-  Download,
-  ArrowRight,
-  Check,
-  Zap,
-  Clock,
-  Shield,
-} from 'lucide-react';
+import {Sparkles, Image, FolderKanban, Palette, Download, ArrowRight, Check, Zap, Clock, Shield} from 'lucide-react';
 
 // ============================================================================
 // Types
@@ -135,7 +118,7 @@ export const WelcomeModal: React.FC<Readonly<WelcomeModalProps>> = ({
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <img 
-                  src="/images/dica-logo.svg" 
+                  src="/images/dica-logo.png" 
                   alt="DICA" 
                   className="h-8 w-auto"
                 />

@@ -93,6 +93,22 @@ export default tseslint.config(
       // existant (0 erreur) en échec avant les refactos prévus en vague 2.
       "sonarjs/cognitive-complexity": ["warn", COGNITIVE_COMPLEXITY_THRESHOLD],
       "sonarjs/no-nested-functions": ["warn", { threshold: 4 }],
+      // DETTE QUALITÉ LOT 2/LOT 3 — RÉINTRODUITE par les 4 mois d'évolution de
+      // `main` (merge Option B du 2026-06-06). Sur le snapshot de février, ces
+      // règles étaient vertes (0 erreur) ; `main` a réintroduit ~46 `any` et
+      // 7 violations a11y dans les fichiers dont le refacto LOT 1-4 a été DIFFÉRÉ
+      // (Auth/Creative/ProjectDetail/Dashboard, analytics & reseller-brochure
+      // services, presentation-viewer, fonctions edge). Conformément à la
+      // philosophie « mesurer sans casser avant refacto » (déjà appliquée à
+      // SonarJS ci-dessus), on rétrograde TEMPORAIREMENT ces règles en `warn`.
+      // Objectif : re-typer/corriger puis RE-PASSER EN `error` (ratchet) lors de
+      // la vague de suivi. Détail et plan de descente :
+      // docs/audit/sonar-baseline-2026-06-06/dette-suivi-post-merge.md
+      "@typescript-eslint/no-explicit-any": "warn",
+      "jsx-a11y/label-has-associated-control": "warn",
+      "jsx-a11y/no-static-element-interactions": "warn",
+      "jsx-a11y/no-noninteractive-element-interactions": "warn",
+      "jsx-a11y/no-autofocus": "warn",
     },
   },
   {

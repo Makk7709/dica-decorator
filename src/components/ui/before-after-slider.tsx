@@ -5,12 +5,9 @@
 
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import {
-  ImageComparisonService,
-  ComparisonConfig,
-  ImagePair,
-} from '@/services/image-comparison.service';
+import {ImageComparisonService} from '@/services/image-comparison.service';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSignedUrl } from '@/hooks/use-signed-url';
 
 // ============================================================================
 // Types
@@ -70,6 +67,9 @@ export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isLoaded, setIsLoaded] = useState({ before: false, after: false });
   const [naturalAspect, setNaturalAspect] = useState<number | null>(null);
+  // Résolution automatique des URLs Supabase Storage privées en URLs signées
+  const { url: signedBefore } = useSignedUrl(beforeImage);
+  const { url: signedAfter } = useSignedUrl(afterImage);
 
   // Configure service
   useEffect(() => {
@@ -169,8 +169,8 @@ export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
     if (isDragging) {
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleTouchMove);
-      window.addEventListener('touchend', handleInteractionEnd);
+      globalThis.addEventListener('touchmove', handleTouchMove);
+      globalThis.addEventListener('touchend', handleInteractionEnd);
     }
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
@@ -248,7 +248,7 @@ export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
         style={{ clipPath: clipPaths.before }}
       >
         <img
-          src={beforeImage}
+          src={signedBefore}
           alt={beforeLabel}
           className="w-full h-full object-contain"
           onLoad={handleBeforeLoad}
@@ -262,7 +262,7 @@ export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
         style={{ clipPath: clipPaths.after }}
       >
         <img
-          src={afterImage}
+          src={signedAfter}
           alt={afterLabel}
           className="w-full h-full object-contain"
           onLoad={handleAfterLoad}
@@ -305,17 +305,9 @@ export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
               borderColor: sliderColor,
               width: '44px',
               height: '44px',
-              ...(orientation === 'horizontal'
-                ? {
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                  }
-                : {
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                  }),
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
             }}
           >
             <div className="flex items-center gap-0.5" style={{ color: sliderColor }}>
@@ -338,9 +330,8 @@ export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
               position < 15 && 'opacity-0'
             )}
             style={{
-              ...(orientation === 'horizontal'
-                ? { left: '12px', top: '12px' }
-                : { left: '12px', top: '12px' }),
+              left: '12px',
+              top: '12px',
             }}
           >
             {beforeLabel}

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Plus, Edit, Trash2, CheckCircle, XCircle, FolderPlus, Upload, Users, Eye, UserX, UserCheck, Building2, BarChart3, Palette, Layers, Shield, ShieldCheck } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ResellerBrandingSettings } from "@/components/admin/reseller-branding-settings";
 import { ResellerBranding } from "@/types/plaquette.types";
@@ -21,6 +22,20 @@ import { CatalogManagement } from "@/components/admin/catalog-management";
 import { BulkDecorUpload } from "@/components/admin/bulk-decor-upload";
 
 type UsageContext = Database['public']['Enums']['usage_context'];
+
+interface CatalogOption {
+  id: string;
+  code: string;
+  label: string;
+  project_type: string;
+}
+
+const PROJECT_TYPE_LABELS: Record<string, string> = {
+  ascenseur: "Ascenseur",
+  van: "Van",
+  terrasse: "Terrasse",
+  autre: "Autre",
+};
 
 interface Decor {
   id: string;
@@ -66,6 +81,7 @@ const Admin = () => {
   const { userRole, signOut, user } = useAuth();
   const [decors, setDecors] = useState<Decor[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [catalogOptions, setCatalogOptions] = useState<CatalogOption[]>([]);
   const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
@@ -86,6 +102,7 @@ const Admin = () => {
     usageContexts: ["ascenseur"] as UsageContext[],
     textureUrl: "",
     isActive: true,
+    selectedCatalogIds: [] as string[],
   });
 
   const [categoryFormData, setCategoryFormData] = useState({
@@ -111,6 +128,7 @@ const Admin = () => {
     }
     loadDecors();
     loadCategories();
+    loadCatalogs();
     loadUsers();
     loadUserBranding();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -185,6 +203,22 @@ const Admin = () => {
       setCategories(data || []);
     } catch {
       toast.error("Erreur lors du chargement des catégories");
+    }
+  };
+
+  const loadCatalogs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("catalogs")
+        .select("id, code, label, project_type")
+        .eq("is_active", true)
+        .order("project_type")
+        .order("display_order");
+
+      if (error) throw error;
+      setCatalogOptions(data || []);
+    } catch {
+      toast.error("Erreur lors du chargement des catalogues");
     }
   };
 
@@ -365,14 +399,19 @@ const Admin = () => {
         textureUrl = await handleImageUpload(imageFile);
       }
 
+      // Auto-derive category from selected catalogs
+      const autoCategory = formData.category || "autre";
+
       const decorData = {
         name: formData.name,
         reference_code: formData.referenceCode,
-        category: formData.category.toLowerCase(),
+        category: autoCategory.toLowerCase(),
         usage_contexts: formData.usageContexts,
         texture_image_url: textureUrl,
         is_active: formData.isActive,
       };
+
+      let decorId: string;
 
       if (editingDecor) {
         const { error } = await supabase
@@ -381,14 +420,42 @@ const Admin = () => {
           .eq("id", editingDecor.id);
 
         if (error) throw error;
+        decorId = editingDecor.id;
         toast.success("Décor mis à jour avec succès");
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("decors")
-          .insert(decorData);
+          .insert(decorData)
+          .select("id")
+          .single();
 
         if (error) throw error;
+        decorId = data.id;
         toast.success("Décor créé avec succès");
+      }
+
+      // Sync catalog links
+      if (formData.selectedCatalogIds.length > 0 || editingDecor) {
+        // Delete existing links for this decor
+        await supabase
+          .from("catalog_decor_links")
+          .delete()
+          .eq("decor_id", decorId);
+
+        // Insert new links
+        if (formData.selectedCatalogIds.length > 0) {
+          const newLinks = formData.selectedCatalogIds.map((catalogId, index) => ({
+            catalog_id: catalogId,
+            decor_id: decorId,
+            display_order: index,
+          }));
+
+          const { error: linkError } = await supabase
+            .from("catalog_decor_links")
+            .insert(newLinks);
+
+          if (linkError) throw linkError;
+        }
       }
 
       setIsDialogOpen(false);
@@ -509,6 +576,7 @@ const Admin = () => {
       usageContexts: ["ascenseur"] as UsageContext[],
       textureUrl: "",
       isActive: true,
+      selectedCatalogIds: [],
     });
     setEditingDecor(null);
     setImageFile(null);
@@ -527,8 +595,15 @@ const Admin = () => {
     setUploadingImage(false);
   };
 
-  const openEditDialog = (decor: Decor) => {
+  const openEditDialog = async (decor: Decor) => {
     setEditingDecor(decor);
+    
+    // Load existing catalog links for this decor
+    const { data: links } = await supabase
+      .from("catalog_decor_links")
+      .select("catalog_id")
+      .eq("decor_id", decor.id);
+    
     setFormData({
       name: decor.name,
       referenceCode: decor.reference_code,
@@ -536,6 +611,7 @@ const Admin = () => {
       usageContexts: decor.usage_contexts as UsageContext[],
       textureUrl: decor.texture_image_url,
       isActive: decor.is_active,
+      selectedCatalogIds: links?.map(l => l.catalog_id) || [],
     });
     setIsDialogOpen(true);
   };
@@ -677,7 +753,7 @@ const Admin = () => {
                               <Input
                                 type="number"
                                 value={editQuotaValue}
-                                onChange={(e) => setEditQuotaValue(parseInt(e.target.value))}
+                                onChange={(e) => setEditQuotaValue(Number.parseInt(e.target.value))}
                                 className="w-24"
                                 min="0"
                               />
@@ -845,7 +921,43 @@ const Admin = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="category">Catégorie *</Label>
+                      <Label>Catalogues (Gammes) *</Label>
+                      <p className="text-xs text-muted-foreground">Sélectionnez les catalogues auxquels ce décor appartient</p>
+                      <div className="grid grid-cols-1 gap-2 border rounded-md p-3">
+                        {Object.entries(
+                          catalogOptions.reduce((acc, cat) => {
+                            const pt = cat.project_type;
+                            if (!acc[pt]) acc[pt] = [];
+                            acc[pt].push(cat);
+                            return acc;
+                          }, {} as Record<string, CatalogOption[]>)
+                        ).map(([projectType, cats]) => (
+                          <div key={projectType}>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">
+                              {PROJECT_TYPE_LABELS[projectType] || projectType}
+                            </p>
+                            {cats.map((cat) => (
+                              <label key={cat.id} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted cursor-pointer">
+                                <Checkbox
+                                  checked={formData.selectedCatalogIds.includes(cat.id)}
+                                  onCheckedChange={(checked) => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      selectedCatalogIds: checked
+                                        ? [...prev.selectedCatalogIds, cat.id]
+                                        : prev.selectedCatalogIds.filter(id => id !== cat.id),
+                                    }));
+                                  }}
+                                />
+                                <span className="text-sm">{cat.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Catégorie matériau</Label>
                       <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                         <SelectTrigger>
                           <SelectValue />
@@ -858,6 +970,7 @@ const Admin = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground">Utilisé par l'IA pour les règles de rendu (veinage bois, reflets métal...)</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="textureFile">Image Texture</Label>
@@ -1018,7 +1131,7 @@ const Admin = () => {
                         id="displayOrder"
                         type="number"
                         value={categoryFormData.displayOrder}
-                        onChange={(e) => setCategoryFormData({ ...categoryFormData, displayOrder: parseInt(e.target.value) })}
+                        onChange={(e) => setCategoryFormData({ ...categoryFormData, displayOrder: Number.parseInt(e.target.value) })}
                         required
                       />
                     </div>

@@ -1,23 +1,37 @@
-// DICA Decorator - Creative Chat Edge Function
-// Assistant créatif IA propriétaire avec :
-//  - Orchestration de prompt (modèle Gemini 2.5 Flash via passerelle AI Gateway
-//    compatible OpenAI Chat Completions, configurable par variables d'env).
-//  - Génération d'images (modèle Gemini 3 Pro Image Preview, appel direct à
-//    generativelanguage.googleapis.com avec la clé GOOGLE_AI_API_KEY).
-// Propriété KOREV AI — application développée pour DICA France.
+// DICA Decorator - Creative Chat Function
+// Assistant créatif IA avec génération d'images via Gemini 3 Pro Image Preview
+// Developed by KOREV AI for DICA France
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { orchestrateDicaPrompt, type OrchestratorInput } from "./orchestrator.ts";
-import {
-  assertSafeFetchUrl,
-  SsrfBlockedError,
-} from "../_shared/ssrf-guard.ts";
+import { orchestrateDicaPrompt, type OrchestratorInput, FORMAT_PRESETS } from "./orchestrator.ts";
 
-// Whitelist des hostnames autorisés pour fetch sortant (defense-in-depth SSRF).
-const ALLOWED_FETCH_HOST_SUFFIXES = [
-  "supabase.co",
-  "supabase.in",
-];
+/**
+ * Convertit une URL Supabase Storage publique d'un bucket privé
+ * en URL signée temporaire (TTL 5min) pour que l'AI gateway puisse la fetch.
+ */
+async function signPrivateStorageUrl(
+  url: string,
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+): Promise<string> {
+  if (!url) return url;
+  const match = url.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/([^?]+)/);
+  if (!match) return url;
+  const bucket = match[1];
+  const path = decodeURIComponent(match[2]);
+  if (bucket !== "project-photos" && bucket !== "render-results") return url;
+  try {
+    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 300);
+    if (error || !data?.signedUrl) {
+      console.warn("[creative-chat] createSignedUrl failed:", error?.message);
+      return url;
+    }
+    return data.signedUrl;
+  } catch (e) {
+    console.warn("[creative-chat] createSignedUrl exception:", e instanceof Error ? e.message : e);
+    return url;
+  }
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -54,27 +68,9 @@ function buildStreamingTextUrl(apiKey: string): string {
 }
 
 /**
- * Représentation minimale (best-effort) d'une réponse Gemini
- * (cf. apply-decor/index.ts pour le pattern complet).
- */
-interface GeminiResponsePart {
-  inline_data?: { data?: string; mime_type?: string };
-  inlineData?: { data?: string; mimeType?: string };
-  text?: string;
-}
-
-interface GeminiResponse {
-  candidates?: Array<{
-    content?: {
-      parts?: GeminiResponsePart[];
-    };
-  }>;
-}
-
-/**
  * Parse Gemini response for image data
  */
-function parseImageResponse(response: GeminiResponse): { imageBase64: string | null; textResponse: string | null } {
+function parseImageResponse(response: any): { imageBase64: string | null; textResponse: string | null } {
   const parts = response?.candidates?.[0]?.content?.parts || [];
   
   let imageBase64: string | null = null;
@@ -164,12 +160,96 @@ serve(async (req) => {
     console.log("Authenticated user:", user.id);
     // ========================================================================
 
-    const { messages, decorContext, sourceImageUrls, imageLabels, showReferences = false } = await req.json();
+    const { messages, decorContext: _legacyDecorContext, sourceImageUrls, imageLabels, showReferences = false } = await req.json();
     console.log('Creative chat request received');
     console.log('- Messages:', messages.length);
-    console.log('- Decor context length:', decorContext?.length || 0, 'characters');
     console.log('- Source images URLs:', sourceImageUrls?.length || 0);
     console.log('- Image labels:', imageLabels || []);
+
+    // ========================================================================
+    // BUILD STRUCTURED DECOR CONTEXT FROM CATALOGS (replaces flat frontend list)
+    // ========================================================================
+    let decorContext: string;
+    try {
+      // Fetch all active catalogs with their linked decors
+      const { data: catalogs, error: catErr } = await supabaseAdmin
+        .from("catalogs")
+        .select("id, code, label, project_type, display_order")
+        .eq("is_active", true)
+        .order("project_type")
+        .order("display_order");
+      
+      if (catErr) throw catErr;
+
+      // For each catalog, fetch linked decors
+      const catalogSections: string[] = [];
+      const allDecorRefs: string[] = [];
+      
+      for (const cat of (catalogs || [])) {
+        const { data: links } = await supabaseAdmin
+          .from("catalog_decor_links")
+          .select("decor_id, display_order")
+          .eq("catalog_id", cat.id)
+          .order("display_order");
+        
+        if (!links || links.length === 0) continue;
+        
+        const decorIds = links.map((l: any) => l.decor_id);
+        const { data: decors } = await supabaseAdmin
+          .from("decors")
+          .select("id, name, reference_code, category, texture_image_url")
+          .in("id", decorIds)
+          .eq("is_active", true);
+        
+        if (!decors || decors.length === 0) continue;
+
+        // Map for ordering
+        const orderMap = new Map(links.map((l: any) => [l.decor_id, l.display_order]));
+        const sorted = decors.sort((a: any, b: any) => (orderMap.get(a.id) || 0) - (orderMap.get(b.id) || 0));
+
+        // Map project_type to gamme label
+        const gammeLabel = ({
+          ascenseur: `🏢 GAMME ASCENSEUR - ${cat.label}`,
+          van: `🚐 GAMME ÉVASION (VAN)`,
+          terrasse: `☀️ GAMME COMPACTOP (TERRASSE)`,
+          autre: `📦 GAMME AUTRE - Tous les décors`,
+        } as Record<string, string>)[cat.project_type] || cat.label;
+
+        let section = `\n${gammeLabel} (${sorted.length} décors):\n`;
+        for (const d of sorted) {
+          section += `  • "${d.reference_code}" = ${d.name} [${d.category}]\n`;
+          allDecorRefs.push(d.reference_code);
+        }
+        catalogSections.push(section);
+      }
+
+      decorContext = `════════════════════════════════════════════════════════════════
+🚨 CATALOGUE DICA - ORGANISÉ PAR GAMME (${allDecorRefs.length} décors)
+════════════════════════════════════════════════════════════════
+
+⛔ RÈGLE ABSOLUE: UNIQUEMENT les références ci-dessous.
+⛔ INVENTER une référence = ERREUR FATALE BLOQUÉE.
+
+🔒 RÈGLES DE SÉLECTION PAR GAMME:
+- Si le client parle de VAN / évasion / fourgon → utiliser UNIQUEMENT la GAMME ÉVASION
+- Si le client parle d'ASCENSEUR / cabine / élévateur → utiliser UNIQUEMENT la GAMME ASCENSEUR
+- Si le client parle de TERRASSE / table / restaurant / café → utiliser UNIQUEMENT la GAMME COMPACTOP
+- Si le client parle d'autre chose → utiliser la GAMME AUTRE (ou toutes si vide)
+
+📋 RÉFÉRENCES PAR GAMME:
+${catalogSections.join('\n')}
+
+⛔ COPIE les références EXACTEMENT. Ne modifie PAS, n'invente PAS.
+════════════════════════════════════════════════════════════════`;
+
+      console.log(`Contexte décors structuré: ${allDecorRefs.length} décors dans ${catalogSections.length} gammes`);
+    } catch (contextErr) {
+      console.error("Error building structured decor context:", contextErr);
+      // Fallback to frontend-provided context
+      decorContext = _legacyDecorContext || "Aucun décor disponible.";
+    }
+
+    console.log('- Decor context length:', decorContext?.length || 0, 'characters');
     
     // Collect all source images (current + history)
     const allSourceImages: string[] = [...(sourceImageUrls || [])];
@@ -182,6 +262,12 @@ serve(async (req) => {
       }
     }
     console.log('- Total source images:', allSourceImages.length);
+
+    // Signer toutes les URLs venant des buckets Supabase Storage privés
+    // pour que l'AI gateway (et Gemini) puisse les télécharger
+    for (let i = 0; i < allSourceImages.length; i++) {
+      allSourceImages[i] = await signPrivateStorageUrl(allSourceImages[i], supabaseAdmin);
+    }
     
     console.log('- Decor context preview:', decorContext?.substring(0, 200));
 
@@ -190,13 +276,9 @@ serve(async (req) => {
       throw new Error("GOOGLE_AI_API_KEY is not configured");
     }
 
-    // AI Gateway (compatible OpenAI Chat Completions) used by the orchestrator.
-    // Primary env var: AI_GATEWAY_API_KEY. Fallback to LOVABLE_API_KEY for
-    // backward compatibility with previously provisioned secrets.
-    const AI_GATEWAY_API_KEY =
-      Deno.env.get("AI_GATEWAY_API_KEY") ?? Deno.env.get("LOVABLE_API_KEY");
-    if (!AI_GATEWAY_API_KEY) {
-      throw new Error("AI_GATEWAY_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     // Detect if user wants an image generation
@@ -277,7 +359,7 @@ serve(async (req) => {
         }
       };
 
-      const orchestrationResult = await orchestrateDicaPrompt(orchestratorInput, AI_GATEWAY_API_KEY);
+      const orchestrationResult = await orchestrateDicaPrompt(orchestratorInput, LOVABLE_API_KEY);
       
       console.log("📊 Orchestration result:", {
         status: orchestrationResult.status,
@@ -312,7 +394,7 @@ serve(async (req) => {
       }
 
       // ========================================================================
-      // STEP 2: IMAGE GENERATION - Use orchestrated prompt with Gemini Image
+      // STEP 2: IMAGE GENERATION - Use orchestrated prompt with Nano Banana
       // ========================================================================
       
       console.log("✅ Request validated, proceeding with image generation");
@@ -402,6 +484,17 @@ ${orchestrationResult.finalPromptForImageModel}
    - Apply EXACT texture and colors from DICA catalog - ZERO color shifts
    - Respect material properties based on the decor finish type
    - Use PAROI decors on walls/panels, SOL decors on floors
+   
+   🚫 CRITICAL - FORBIDDEN SURFACES (ALL CONTEXTS):
+   - NEVER apply DICA decor on: cushions, textiles, curtains, fabric seats, mattresses
+   - NEVER apply DICA decor on: glass, mirrors, lighting, vegetation, people, dishes
+   - DICA panels are RIGID LAMINATE surfaces: walls, cupboard doors, countertops, table tops, floors, decorative panels ONLY
+   
+   📏 CONTEXT-SPECIFIC SURFACE RULES:
+   - ELEVATOR: walls/panels + floor ONLY
+   - VAN: cupboards, storage furniture, countertops ONLY (never on cushions/textile/seats)
+   - TERRACE/COMPACTOP: table tops and kitchen countertops ONLY (never walls/floors/chairs)
+   - OTHER: walls, partitions, decorative panels, panel furniture
 
 3. SPACE FIDELITY:
    - Create exactly: ${detectedSpace.toUpperCase()}
@@ -427,6 +520,22 @@ Add DICA decor reference annotations on the image:
 ═══════════════════════════════════════════════════════════════════
 ` : ''}
 
+${orchestrationResult.recommendedFormat ? `
+═══════════════════════════════════════════════════════════════════
+📐 IMAGE FORMAT - CRITICAL
+═══════════════════════════════════════════════════════════════════
+Format: ${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.label || orchestrationResult.recommendedFormat}
+Aspect ratio: ${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio}
+Dimensions: ${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.width}x${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.height}px
+
+YOU MUST generate an image that matches this EXACT aspect ratio.
+Compose the scene to work perfectly in ${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio} format.
+${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "9:16" || FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "2:5" ? "VERTICAL composition - tall and narrow." : ""}
+${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "1.91:1" || FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "16:9" || FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "3.2:1" ? "HORIZONTAL/WIDE composition - panoramic layout." : ""}
+${FORMAT_PRESETS[orchestrationResult.recommendedFormat]?.aspectRatio === "1:1" ? "SQUARE composition - centered and balanced." : ""}
+═══════════════════════════════════════════════════════════════════
+` : ''}
+
 ✨ EXPECTED RESULT: 
 Professional architectural photography of a REAL ${detectedSpace} space featuring DICA panels.
 Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
@@ -436,220 +545,120 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       console.log("Show references:", showReferences);
       console.log("Orchestrated decor references:", orchestrationResult.decorReferences);
 
-      // Build request parts
-      type GeminiRequestPart =
-        | { text: string }
-        | { inlineData: { mimeType: string; data: string } };
-      const requestParts: GeminiRequestPart[] = [{ text: basePrompt }];
+      // Build message content parts for Lovable AI gateway
+      const contentParts: any[] = [{ type: "text", text: basePrompt }];
 
       // ======================================================================
-      // Add decor texture reference images (to prevent the model from inventing)
+      // Add decor texture URLs as image references (no base64 needed!)
       // ======================================================================
       if (orchestrationResult.decorReferences.length > 0) {
-        console.log(`Fetching ${orchestrationResult.decorReferences.length} decor texture images from database...`);
+        const limitedRefs = orchestrationResult.decorReferences.slice(0, 2);
+        console.log(`Adding ${limitedRefs.length} decor texture URLs...`);
 
-        // Shape minimal projeté par le SELECT — l'inférence `{}` est due
-        // à l'absence de Supabase typegen pour les Edge Functions
-        // (cf. docs/PLAN_CORRECTION_RISQUES_DECOTE.md §P2). Cast explicite
-        // car le SELECT garantit la projection.
-        interface DecorTextureRow {
-          reference_code: string;
-          name: string;
-          texture_image_url: string | null;
-        }
-        const { data: rawDecorRows, error: decorErr } = await supabaseAdmin
+        const { data: decorRows, error: decorErr } = await supabaseAdmin
           .from("decors")
           .select("reference_code,name,texture_image_url")
-          .in("reference_code", orchestrationResult.decorReferences)
+          .in("reference_code", limitedRefs)
           .eq("is_active", true);
-        const decorRows = (rawDecorRows ?? []) as unknown as DecorTextureRow[];
 
         if (decorErr) {
           console.error("Error fetching decors:", decorErr);
-          throw new Error("Impossible de récupérer les textures des décors");
         }
 
         const byRef = new Map(
-          (decorRows || []).map((d) => [d.reference_code, d] as const)
+          (decorRows || []).map((d: any) => [d.reference_code, d] as const)
         );
 
-         const requestOrigin = req.headers.get("origin")
-           ?? (req.headers.get("referer") ? new URL(req.headers.get("referer")!).origin : null);
-
-         for (const ref of orchestrationResult.decorReferences) {
-           const row = byRef.get(ref);
-           if (!row?.texture_image_url) {
-             console.warn("Missing texture_image_url for decor (skipping texture grounding):", ref);
-             continue;
-           }
-
-           // Accept relative URLs by resolving them against the request origin when possible.
-           // Also properly encode URLs with spaces
-           let resolvedTextureUrl: string | null = null;
-           
-           if (row.texture_image_url.startsWith("http")) {
-             resolvedTextureUrl = row.texture_image_url;
-           } else if (requestOrigin) {
-             // Encode spaces and special characters in the path
-             const encodedPath = row.texture_image_url.includes('%') 
-               ? row.texture_image_url // Already encoded
-               : row.texture_image_url.split('/').map((part: string) => encodeURIComponent(part)).join('/').replace(/%2F/g, '/');
-             resolvedTextureUrl = new URL(encodedPath, requestOrigin).toString();
-           }
-
-           if (!resolvedTextureUrl) {
-             console.warn(
-               "Non-absolute texture_image_url without origin (skipping texture grounding):",
-               ref,
-               row.texture_image_url,
-             );
-             continue;
-           }
-
-           try {
-             const label = row.name || ref;
-             try {
-               assertSafeFetchUrl(resolvedTextureUrl, {
-                 allowedHostSuffixes: ALLOWED_FETCH_HOST_SUFFIXES,
-               });
-             } catch (ssrfErr) {
-               if (ssrfErr instanceof SsrfBlockedError) {
-                 console.warn(
-                   "Decor texture URL blocked by SSRF guard:",
-                   ssrfErr.message,
-                 );
-                 continue;
-               }
-               throw ssrfErr;
-             }
-             console.log(`Fetching decor texture (${label}):`, resolvedTextureUrl);
-             const imageResponse = await fetch(resolvedTextureUrl);
-             if (!imageResponse.ok) {
-               console.error("Failed fetching decor texture", ref, "status", imageResponse.status);
-               continue;
-             }
-
-             const arrayBuffer = await imageResponse.arrayBuffer();
-             const bytes = new Uint8Array(arrayBuffer);
-             let binary = "";
-             for (let i = 0; i < bytes.byteLength; i++) {
-               binary += String.fromCharCode(bytes[i]);
-             }
-             const imageBase64 = btoa(binary);
-             const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
-
-             requestParts.push({
-               inlineData: {
-                 mimeType: imageMimeType,
-                 data: imageBase64,
-               },
-             });
-             console.log(`✓ Decor texture added (${ref})`);
-           } catch (e) {
-             console.error("Error fetching decor texture", ref, e);
-           }
-         }
-      }
-
-      // ======================================================================
-      // Add ALL source images (space photos, inspiration, etc.)
-      // ======================================================================
-      if (allSourceImages.length > 0) {
-        console.log(`Fetching ${allSourceImages.length} source images for Gemini...`);
-
-        for (let i = 0; i < allSourceImages.length; i++) {
-          const imageUrl = allSourceImages[i];
-          const label = allImageLabels[i] || `Image ${i + 1}`;
-
-          try {
-            try {
-              assertSafeFetchUrl(imageUrl, {
-                allowedHostSuffixes: ALLOWED_FETCH_HOST_SUFFIXES,
-              });
-            } catch (ssrfErr) {
-              if (ssrfErr instanceof SsrfBlockedError) {
-                console.warn(
-                  `Source image URL blocked by SSRF guard (${label}):`,
-                  ssrfErr.message,
-                );
-                continue;
-              }
-              throw ssrfErr;
+        for (const ref of limitedRefs) {
+          const row = byRef.get(ref);
+          if (!row?.texture_image_url) continue;
+          
+          let resolvedUrl = row.texture_image_url;
+          if (!resolvedUrl.startsWith("http")) {
+            const requestOrigin = req.headers.get("origin")
+              ?? (req.headers.get("referer") ? new URL(req.headers.get("referer")!).origin : null);
+            if (requestOrigin) {
+              resolvedUrl = new URL(resolvedUrl, requestOrigin).toString();
+            } else {
+              continue;
             }
-            console.log(`Fetching image ${i + 1} (${label}):`, imageUrl);
-            const imageResponse = await fetch(imageUrl);
-            if (imageResponse.ok) {
-              const arrayBuffer = await imageResponse.arrayBuffer();
-              const bytes = new Uint8Array(arrayBuffer);
-              let binary = "";
-              for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-              }
-              const imageBase64 = btoa(binary);
-              const imageMimeType = imageResponse.headers.get("content-type") ?? "image/jpeg";
-
-              requestParts.push({
-                inlineData: {
-                  mimeType: imageMimeType,
-                  data: imageBase64,
-                },
-              });
-              console.log(`✓ Image ${i + 1} (${label}) added to request`);
-            }
-          } catch (e) {
-            console.error(`Error fetching image ${i + 1} (${label}):`, e);
           }
+          
+          contentParts.push({
+            type: "image_url",
+            image_url: { url: resolvedUrl }
+          });
+          console.log(`✓ Decor texture URL added (${ref})`);
         }
       }
 
-      console.log(
-        `Sending request with ${orchestrationResult.decorReferences.length} decor textures + ${allSourceImages.length} source images`
-      );
+      // ======================================================================
+      // Add source image URLs
+      // ======================================================================
+      if (allSourceImages.length > 0) {
+        console.log(`Adding ${allSourceImages.length} source image URLs...`);
+        for (let i = 0; i < allSourceImages.length; i++) {
+          const label = allImageLabels[i] || `Image ${i + 1}`;
+          contentParts.push({
+            type: "image_url",
+            image_url: { url: allSourceImages[i] }
+          });
+          console.log(`✓ Source image URL added (${label})`);
+        }
+      }
 
-      // Call Gemini API for image generation
-      const geminiUrl = buildImageGenerationUrl(GOOGLE_AI_API_KEY);
-      
-      const response = await fetch(geminiUrl, {
+      console.log(`Sending request via Lovable AI gateway with ${contentParts.length - 1} images`);
+
+      // Call Lovable AI gateway for image generation
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contents: [
+          model: "google/gemini-3-pro-image-preview",
+          messages: [
             {
               role: "user",
-              parts: requestParts,
+              content: contentParts,
             },
           ],
-          generationConfig: {
-            responseModalities: GEMINI_CONFIG.imageResponseModalities,
-            // Configuration image 4K haute qualité
-            imageConfig: {
-              imageSize: "4K",        // Résolution 4K (4096px minimum)
-              aspectRatio: "16:9",    // Format paysage professionnel
-            },
-          },
+          modalities: ["image", "text"],
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Google AI error:", response.status, errorText);
+        console.error("Lovable AI gateway error:", response.status, errorText);
+        if (response.status === 429) {
+          throw new Error("Limite de requêtes atteinte, veuillez réessayer plus tard.");
+        }
+        if (response.status === 402) {
+          throw new Error("Crédits insuffisants. Veuillez recharger votre compte.");
+        }
         throw new Error(getErrorMessage(response.status));
       }
 
       const data = await response.json();
-      console.log("Gemini response received");
+      console.log("Lovable AI gateway response received");
+      console.log("Response keys:", JSON.stringify(Object.keys(data)));
+      console.log("Choice message keys:", JSON.stringify(data.choices?.[0]?.message ? Object.keys(data.choices[0].message) : "no message"));
+      console.log("Images array:", JSON.stringify(data.choices?.[0]?.message?.images?.length ?? "no images field"));
+      console.log("Content length:", data.choices?.[0]?.message?.content?.length ?? 0);
       
-      // Parse response
-      const { imageBase64, textResponse } = parseImageResponse(data);
+      // Parse response from Lovable AI gateway format
+      const choice = data.choices?.[0]?.message;
+      const imageUrl = choice?.images?.[0]?.image_url?.url || null;
+      const text = choice?.content || "Voici votre visualisation :";
       
-      const imageUrl = imageBase64 ? `data:image/png;base64,${imageBase64}` : null;
-      const text = textResponse || "Voici votre visualisation :";
+      if (!imageUrl) {
+        console.warn("⚠️ No image in response! Full response structure:", JSON.stringify(data).substring(0, 2000));
+      }
 
       // Build decor references for frontend display
       const decorReferences = showReferences && orchestrationResult.decorReferences.length > 0 
-        ? orchestrationResult.decorReferences.map((ref, idx) => ({
+        ? orchestrationResult.decorReferences.map((ref: string, idx: number) => ({
             reference: ref,
             label: orchestrationResult.decorLabels?.[idx] || ref,
           }))
@@ -657,12 +666,25 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
 
       console.log("Returning image response with decor references:", decorReferences);
 
+      const formatInfo = orchestrationResult.recommendedFormat 
+        ? FORMAT_PRESETS[orchestrationResult.recommendedFormat] 
+        : null;
+
       return new Response(JSON.stringify({ 
         type: "image",
         imageUrl,
-        text,
-        decorReferences, // Include decor references for frontend display
-        showReferences,  // Whether user wants to see references
+        text: formatInfo 
+          ? `${text}\n\n📐 Format: **${formatInfo.label}** (${formatInfo.width}×${formatInfo.height}px)`
+          : text,
+        decorReferences,
+        showReferences,
+        format: formatInfo ? { 
+          key: orchestrationResult.recommendedFormat, 
+          label: formatInfo.label, 
+          width: formatInfo.width, 
+          height: formatInfo.height,
+          aspectRatio: formatInfo.aspectRatio 
+        } : null,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

@@ -207,7 +207,7 @@ describe('ResellerBrochurePdfService - Personalization', () => {
       
       // Vérifier que setFont et text ont été appelés avec le nom du revendeur
       const textCalls = mockPdf.text.mock.calls;
-      const hasResellerName = textCalls.some((call: unknown[]) => 
+      textCalls.some((call: any[]) => 
         call[0] === 'MARTIN DÉCO' || call[0]?.includes('MARTIN DÉCO')
       );
       

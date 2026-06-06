@@ -3,7 +3,7 @@
  * Support de la sélection multi-catalogue (ex: Parois + Sol pour Ascenseur)
  */
 
-import { useState, useEffect, useMemo } from "react";
+import {useState, useEffect, useMemo} from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Info, AlertTriangle, Check, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Sparkles, Info, AlertTriangle, Check, X, Search } from "lucide-react";
 import { useCatalogsWithDecors, hasConfiguredCatalogs, type ProjectType, type CatalogDecor, type Catalog } from "@/hooks/use-catalogs";
 
 // Type pour la sélection par catalogue
@@ -51,6 +52,17 @@ const projectTypeLabels: Record<ProjectType, string> = {
   terrasse: "Terrasse",
   autre: "Autre",
 };
+// Génère une URL de miniature optimisée via Supabase Storage Transform.
+// `width` = taille d'affichage CSS — multipliée par le DPR pour la netteté retina.
+// Retombe sur l'URL d'origine si le format n'est pas un bucket Supabase public.
+const getThumbUrl = (url: string, width = 200, quality = 85): string => {
+  if (!url || !url.includes('/storage/v1/object/public/')) return url;
+  const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 3) : 2;
+  const renderWidth = Math.round(width * dpr);
+  const base = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  const sep = base.includes('?') ? '&' : '?';
+  return `${base}${sep}width=${renderWidth}&quality=${quality}`;
+};
 
 export const DecorSelectorDialog = ({
   open,
@@ -70,6 +82,8 @@ export const DecorSelectorDialog = ({
 }: Readonly<DecorSelectorDialogProps>) => {
   const { catalogs, decorsByCatalog, isLoading, error } = useCatalogsWithDecors(projectType);
   const [activeTab, setActiveTab] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   // Initialiser l'onglet actif au premier catalogue avec des décors
   useEffect(() => {
@@ -94,6 +108,31 @@ export const DecorSelectorDialog = ({
 
   // Vérifier si au moins un décor est sélectionné
   const hasSelection = selectedCount > 0;
+
+  // Extraire les catégories uniques de tous les décors
+  const allCategories = useMemo(() => {
+    const cats = new Set<string>();
+    for (const decors of Object.values(decorsByCatalog)) {
+      for (const d of decors) {
+        if (d.category) cats.add(d.category);
+      }
+    }
+    return Array.from(cats).sort((a, b) => a.localeCompare(b));
+  }, [decorsByCatalog]);
+
+  // Filtrer les décors par recherche et catégorie
+  const filteredDecorsByCatalog = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    const filtered: Record<string, CatalogDecor[]> = {};
+    for (const [catalogId, decors] of Object.entries(decorsByCatalog)) {
+      filtered[catalogId] = decors.filter((d) => {
+        const matchesSearch = !q || d.name.toLowerCase().includes(q) || d.reference_code.toLowerCase().includes(q) || (d.category && d.category.toLowerCase().includes(q));
+        const matchesCategory = categoryFilter === "all" || d.category === categoryFilter;
+        return matchesSearch && matchesCategory;
+      });
+    }
+    return filtered;
+  }, [decorsByCatalog, searchQuery, categoryFilter]);
 
   // Handler pour sélectionner/désélectionner un décor dans un catalogue
   const handleSelectDecor = (catalogId: string, decor: CatalogDecor) => {
@@ -154,9 +193,11 @@ export const DecorSelectorDialog = ({
                       {selectedDecor ? (
                         <>
                           <img
-                            src={selectedDecor.texture_image_url}
+                            src={getThumbUrl(selectedDecor.texture_image_url, 40, 90)}
                             alt={selectedDecor.name}
                             className="w-10 h-10 rounded object-cover"
+                            loading="eager"
+                            decoding="async"
                           />
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-muted-foreground">{catalog.label}</p>
@@ -197,22 +238,7 @@ export const DecorSelectorDialog = ({
           </Alert>
 
           {/* Paramètres de génération */}
-          <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/30">
-            <div className="space-y-2">
-              <Label htmlFor="render-count">Nombre de rendus</Label>
-              <Select value={renderCount.toString()} onValueChange={(v) => onRenderCountChange(parseInt(v))}>
-                <SelectTrigger id="render-count">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 rendu</SelectItem>
-                  <SelectItem value="2">2 rendus</SelectItem>
-                  <SelectItem value="3">3 rendus</SelectItem>
-                  <SelectItem value="4">4 rendus</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
+           <div className="grid grid-cols-1 gap-4 p-4 border rounded-lg bg-muted/30">
             <div className="space-y-2">
               <Label htmlFor="render-format">Format / Taille</Label>
               <Select value={renderFormat} onValueChange={(v) => onRenderFormatChange(v as DecorSelectorDialogProps["renderFormat"])}>
@@ -282,17 +308,56 @@ export const DecorSelectorDialog = ({
 
           {/* Affichage des catalogues avec tabs */}
           {!isLoading && !error && hasCatalogs && catalogs.length > 0 && (
+            <div className="space-y-4">
+              {/* Barre de recherche */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher par nom, référence ou matière..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {allCategories.length > 1 && (
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Matière" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes matières</SelectItem>
+                      {allCategories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className={`grid w-full h-auto ${getCatalogsGridColsClass(catalogs.length)}`}>
                 {catalogs.map((catalog) => {
-                  const decorsCount = decorsByCatalog[catalog.id]?.length || 0;
+                  const decorsCount = filteredDecorsByCatalog[catalog.id]?.length || 0;
                   const isSelected = !!decorSelection[catalog.id];
                   return (
                     <TabsTrigger 
                       key={catalog.id} 
                       value={catalog.id} 
                       className="py-3 relative"
-                      disabled={decorsCount === 0}
+                      disabled={decorsCount === 0 && !searchQuery}
                     >
                       {isSelected && (
                         <Check className="h-4 w-4 mr-1 text-primary" />
@@ -310,7 +375,7 @@ export const DecorSelectorDialog = ({
               </TabsList>
 
               {catalogs.map((catalog) => {
-                const decors = decorsByCatalog[catalog.id] || [];
+                const decors = filteredDecorsByCatalog[catalog.id] || [];
                 const selectedDecorInCatalog = decorSelection[catalog.id];
                 
                 return (
@@ -319,13 +384,8 @@ export const DecorSelectorDialog = ({
                       {decors.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                           <p className="text-lg text-muted-foreground">
-                            Aucun décor dans ce catalogue
+                            {searchQuery ? `Aucun décor trouvé pour "${searchQuery}"` : "Aucun décor dans ce catalogue"}
                           </p>
-                          {catalog.description && (
-                            <p className="text-sm text-muted-foreground mt-2">
-                              {catalog.description}
-                            </p>
-                          )}
                         </div>
                       ) : (
                         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -349,9 +409,13 @@ export const DecorSelectorDialog = ({
                                       </div>
                                     )}
                                     <img
-                                      src={decor.texture_image_url}
+                                      src={getThumbUrl(decor.texture_image_url, 220, 88)}
                                       alt={decor.name}
                                       className="h-24 w-full object-cover transition-transform hover:scale-105"
+                                      loading="lazy"
+                                      decoding="async"
+                                      width={200}
+                                      height={96}
                                     />
                                   </div>
                                   <h3 className="font-medium text-xs leading-tight mb-0.5 truncate">
@@ -371,6 +435,7 @@ export const DecorSelectorDialog = ({
                 );
               })}
             </Tabs>
+            </div>
           )}
         </div>
 

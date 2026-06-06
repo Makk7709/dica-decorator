@@ -12,13 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  QuotaService,
-  QuotaExhaustedError,
-  type QuotaStatus,
-  type UsageReport,
-  type QuotaConfig,
-} from '../quota.service';
+import {QuotaService, QuotaExhaustedError, type QuotaConfig} from '../quota.service';
 import { createMockSupabaseClient } from '@/test/test-utils';
 
 describe('QuotaService', () => {
