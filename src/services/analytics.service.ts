@@ -52,7 +52,7 @@ export interface TopItem {
   value: number;
   code?: string;
   email?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface UsageByPeriod {
@@ -145,12 +145,12 @@ const DICA_COLORS = [
 
 export class AnalyticsService {
   private config: AnalyticsConfig;
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
-  private mockData: any = {};
+  private cache: Map<string, { data: unknown; timestamp: number }> = new Map();
+  private mockData: Record<string, unknown> = {};
   private mockTrends: Map<string, TrendDataPoint[]> = new Map();
   private mockTopItems: Map<string, TopItem[]> = new Map();
   private mockUsage: UsageByPeriod[] = [];
-  private mockComparison: any = null;
+  private mockComparison: unknown = null;
   private errorListeners: Array<(error: AnalyticsError) => void> = [];
 
   constructor() {
@@ -180,7 +180,7 @@ export class AnalyticsService {
   // Mock Data Methods (for testing)
   // --------------------------------------------------------------------------
 
-  setMockData(data: any): void {
+  setMockData(data: Record<string, unknown>): void {
     this.mockData = data;
   }
 
@@ -196,7 +196,7 @@ export class AnalyticsService {
     this.mockUsage = usage;
   }
 
-  setMockComparison(comparison: any): void {
+  setMockComparison(comparison: unknown): void {
     this.mockComparison = comparison;
   }
 
@@ -469,22 +469,22 @@ export class AnalyticsService {
   // Cache Methods
   // --------------------------------------------------------------------------
 
-  private getFromCache(key: string): any | null {
+  private getFromCache<T = unknown>(key: string): T | null {
     if (!this.config.enableCaching) return null;
-    
+
     const cached = this.cache.get(key);
     if (!cached) return null;
-    
+
     const age = (Date.now() - cached.timestamp) / 1000;
     if (age > this.config.cacheDuration) {
       this.cache.delete(key);
       return null;
     }
-    
-    return cached.data;
+
+    return cached.data as T;
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: unknown): void {
     if (!this.config.enableCaching) return;
     this.cache.set(key, { data, timestamp: Date.now() });
   }

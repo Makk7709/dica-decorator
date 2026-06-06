@@ -95,7 +95,7 @@ const Presentation: React.FC = () => {
           photos: photos?.map(p => ({
             id: p.id,
             original_image_url: p.original_image_url,
-            renders: (p.render_results || []).map((r: any) => ({
+            renders: (p.render_results || []).map((r: { id: string; result_image_url: string; decor: unknown }) => ({
               id: r.id,
               result_image_url: r.result_image_url,
               decor: r.decor,

@@ -92,8 +92,7 @@ describe('ImageExportService - Tests stricts de téléchargement', () => {
     document.body.removeChild = mockRemoveChild;
 
     // Mock Image
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).Image = MockImage;
+    (globalThis as unknown as { Image: typeof MockImage }).Image = MockImage;
   });
 
   afterEach(() => {

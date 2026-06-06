@@ -47,14 +47,14 @@ export interface ImagePair {
     decorName?: string;
     decorCode?: string;
     projectId?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ClipPaths {

@@ -37,7 +37,7 @@ export interface ShareLinkData {
   isPasswordProtected: boolean;
   passwordHash?: string;
   permissions: ShareLinkPermissions;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   viewCount: number;
   revokedAt?: Date;
   revokedBy?: string;
@@ -57,7 +57,7 @@ export interface CreateShareLinkInput {
   expirationPreset?: ExpirationPreset;
   password?: string;
   permissions?: Partial<ShareLinkPermissions>;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AccessLogInput {

@@ -32,8 +32,8 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 describe('ProjectRenameService', () => {
   let service: ProjectRenameService;
-  let mockFrom: any;
-  let mockAuth: any;
+  let mockFrom: ReturnType<typeof vi.fn>;
+  let mockAuth: { getUser: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     service = ProjectRenameService.getInstance();
@@ -41,9 +41,9 @@ describe('ProjectRenameService', () => {
     mockAuth = {
       getUser: vi.fn(),
     };
-    
-    (supabase.from as any) = mockFrom;
-    (supabase.auth as any) = mockAuth;
+
+    (supabase as unknown as { from: typeof mockFrom; auth: typeof mockAuth }).from = mockFrom;
+    (supabase as unknown as { from: typeof mockFrom; auth: typeof mockAuth }).auth = mockAuth;
     
     vi.clearAllMocks();
   });

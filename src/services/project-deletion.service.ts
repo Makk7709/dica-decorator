@@ -8,6 +8,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { getErrorMessage } from '@/lib/utils';
 
 // ============================================================================
 // Types
@@ -37,7 +38,7 @@ export class ProjectDeletionError extends Error {
   constructor(
     message: string,
     public code: 'NOT_AUTHENTICATED' | 'UNAUTHORIZED' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'DELETION_ERROR' | 'NETWORK_ERROR',
-    public details?: Record<string, any>
+    public details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'ProjectDeletionError';
@@ -147,14 +148,14 @@ export class ProjectDeletionService {
         projectTitle: project.title,
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isValid: false,
         isOwner: false,
         error: new ProjectDeletionError(
-          `Validation error: ${error.message}`,
+          `Validation error: ${getErrorMessage(error)}`,
           'VALIDATION_ERROR',
-          { originalError: error.message }
+          { originalError: getErrorMessage(error) }
         ),
       };
     }
@@ -202,7 +203,7 @@ export class ProjectDeletionService {
         totalItemsToDelete: photosCount + rendersCount,
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error getting deletion stats:', error);
       return {
         photosCount: 0,
@@ -277,15 +278,15 @@ export class ProjectDeletionService {
         deletedStats: stats,
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Unexpected error during project deletion:', error);
       
       return {
         success: false,
         error: new ProjectDeletionError(
-          `Unexpected error: ${error.message}`,
+          `Unexpected error: ${getErrorMessage(error)}`,
           'NETWORK_ERROR',
-          { originalError: error.message }
+          { originalError: getErrorMessage(error) }
         ),
       };
     }

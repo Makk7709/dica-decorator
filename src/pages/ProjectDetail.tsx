@@ -18,6 +18,7 @@ import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-b
 import { SafeImage } from "@/components/ui/safe-image";
 import { DecorSelectorDialog, type DecorSelection } from "@/components/decor-selector";
 import { type CatalogDecor, type ProjectType, type Catalog } from "@/hooks/use-catalogs";
+import { getErrorMessage } from "@/lib/utils";
 
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
 import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
@@ -154,7 +155,7 @@ const ProjectDetail = () => {
       } else {
         console.error("[Branding] Error loading profile:", error);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Branding] Error loading user profile:", error);
     }
   };
@@ -172,7 +173,7 @@ const ProjectDetail = () => {
       
       const favoriteIds = new Set(data?.map(f => f.render_result_id) || []);
       setFavoriteRenderIds(favoriteIds);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error loading favorites:", error);
     }
   };
@@ -230,9 +231,9 @@ const ProjectDetail = () => {
         setFavoriteRenderIds(prev => new Set(prev).add(renderId));
         toast.success("Ajouté aux favoris");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Favorites] Error toggling favorite:", error);
-      toast.error(`Erreur: ${error.message || "Mise à jour des favoris"}`);
+      toast.error(`Erreur: ${getErrorMessage(error, "Mise à jour des favoris")}`);
     }
   };
 
@@ -313,7 +314,7 @@ const ProjectDetail = () => {
         setCreativeImports([]);
         setIsLoadingRenders(false);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("[Load] Erreur:", error);
       setIsLoadingRenders(false);
       toast.error("Erreur lors du chargement du projet");
@@ -331,7 +332,7 @@ const ProjectDetail = () => {
 
       if (error) throw error;
       setDecors(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erreur lors du chargement des décors");
     }
   };
@@ -394,7 +395,7 @@ const ProjectDetail = () => {
 
       toast.success(`Photo ajoutée (${formatFileSize(compressedSize)}, -${compressionRatio}%)`);
       loadProject();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erreur upload:", error);
       toast.error("Erreur lors de l'upload de la photo");
     } finally {
@@ -452,8 +453,8 @@ const ProjectDetail = () => {
       // Small delay to ensure database has propagated the new render
       await new Promise(resolve => setTimeout(resolve, 500));
       await loadProject();
-    } catch (error: any) {
-      toast.error(error.message || "Erreur lors de la génération du rendu");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Erreur lors de la génération du rendu"));
     } finally {
       setIsGenerating(false);
     }
@@ -510,8 +511,8 @@ const ProjectDetail = () => {
       // Small delay to ensure database has propagated the new render
       await new Promise(resolve => setTimeout(resolve, 500));
       await loadProject();
-    } catch (error: any) {
-      toast.error(error.message || "Erreur lors de la régénération");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Erreur lors de la régénération"));
     } finally {
       setIsGenerating(false);
     }
@@ -578,7 +579,7 @@ const ProjectDetail = () => {
       
       console.log(`[Delete] Render ${renderId} supprimé avec succès`);
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 🔄 ROLLBACK : Restaurer l'état précédent en cas d'erreur
       console.error("Erreur suppression, rollback:", error);
       
@@ -586,7 +587,7 @@ const ProjectDetail = () => {
       setRenders(previousRenders);
       setFavoriteRenderIds(previousFavorites);
       
-      toast.error(`Échec de la suppression: ${error.message}`);
+      toast.error(`Échec de la suppression: ${getErrorMessage(error)}`);
     }
   };
 
@@ -610,7 +611,7 @@ const ProjectDetail = () => {
 
       toast.success("Photo supprimée");
       loadProject();
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erreur lors de la suppression de la photo");
     }
   };
@@ -693,7 +694,7 @@ const ProjectDetail = () => {
                   project={{
                     id: project.id,
                     name: project.title,
-                    type: (project.use_case as any) || 'autre',
+                    type: (project.use_case as ProjectType) || 'autre',
                     clientName: project.client_reference || undefined,
                     createdAt: new Date(),
                   }}
@@ -750,7 +751,7 @@ const ProjectDetail = () => {
                     project={{
                       id: project.id,
                       name: project.title,
-                      type: (project.use_case as any) || 'autre',
+                      type: (project.use_case as ProjectType) || 'autre',
                       clientName: project.client_reference || undefined,
                       createdAt: new Date(),
                     }}

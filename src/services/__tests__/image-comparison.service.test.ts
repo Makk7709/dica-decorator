@@ -424,7 +424,7 @@ describe('ImageComparisonService', () => {
         height: 600,
       };
       
-      service.handleMouseMove(mockEvent as any, containerRect);
+      service.handleMouseMove(mockEvent as never, containerRect);
       
       expect(service.getState().position).toBe(50);
     });
@@ -444,7 +444,7 @@ describe('ImageComparisonService', () => {
       };
       
       service.setPosition(25);
-      service.handleMouseMove(mockEvent as any, containerRect);
+      service.handleMouseMove(mockEvent as never, containerRect);
       
       expect(service.getState().position).toBe(25);
     });
@@ -465,7 +465,7 @@ describe('ImageComparisonService', () => {
         height: 600,
       };
       
-      service.handleTouchMove(mockTouchEvent as any, containerRect);
+      service.handleTouchMove(mockTouchEvent as never, containerRect);
       
       expect(service.getState().position).toBe(75);
     });
@@ -487,7 +487,7 @@ describe('ImageComparisonService', () => {
       };
       
       service.setPosition(25);
-      service.handleTouchMove(mockTouchEvent as any, containerRect);
+      service.handleTouchMove(mockTouchEvent as never, containerRect);
       
       expect(service.getState().position).toBe(25);
     });
@@ -496,10 +496,10 @@ describe('ImageComparisonService', () => {
       service.configure({ enableKeyboard: true });
       service.setPosition(50);
       
-      service.handleKeyDown({ key: 'ArrowRight', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'ArrowRight', preventDefault: vi.fn() } as never);
       expect(service.getState().position).toBe(51);
       
-      service.handleKeyDown({ key: 'ArrowLeft', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'ArrowLeft', preventDefault: vi.fn() } as never);
       expect(service.getState().position).toBe(50);
     });
 
@@ -507,10 +507,10 @@ describe('ImageComparisonService', () => {
       service.configure({ enableKeyboard: true, orientation: 'vertical' });
       service.setPosition(50);
       
-      service.handleKeyDown({ key: 'ArrowDown', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'ArrowDown', preventDefault: vi.fn() } as never);
       expect(service.getState().position).toBe(51);
       
-      service.handleKeyDown({ key: 'ArrowUp', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'ArrowUp', preventDefault: vi.fn() } as never);
       expect(service.getState().position).toBe(50);
     });
 
@@ -518,10 +518,10 @@ describe('ImageComparisonService', () => {
       service.configure({ enableKeyboard: true });
       service.setPosition(50);
       
-      service.handleKeyDown({ key: 'PageUp', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'PageUp', preventDefault: vi.fn() } as never);
       expect(service.getState().position).toBe(40);
       
-      service.handleKeyDown({ key: 'PageDown', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'PageDown', preventDefault: vi.fn() } as never);
       expect(service.getState().position).toBe(50);
     });
 
@@ -529,10 +529,10 @@ describe('ImageComparisonService', () => {
       service.configure({ enableKeyboard: true });
       service.setPosition(50);
       
-      service.handleKeyDown({ key: 'Home', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'Home', preventDefault: vi.fn() } as never);
       expect(service.getState().position).toBe(0);
       
-      service.handleKeyDown({ key: 'End', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'End', preventDefault: vi.fn() } as never);
       expect(service.getState().position).toBe(100);
     });
 
@@ -540,7 +540,7 @@ describe('ImageComparisonService', () => {
       service.configure({ enableKeyboard: false });
       service.setPosition(50);
       
-      service.handleKeyDown({ key: 'ArrowRight', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'ArrowRight', preventDefault: vi.fn() } as never);
       expect(service.getState().position).toBe(50);
     });
   });

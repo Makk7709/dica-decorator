@@ -168,7 +168,25 @@ export class FavoritesService {
       }
 
       // Formater les données
-      const favorites: FavoriteRender[] = (data || []).map((fav: any) => {
+      type FavoriteRow = {
+        id: string;
+        user_id: string;
+        render_result_id: string;
+        created_at: string;
+        render_results: {
+          id: string;
+          result_image_url: string;
+          created_at: string;
+          decor_id?: string;
+          project_photos?: {
+            id: string;
+            project_id?: string;
+            projects?: { id: string; title: string } | null;
+          } | null;
+          [key: string]: unknown;
+        };
+      };
+      const favorites: FavoriteRender[] = ((data || []) as FavoriteRow[]).map((fav) => {
         const render = fav.render_results;
         const photo = render.project_photos;
         const project = photo?.projects;

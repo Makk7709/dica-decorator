@@ -37,7 +37,7 @@ describe('AuthGuardService', () => {
 
   beforeEach(() => {
     mockSupabase = createMockSupabaseClient();
-    service = new AuthGuardService(mockSupabase as any, defaultConfig);
+    service = new AuthGuardService(mockSupabase as never, defaultConfig);
     vi.useFakeTimers();
   });
 

@@ -42,7 +42,8 @@ const NewProject = () => {
 
       toast.success("Projet créé avec succès !");
       navigate(`/project/${data.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Project creation error:", error);
       toast.error("Erreur lors de la création du projet");
     } finally {
       setIsLoading(false);
@@ -91,7 +92,7 @@ const NewProject = () => {
                 <Label htmlFor="useCase">Type d'application *</Label>
                 <Select
                   value={formData.useCase}
-                  onValueChange={(value: any) => setFormData({ ...formData, useCase: value })}
+                  onValueChange={(value) => setFormData({ ...formData, useCase: value as typeof formData.useCase })}
                 >
                   <SelectTrigger>
                     <SelectValue />

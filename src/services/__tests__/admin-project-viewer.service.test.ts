@@ -8,8 +8,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { 
-  AdminProjectViewerService, 
+import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  AdminProjectViewerService,
   createAdminProjectViewerService,
   UserProjectSummary,
   UserProjectDetails,
@@ -31,7 +32,7 @@ const mockSupabaseClient = {
   },
 };
 
-const createMockQueryBuilder = (data: any = null, error: any = null) => ({
+const createMockQueryBuilder = (data: unknown = null, error: unknown = null) => ({
   select: vi.fn().mockReturnThis(),
   eq: vi.fn().mockReturnThis(),
   in: vi.fn().mockReturnThis(),
@@ -143,7 +144,7 @@ describe('AdminProjectViewerService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = createAdminProjectViewerService(mockSupabaseClient as any);
+    service = createAdminProjectViewerService(mockSupabaseClient as unknown as SupabaseClient);
   });
 
   afterEach(() => {
@@ -185,7 +186,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should allow access for admin users', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -240,7 +241,7 @@ describe('AdminProjectViewerService', () => {
   describe('getUserProjects', () => {
     it('should return user summary with project list', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -291,7 +292,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should throw UserNotFoundError if target user does not exist', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -314,7 +315,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should return empty projects array for user with no projects', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -344,7 +345,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should order projects by creation date descending', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -380,7 +381,7 @@ describe('AdminProjectViewerService', () => {
   describe('getProjectDetails', () => {
     it('should return full project details with photos and renders', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -442,7 +443,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should throw ProjectNotFoundError if project does not exist', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -465,7 +466,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should include creative AI imports (renders without decor_id)', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -509,7 +510,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should handle project with no photos', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -602,7 +603,7 @@ describe('AdminProjectViewerService', () => {
   describe('Data Formatting', () => {
     it('should format user full name correctly', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -632,7 +633,7 @@ describe('AdminProjectViewerService', () => {
     it('should use email as fallback when name is missing', async () => {
       // Arrange
       const userWithoutName = { ...mockTargetUserProfile, first_name: null, last_name: null };
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -661,7 +662,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should convert date strings to Date objects', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -691,7 +692,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should map use_case to useCase camelCase', async () => {
       // Arrange
-      const mockFromCalls: Record<string, any> = {
+      const mockFromCalls: Record<string, unknown> = {
         user_roles: {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
@@ -727,7 +728,7 @@ describe('AdminProjectViewerService', () => {
   describe('createAdminProjectViewerService', () => {
     it('should create a valid service instance', () => {
       // Act
-      const service = createAdminProjectViewerService(mockSupabaseClient as any);
+      const service = createAdminProjectViewerService(mockSupabaseClient as unknown as SupabaseClient);
 
       // Assert
       expect(service).toBeInstanceOf(AdminProjectViewerService);
@@ -735,7 +736,7 @@ describe('AdminProjectViewerService', () => {
 
     it('should accept supabase client', () => {
       // Act & Assert
-      expect(() => createAdminProjectViewerService(mockSupabaseClient as any)).not.toThrow();
+      expect(() => createAdminProjectViewerService(mockSupabaseClient as unknown as SupabaseClient)).not.toThrow();
     });
   });
 });

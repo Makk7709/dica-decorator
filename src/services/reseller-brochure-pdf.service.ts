@@ -10,13 +10,14 @@
 
 import jsPDF from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
-import type { ResellerBranding } from '@/types/plaquette.types';
+import type { ResellerBranding, PlaquetteImage } from '@/types/plaquette.types';
 import type { 
   MagazineDecoOptions, 
   MagazineDecoResult, 
   MagazineAICaption 
 } from '@/types/magazine-deco.types';
 import { MAGAZINE_DECO_CONFIG } from '@/types/magazine-deco.types';
+import { getErrorMessage } from '@/lib/utils';
 
 // Extended options with reseller branding and client customization
 export interface ResellerBrochureOptions extends MagazineDecoOptions {
@@ -215,11 +216,11 @@ export class ResellerBrochurePdfService {
         aiCaptions: coverCaptions
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ Brochure Revendeur generation error:", error);
       return {
         success: false,
-        error: error.message || "Unknown error"
+        error: getErrorMessage(error, "Unknown error")
       };
     }
   }
@@ -762,7 +763,7 @@ export class ResellerBrochurePdfService {
     };
   }
 
-  private async loadImagesWithBase64(images: any[]): Promise<LoadedImage[]> {
+  private async loadImagesWithBase64(images: PlaquetteImage[]): Promise<LoadedImage[]> {
     const promises = images.map(async (img) => {
       const response = await fetch(img.url);
       if (!response.ok) throw new Error(`Failed to load image: ${response.status}`);

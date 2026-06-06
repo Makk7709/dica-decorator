@@ -427,7 +427,7 @@ export class OrganizationService {
       throw new Error(`Failed to get user organizations: ${error.message}`);
     }
 
-    return (data as any) || [];
+    return (data as Array<{ organization: Organization; role: string }>) || [];
   }
 
   /**

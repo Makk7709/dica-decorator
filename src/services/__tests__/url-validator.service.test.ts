@@ -318,17 +318,17 @@ describe('UrlValidatorService', () => {
     });
 
     it('should reject null values', () => {
-      expect(() => service.validateUrl(null as any))
+      expect(() => service.validateUrl(null as never))
         .toThrow(InvalidUrlError);
     });
 
     it('should reject undefined values', () => {
-      expect(() => service.validateUrl(undefined as any))
+      expect(() => service.validateUrl(undefined as never))
         .toThrow(InvalidUrlError);
     });
 
     it('should reject non-string values', () => {
-      expect(() => service.validateUrl(123 as any))
+      expect(() => service.validateUrl(123 as never))
         .toThrow(InvalidUrlError);
     });
 

@@ -718,7 +718,7 @@ describe('AnalyticsService', () => {
     });
 
     it('should handle invalid metric type', () => {
-      expect(() => service.getTrend('invalid' as any, '7d'))
+      expect(() => service.getTrend('invalid' as never, '7d'))
         .toThrow(AnalyticsError);
     });
 

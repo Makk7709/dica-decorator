@@ -39,7 +39,7 @@ describe('Render Response Types', () => {
         renderIds: ['id'],
       };
       
-      expect(isValidRenderResponse(response as any)).toBe(false);
+      expect(isValidRenderResponse(response as never)).toBe(false);
     });
 
     it('should validate error response', () => {
@@ -59,7 +59,7 @@ describe('Render Response Types', () => {
         renderIds: ['id'],
       };
       
-      expect(isValidRenderResponse(response as any)).toBe(false);
+      expect(isValidRenderResponse(response as never)).toBe(false);
     });
 
     it('should validate response with multiple renders', () => {

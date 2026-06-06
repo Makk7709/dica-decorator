@@ -84,9 +84,9 @@ export interface UserProjectDetails extends UserProjectSummary {
 // ============================================================================
 
 export class AdminProjectViewerError extends Error {
-  public readonly originalError?: any;
+  public readonly originalError?: unknown;
 
-  constructor(message: string, originalError?: any) {
+  constructor(message: string, originalError?: unknown) {
     super(message);
     this.name = 'AdminProjectViewerError';
     this.originalError = originalError;
@@ -187,7 +187,15 @@ export class AdminProjectViewerService {
       createdAt: new Date(profileData.created_at),
     };
 
-    const projects: ProjectSummary[] = (projectsData || []).map((p: any) => ({
+    type ProjectRow = {
+      id: string;
+      title: string;
+      use_case: string;
+      client_reference: string | null;
+      created_at: string;
+      updated_at: string;
+    };
+    const projects: ProjectSummary[] = ((projectsData || []) as ProjectRow[]).map((p) => ({
       id: p.id,
       title: p.title,
       useCase: p.use_case,
@@ -251,7 +259,9 @@ export class AdminProjectViewerService {
     }
 
     // 4. Récupérer les rendus pour toutes les photos
-    const photoIds = photosData.map((p: any) => p.id);
+    type PhotoRow = { id: string; original_image_url: string; created_at: string };
+    const typedPhotosData = photosData as PhotoRow[];
+    const photoIds = typedPhotosData.map((p) => p.id);
     
     const { data: rendersData, error: rendersError } = await this.supabase
       .from('render_results')
@@ -264,9 +274,17 @@ export class AdminProjectViewerService {
     }
 
     // 5. Récupérer les décors utilisés
-    const decorIds = (rendersData || [])
-      .filter((r: any) => r.decor_id)
-      .map((r: any) => r.decor_id);
+    type RenderRow = {
+      id: string;
+      project_photo_id: string;
+      result_image_url: string;
+      decor_id: string | null;
+      created_at: string;
+    };
+    const typedRendersData = (rendersData || []) as RenderRow[];
+    const decorIds = typedRendersData
+      .filter((r) => r.decor_id)
+      .map((r) => r.decor_id as string);
 
     const decorsMap: Map<string, DecorInfo> = new Map();
 
@@ -277,7 +295,8 @@ export class AdminProjectViewerService {
         .in('id', decorIds);
 
       if (!decorsError && decorsData) {
-        decorsData.forEach((d: any) => {
+        type DecorRow = { id: string; name: string; reference_code: string; category: string };
+        (decorsData as DecorRow[]).forEach((d) => {
           decorsMap.set(d.id, {
             id: d.id,
             name: d.name,
@@ -290,12 +309,12 @@ export class AdminProjectViewerService {
 
     // 6. Organiser les données par photo
     const rendersByPhoto: Map<string, RenderInfo[]> = new Map();
-    (rendersData || []).forEach((r: any) => {
+    typedRendersData.forEach((r) => {
       const photoId = r.project_photo_id;
       if (!rendersByPhoto.has(photoId)) {
         rendersByPhoto.set(photoId, []);
       }
-      
+
       const decor = r.decor_id ? decorsMap.get(r.decor_id) || null : null;
       const isCreativeImport = r.decor_id === null;
 
@@ -309,7 +328,7 @@ export class AdminProjectViewerService {
     });
 
     // 7. Construire les photos avec leurs rendus
-    const photos: PhotoWithRenders[] = photosData.map((p: any) => ({
+    const photos: PhotoWithRenders[] = typedPhotosData.map((p) => ({
       id: p.id,
       originalImageUrl: p.original_image_url,
       createdAt: new Date(p.created_at),

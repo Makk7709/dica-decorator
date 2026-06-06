@@ -32,7 +32,7 @@ describe('OrganizationService', () => {
 
   beforeEach(() => {
     mockSupabase = createMockSupabaseClient();
-    service = new OrganizationService(mockSupabase as any);
+    service = new OrganizationService(mockSupabase as never);
   });
 
   afterEach(() => {
@@ -217,8 +217,8 @@ describe('OrganizationService', () => {
 
     it('should regenerate slug if name changes and autoUpdateSlug is true', async () => {
       // Arrange
-      let capturedUpdate: any;
-      mockSupabase.from().update.mockImplementation((data: any) => {
+      let capturedUpdate: unknown;
+      mockSupabase.from().update.mockImplementation((data: unknown) => {
         capturedUpdate = data;
         return mockSupabase.from();
       });
@@ -302,7 +302,7 @@ describe('OrganizationService', () => {
       });
 
       let capturedExpiry: string | undefined;
-      mockSupabase.from().insert.mockImplementation((data: any) => {
+      mockSupabase.from().insert.mockImplementation((data: unknown) => {
         capturedExpiry = data.expires_at;
         return mockSupabase.from();
       });

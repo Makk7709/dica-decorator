@@ -22,7 +22,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { projectDeletionService } from "@/services/project-deletion.service";
+import { projectDeletionService, type ProjectDeletionStats } from "@/services/project-deletion.service";
+import { getErrorMessage } from "@/lib/utils";
 import { projectRenameService } from "@/services/project-rename.service";
 import { AppFooter } from "@/components/ui/app-footer";
 import { useProjects } from "@/hooks/use-projects";
@@ -42,7 +43,7 @@ const Dashboard = () => {
   const { data: projects = [], isLoading } = useProjects();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
-  const [deletionStats, setDeletionStats] = useState<any>(null);
+  const [deletionStats, setDeletionStats] = useState<ProjectDeletionStats | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -55,7 +56,8 @@ const Dashboard = () => {
     try {
       await signOut();
       navigate("/auth");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Logout error:", error);
       toast.error("Erreur lors de la déconnexion");
     }
   };
@@ -92,7 +94,7 @@ const Dashboard = () => {
       const stats = await projectDeletionService.getProjectDeletionStats(project.id);
       setDeletionStats(stats);
       setDeleteDialogOpen(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Erreur lors du chargement des informations de suppression");
       console.error("Delete stats error:", error);
     }
@@ -129,8 +131,8 @@ const Dashboard = () => {
           toast.error(errorMessage);
         }
       }
-    } catch (error: any) {
-      toast.error(`Erreur: ${error.message}`);
+    } catch (error: unknown) {
+      toast.error(`Erreur: ${getErrorMessage(error)}`);
       console.error("Delete error:", error);
     } finally {
       setIsDeleting(false);
@@ -193,8 +195,8 @@ const Dashboard = () => {
           toast.error(errorMessage);
         }
       }
-    } catch (error: any) {
-      toast.error(`Erreur: ${error.message}`);
+    } catch (error: unknown) {
+      toast.error(`Erreur: ${getErrorMessage(error)}`);
       console.error("Rename error:", error);
     } finally {
       setIsRenaming(false);

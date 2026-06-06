@@ -8,6 +8,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { getErrorMessage } from '@/lib/utils';
 
 // ============================================================================
 // Types
@@ -35,7 +36,7 @@ export class ProjectRenameError extends Error {
   constructor(
     message: string,
     public code: 'NOT_AUTHENTICATED' | 'UNAUTHORIZED' | 'NOT_FOUND' | 'VALIDATION_ERROR' | 'UPDATE_ERROR' | 'NETWORK_ERROR',
-    public details?: Record<string, any>
+    public details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'ProjectRenameError';
@@ -188,14 +189,14 @@ export class ProjectRenameService {
         currentTitle: project.title,
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isValid: false,
         isOwner: false,
         error: new ProjectRenameError(
-          `Validation error: ${error.message}`,
+          `Validation error: ${getErrorMessage(error)}`,
           'VALIDATION_ERROR',
-          { originalError: error.message }
+          { originalError: getErrorMessage(error) }
         ),
       };
     }
@@ -280,15 +281,15 @@ export class ProjectRenameService {
         newTitle: trimmedTitle,
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Unexpected error during project rename:', error);
       
       return {
         success: false,
         error: new ProjectRenameError(
-          `Unexpected error: ${error.message}`,
+          `Unexpected error: ${getErrorMessage(error)}`,
           'NETWORK_ERROR',
-          { originalError: error.message }
+          { originalError: getErrorMessage(error) }
         ),
       };
     }

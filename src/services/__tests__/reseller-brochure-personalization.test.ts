@@ -35,7 +35,7 @@ vi.mock('jspdf', () => {
     setDrawColor: vi.fn(),
     setLineWidth: vi.fn(),
     setGState: vi.fn(),
-    GState: vi.fn((opts: any) => opts),
+    GState: vi.fn((opts: unknown) => opts),
   };
   return {
     default: vi.fn(() => mockPdf),
@@ -70,7 +70,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 describe('ResellerBrochurePdfService - Personalization', () => {
   let service: ResellerBrochurePdfService;
-  let mockPdf: any;
+  let mockPdf: jsPDF;
 
   beforeEach(() => {
     service = ResellerBrochurePdfService.getInstance();
@@ -97,7 +97,7 @@ describe('ResellerBrochurePdfService - Personalization', () => {
 
       // Accéder à la méthode privée via reflection ou tester via generateResellerBrochurePDF
       // Pour l'instant, on teste via l'interface publique
-      const result = (service as any).getCoverTitle(branding);
+      const result = (service as unknown as { getCoverTitle: (b: ResellerBranding | null) => string }).getCoverTitle(branding);
       
       expect(result).toBe('MARTIN DÉCO');
       expect(result).not.toBe('DICA');
@@ -109,13 +109,13 @@ describe('ResellerBrochurePdfService - Personalization', () => {
         companyName: 'MARTIN DÉCO',
       };
 
-      const result = (service as any).getCoverTitle(branding);
+      const result = (service as unknown as { getCoverTitle: (b: ResellerBranding | null) => string }).getCoverTitle(branding);
       
       expect(result).toBe('DICA');
     });
 
     it('should use DICA as cover title when branding is null', () => {
-      const result = (service as any).getCoverTitle(null);
+      const result = (service as unknown as { getCoverTitle: (b: ResellerBranding | null) => string }).getCoverTitle(null);
       
       expect(result).toBe('DICA');
     });
@@ -126,7 +126,7 @@ describe('ResellerBrochurePdfService - Personalization', () => {
         companyName: '',
       };
 
-      const result = (service as any).getCoverTitle(branding);
+      const result = (service as unknown as { getCoverTitle: (b: ResellerBranding | null) => string }).getCoverTitle(branding);
       
       expect(result).toBe('DICA');
     });
@@ -137,7 +137,7 @@ describe('ResellerBrochurePdfService - Personalization', () => {
         companyName: '   ',
       };
 
-      const result = (service as any).getCoverTitle(branding);
+      const result = (service as unknown as { getCoverTitle: (b: ResellerBranding | null) => string }).getCoverTitle(branding);
       
       expect(result).toBe('DICA');
     });
@@ -196,7 +196,7 @@ describe('ResellerBrochurePdfService - Personalization', () => {
             if (this.onload) this.onload();
           }, 0);
         }
-      } as any;
+      } as never;
 
       const result = await service.generateResellerBrochurePDF(options);
 
@@ -207,7 +207,7 @@ describe('ResellerBrochurePdfService - Personalization', () => {
       
       // Vérifier que setFont et text ont été appelés avec le nom du revendeur
       const textCalls = mockPdf.text.mock.calls;
-      const hasResellerName = textCalls.some((call: any[]) => 
+      const hasResellerName = textCalls.some((call: unknown[]) => 
         call[0] === 'MARTIN DÉCO' || call[0]?.includes('MARTIN DÉCO')
       );
       
@@ -270,7 +270,7 @@ describe('ResellerBrochurePdfService - Personalization', () => {
             if (this.onload) this.onload();
           }, 0);
         }
-      } as any;
+      } as never;
 
       const result = await service.generateResellerBrochurePDF(options);
 
@@ -337,7 +337,7 @@ describe('ResellerBrochurePdfService - Personalization', () => {
             if (this.onload) this.onload();
           }, 0);
         }
-      } as any;
+      } as never;
 
       const result = await service.generateResellerBrochurePDF(options);
 
@@ -411,7 +411,7 @@ describe('ResellerBrochurePdfService - Personalization', () => {
             if (this.onload) this.onload();
           }, 0);
         }
-      } as any;
+      } as never;
 
       const result = await service.generateResellerBrochurePDF(options);
 

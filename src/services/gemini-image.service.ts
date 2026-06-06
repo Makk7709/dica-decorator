@@ -176,10 +176,19 @@ export class GeminiImageService {
   /**
    * Parse la réponse de l'API Gemini et extrait l'image
    */
-  parseResponse(apiResponse: any): ImageGenerationResponse {
+  parseResponse(apiResponse: unknown): ImageGenerationResponse {
+    type GeminiPart = {
+      inline_data?: { data?: string; mime_type?: string };
+      inlineData?: { data?: string; mimeType?: string };
+      text?: string;
+    };
+    type GeminiCandidate = { content?: { parts?: GeminiPart[] } };
+    type GeminiApiResponse = { candidates?: GeminiCandidate[] };
+
     try {
-      const candidates = apiResponse?.candidates;
-      
+      const response = apiResponse as GeminiApiResponse | null | undefined;
+      const candidates = response?.candidates;
+
       if (!candidates || candidates.length === 0) {
         return {
           success: false,

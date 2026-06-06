@@ -128,7 +128,7 @@ class GeminiImageService {
     };
   }
 
-  parseResponse(apiResponse: any): ImageGenerationResponse {
+  parseResponse(apiResponse: unknown): ImageGenerationResponse {
     try {
       const candidates = apiResponse?.candidates;
       

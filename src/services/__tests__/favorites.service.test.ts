@@ -18,7 +18,7 @@ import {
 // Mock Setup
 // ============================================================================
 
-const createMockSupabase = (mockData: any[] = [], mockError: any = null) => {
+const createMockSupabase = (mockData: unknown[] = [], mockError: unknown = null) => {
   return {
     from: () => ({
       select: () => ({
@@ -27,13 +27,13 @@ const createMockSupabase = (mockData: any[] = [], mockError: any = null) => {
         }),
       }),
       delete: () => ({
-        eq: (key: string, value: any) => ({
-          eq: (key2: string, value2: any) => Promise.resolve({ error: mockError }),
-          in: (key2: string, values: any[]) => Promise.resolve({ error: mockError }),
+        eq: (_key: string, _value: unknown) => ({
+          eq: (_key2: string, _value2: unknown) => Promise.resolve({ error: mockError }),
+          in: (_key2: string, _values: unknown[]) => Promise.resolve({ error: mockError }),
         }),
       }),
     }),
-  } as any;
+  } as never;
 };
 
 // ============================================================================
@@ -113,7 +113,7 @@ describe('FavoritesService', () => {
     });
 
     it('should throw error if supabase client is null', () => {
-      expect(() => new FavoritesService(null as any)).toThrow('Supabase client is required');
+      expect(() => new FavoritesService(null as never)).toThrow('Supabase client is required');
     });
   });
 

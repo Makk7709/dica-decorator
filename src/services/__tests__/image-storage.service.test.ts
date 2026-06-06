@@ -30,7 +30,7 @@ describe('ImageStorageService', () => {
 
   beforeEach(() => {
     mockSupabase = createMockSupabaseClient();
-    service = new ImageStorageService(mockSupabase as any);
+    service = new ImageStorageService(mockSupabase as never);
   });
 
   afterEach(() => {
@@ -496,7 +496,7 @@ describe('ImageStorageService - Integration with Edge Function', () => {
     };
 
     const mockSupabase = createMockSupabaseClient();
-    const service = new ImageStorageService(mockSupabase as any);
+    const service = new ImageStorageService(mockSupabase as never);
 
     expect(service).toMatchObject(expectedInterface);
   });

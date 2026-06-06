@@ -11,6 +11,8 @@ import type {
   MagazineAICaption 
 } from '@/types/magazine-deco.types';
 import { MAGAZINE_DECO_CONFIG } from '@/types/magazine-deco.types';
+import type { PlaquetteImage } from '@/types/plaquette.types';
+import { getErrorMessage } from '@/lib/utils';
 
 export class MagazineDecoPdfService {
   private static instance: MagazineDecoPdfService;
@@ -112,11 +114,11 @@ export class MagazineDecoPdfService {
         aiCaptions: coverCaptions
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ Magazine DECO generation error:", error);
       return {
         success: false,
-        error: error.message || "Unknown error"
+        error: getErrorMessage(error, "Unknown error")
       };
     }
   }
@@ -168,7 +170,7 @@ export class MagazineDecoPdfService {
         article: data.article || getFallbackArticle(options.decor.category)
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("❌ AI caption generation failed:", error);
       // Fallback avec article storytelling
       return {
@@ -793,7 +795,7 @@ export class MagazineDecoPdfService {
   /**
    * Load images with base64 encoding
    */
-  private async loadImagesWithBase64(images: any[]): Promise<LoadedImage[]> {
+  private async loadImagesWithBase64(images: PlaquetteImage[]): Promise<LoadedImage[]> {
     console.log("📷 Loading images with base64...");
     
     const promises = images.map(async (img) => {

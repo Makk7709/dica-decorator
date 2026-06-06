@@ -37,7 +37,7 @@ describe('QuotaService', () => {
 
   beforeEach(() => {
     mockSupabase = createMockSupabaseClient();
-    service = new QuotaService(mockSupabase as any, defaultConfig);
+    service = new QuotaService(mockSupabase as never, defaultConfig);
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2024-01-15T10:00:00Z'));
   });
@@ -453,7 +453,7 @@ describe('QuotaService', () => {
       for (const { tier, expectedQuota } of tiers) {
         let capturedQuota: number | undefined;
         mockSupabase.from = vi.fn().mockReturnValue({
-          update: vi.fn().mockImplementation((data: any) => {
+          update: vi.fn().mockImplementation((data: unknown) => {
             capturedQuota = data.monthly_render_quota;
             return mockSupabase.from();
           }),

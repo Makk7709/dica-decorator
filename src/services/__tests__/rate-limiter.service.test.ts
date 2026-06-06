@@ -39,7 +39,7 @@ describe('RateLimiterService', () => {
 
   beforeEach(() => {
     mockSupabase = createMockSupabaseClient();
-    service = new RateLimiterService(mockSupabase as any, defaultConfig);
+    service = new RateLimiterService(mockSupabase as never, defaultConfig);
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2024-01-15T10:30:00Z'));
   });
@@ -433,7 +433,7 @@ describe('RateLimiterService', () => {
     it('should record multiple renders in single call', async () => {
       // Arrange
       let capturedRenderCount: number | undefined;
-      mockSupabase.from().insert.mockImplementation((data: any) => {
+      mockSupabase.from().insert.mockImplementation((data: unknown) => {
         capturedRenderCount = data.render_count;
         return mockSupabase.from();
       });

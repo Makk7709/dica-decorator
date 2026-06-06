@@ -215,7 +215,7 @@ export const DecorSelectorDialog = ({
 
             <div className="space-y-2">
               <Label htmlFor="render-format">Format / Taille</Label>
-              <Select value={renderFormat} onValueChange={(v: any) => onRenderFormatChange(v)}>
+              <Select value={renderFormat} onValueChange={(v) => onRenderFormatChange(v as DecorSelectorDialogProps["renderFormat"])}>
                 <SelectTrigger id="render-format">
                   <SelectValue />
                 </SelectTrigger>

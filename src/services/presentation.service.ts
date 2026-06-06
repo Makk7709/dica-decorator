@@ -19,7 +19,7 @@ export interface Slide {
   subtitle?: string;
   decorName?: string;
   decorCode?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PresentationConfig {

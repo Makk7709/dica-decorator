@@ -68,7 +68,7 @@ describe('PresentationService', () => {
     });
 
     it('should validate transition type', () => {
-      expect(() => service.configure({ transitionType: 'invalid' as any }))
+      expect(() => service.configure({ transitionType: 'invalid' as never }))
         .toThrow(PresentationError);
     });
 
@@ -184,7 +184,7 @@ describe('PresentationService', () => {
     it('should validate slide type', () => {
       expect(() => service.addSlide({
         id: '1',
-        type: 'invalid' as any,
+        type: 'invalid' as never,
         content: 'test',
       })).toThrow(PresentationError);
     });
@@ -356,7 +356,7 @@ describe('PresentationService', () => {
         requestFullscreen: vi.fn().mockResolvedValue(undefined),
       };
       
-      service.enterFullscreen(element as any);
+      service.enterFullscreen(element as never);
       expect(element.requestFullscreen).toHaveBeenCalled();
     });
 
@@ -377,7 +377,7 @@ describe('PresentationService', () => {
         requestFullscreen: vi.fn().mockResolvedValue(undefined),
       };
       
-      service.toggleFullscreen(element as any);
+      service.toggleFullscreen(element as never);
       expect(element.requestFullscreen).toHaveBeenCalled();
     });
 
@@ -478,22 +478,22 @@ describe('PresentationService', () => {
     });
 
     it('should handle ArrowRight', () => {
-      service.handleKeyDown({ key: 'ArrowRight', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'ArrowRight', preventDefault: vi.fn() } as never);
       expect(service.getCurrentIndex()).toBe(1);
     });
 
     it('should handle ArrowLeft', () => {
       service.goTo(2);
-      service.handleKeyDown({ key: 'ArrowLeft', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'ArrowLeft', preventDefault: vi.fn() } as never);
       expect(service.getCurrentIndex()).toBe(1);
     });
 
     it('should handle Space to toggle play', () => {
       vi.useFakeTimers();
-      service.handleKeyDown({ key: ' ', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: ' ', preventDefault: vi.fn() } as never);
       expect(service.getState().isPlaying).toBe(true);
       
-      service.handleKeyDown({ key: ' ', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: ' ', preventDefault: vi.fn() } as never);
       expect(service.getState().isPlaying).toBe(false);
       vi.useRealTimers();
     });
@@ -502,24 +502,24 @@ describe('PresentationService', () => {
       const callback = vi.fn();
       service.onExit(callback);
       
-      service.handleKeyDown({ key: 'Escape', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'Escape', preventDefault: vi.fn() } as never);
       expect(callback).toHaveBeenCalled();
     });
 
     it('should handle Home to go to first', () => {
       service.goTo(2);
-      service.handleKeyDown({ key: 'Home', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'Home', preventDefault: vi.fn() } as never);
       expect(service.getCurrentIndex()).toBe(0);
     });
 
     it('should handle End to go to last', () => {
-      service.handleKeyDown({ key: 'End', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'End', preventDefault: vi.fn() } as never);
       expect(service.getCurrentIndex()).toBe(2);
     });
 
     it('should ignore keyboard when disabled', () => {
       service.configure({ enableKeyboard: false });
-      service.handleKeyDown({ key: 'ArrowRight', preventDefault: vi.fn() } as any);
+      service.handleKeyDown({ key: 'ArrowRight', preventDefault: vi.fn() } as never);
       expect(service.getCurrentIndex()).toBe(0);
     });
   });
@@ -665,7 +665,7 @@ describe('PresentationService', () => {
     });
 
     it('should throw for invalid slide type', () => {
-      expect(() => service.addSlide({ id: '1', type: 'invalid' as any, content: '' }))
+      expect(() => service.addSlide({ id: '1', type: 'invalid' as never, content: '' }))
         .toThrow(PresentationError);
     });
 
