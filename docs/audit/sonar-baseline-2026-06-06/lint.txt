@@ -1,0 +1,258 @@
+
+> dica-decorator@2.2.0 lint
+> eslint .
+
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/decor-selector/DecorSelectorDialog.tsx
+  211:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/onboarding/OnboardingChecklist.tsx
+  49:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/ui/badge.tsx
+  29:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/ui/button.tsx
+  47:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/ui/form.tsx
+  129:10  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/ui/navigation-menu.tsx
+  111:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/ui/sidebar.tsx
+  636:3  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/ui/sonner.tsx
+  27:19  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/ui/toggle.tsx
+  37:18  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/contexts/AuthContext.tsx
+  17:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/contexts/ThemeContext.tsx
+  98:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/Dashboard.tsx
+   45:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   58:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  132:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  196:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/NewProject.tsx
+  45:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  94:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/Presentation.tsx
+  98:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/ProjectDetail.tsx
+  111:6   warning  React Hook useEffect has missing dependencies: 'loadFavorites', 'loadProject', and 'loadUserProfile'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  157:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  175:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  233:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  316:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  334:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  397:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  455:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  513:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  581:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  613:21  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  696:48  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+  753:50  error    Unexpected any. Specify a different type                                                                                                                  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/admin-project-viewer.service.test.ts
+   34:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   34:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  146:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  188:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  243:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  294:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  317:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  347:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  383:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  445:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  468:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  512:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  605:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  635:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  664:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  694:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  730:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  738:74  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/analytics.service.test.ts
+  721:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/auth-guard.service.test.ts
+  40:52  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/favorites.service.test.ts
+   21:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   21:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   30:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   31:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   32:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   36:8   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  116:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/gemini-image.service.test.ts
+  131:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/image-comparison.service.test.ts
+  427:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  447:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  468:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  490:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  499:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  502:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  510:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  513:76  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  521:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  524:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  532:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  535:72  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  543:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/image-storage.service.test.ts
+   33:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  499:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/organization.service.test.ts
+   35:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  220:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  221:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  305:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/presentation.service.test.ts
+   71:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  187:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  359:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  380:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  481:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  487:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  493:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  496:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  505:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  511:73  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  516:72  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  522:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  668:67  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/project-deletion.service.test.ts
+  35:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  46:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/project-rename.service.test.ts
+  35:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  45:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  46:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/quota.service.test.ts
+   40:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  456:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/rate-limiter.service.test.ts
+   42:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  436:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/reseller-brochure-personalization.test.ts
+   38:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   73:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  118:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  129:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  199:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  210:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  273:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  340:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  414:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/__tests__/url-validator.service.test.ts
+  321:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  326:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  331:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/admin-project-viewer.service.ts
+   87:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   89:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  190:69  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  254:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  268:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  269:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  280:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  293:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  312:59  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/analytics.service.ts
+   55:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  148:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  149:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  153:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  199:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  472:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  487:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/favorites.service.ts
+  171:66  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/gemini-image.service.ts
+  179:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/image-comparison.service.ts
+  50:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  57:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/magazine-deco-pdf.service.ts
+  115:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  171:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  792:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/organization.service.ts
+  430:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/presentation.service.ts
+  22:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/project-deletion.service.ts
+   40:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  150:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  205:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  280:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/project-rename.service.ts
+   38:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  191:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  283:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/reseller-brochure-pdf.service.ts
+  218:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  758:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/services/share-link.service.ts
+  40:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  60:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/test/test-utils.tsx
+  27:7  warning  Fast refresh only works when a file only exports components. Move your component(s) to a separate file  react-refresh/only-export-components
+  50:1  warning  This rule can't verify that `export *` only exports components                                          react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/types/__tests__/render-response.test.ts
+  42:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/types/plaquette.types.ts
+  382:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 161 problems (148 errors, 13 warnings)
+
