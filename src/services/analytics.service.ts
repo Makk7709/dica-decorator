@@ -399,17 +399,19 @@ export class AnalyticsService {
 
   private generateSummary(metrics: GlobalMetrics, trends: Record<MetricType, TrendData>): string {
     const parts: string[] = [];
-    
-    parts.push(`Rapport d'activité DICA Decorator`);
-    parts.push(`Total: ${metrics.totalProjects} projets, ${metrics.totalRenders} rendus`);
-    parts.push(`Utilisateurs: ${metrics.activeUsers}/${metrics.totalUsers} actifs (${metrics.engagementRate.toFixed(0)}%)`);
-    
+
+    parts.push(
+      `Rapport d'activité DICA Decorator`,
+      `Total: ${metrics.totalProjects} projets, ${metrics.totalRenders} rendus`,
+      `Utilisateurs: ${metrics.activeUsers}/${metrics.totalUsers} actifs (${metrics.engagementRate.toFixed(0)}%)`,
+    );
+
     if (trends.renders.direction === 'up') {
       parts.push(`Tendance rendus: +${trends.renders.percentageChange.toFixed(0)}%`);
     } else if (trends.renders.direction === 'down') {
       parts.push(`Tendance rendus: ${trends.renders.percentageChange.toFixed(0)}%`);
     }
-    
+
     return parts.join('. ');
   }
 
@@ -417,16 +419,17 @@ export class AnalyticsService {
     if (format === 'json') {
       return JSON.stringify(report, null, 2);
     }
-    
+
     // CSV format
-    const lines: string[] = [];
-    lines.push('Metric,Value');
-    lines.push(`Total Projects,${report.metrics.totalProjects}`);
-    lines.push(`Total Renders,${report.metrics.totalRenders}`);
-    lines.push(`Total Users,${report.metrics.totalUsers}`);
-    lines.push(`Active Users,${report.metrics.activeUsers}`);
-    lines.push(`Engagement Rate,${report.metrics.engagementRate}%`);
-    
+    const lines: string[] = [
+      'Metric,Value',
+      `Total Projects,${report.metrics.totalProjects}`,
+      `Total Renders,${report.metrics.totalRenders}`,
+      `Total Users,${report.metrics.totalUsers}`,
+      `Active Users,${report.metrics.activeUsers}`,
+      `Engagement Rate,${report.metrics.engagementRate}%`,
+    ];
+
     return lines.join('\n');
   }
 
