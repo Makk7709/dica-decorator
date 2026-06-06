@@ -778,18 +778,24 @@ ${exampleRefs}
               {/* Catalogue status */}
               <div className="mb-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/60 px-4 py-3">
+                  {(() => {
+                    let catalogStatusNode: React.ReactNode;
+                    if (isDecorsLoading) {
+                      catalogStatusNode = (
+                        <span className="inline-flex items-center gap-2 text-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Chargement…
+                        </span>
+                      );
+                    } else if (decorsLoadError) {
+                      catalogStatusNode = <span className="text-destructive">Indisponible</span>;
+                    } else {
+                      catalogStatusNode = <span className="text-foreground">{decors.length} disponibles</span>;
+                    }
+                    return (
                   <div className="text-sm">
                     <span className="text-muted-foreground">Catalogue décors :</span>{" "}
-                    {isDecorsLoading ? (
-                      <span className="inline-flex items-center gap-2 text-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Chargement…
-                      </span>
-                    ) : decorsLoadError ? (
-                      <span className="text-destructive">Indisponible</span>
-                    ) : (
-                      <span className="text-foreground">{decors.length} disponibles</span>
-                    )}
+                    {catalogStatusNode}
                     {decorsLoadError ? (
                       <div className="mt-1 text-xs text-muted-foreground">
                         {decorsLoadError}
