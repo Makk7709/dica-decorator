@@ -422,7 +422,7 @@ const ProjectDetail = () => {
         catalogId,
       }));
 
-      const { data, error } = await supabase.functions.invoke("apply-decor", {
+      const { error } = await supabase.functions.invoke("apply-decor", {
         body: {
           photoUrl: selectedPhoto.original_image_url,
           textureUrl: primaryDecor.texture_image_url,
