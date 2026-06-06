@@ -428,6 +428,10 @@ ${exampleRefs}
             decorReferences: data.decorReferences || [],
           },
         ]);
+        // Auto-save to AI creations gallery (fire-and-forget)
+        autoSaveCreation(data.imageUrl, userMessage).catch((e) =>
+          console.error("Auto-save AI creation failed:", e)
+        );
         return;
       }
 
