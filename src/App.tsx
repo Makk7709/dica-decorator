@@ -21,6 +21,7 @@ const AdminAnalytics = lazy(() => import("./pages/AdminAnalytics"));
 const Presentation = lazy(() => import("./pages/Presentation"));
 const Help = lazy(() => import("./pages/Help"));
 const Favorites = lazy(() => import("./pages/Favorites"));
+const AiCreations = lazy(() => import("./pages/AiCreations"));
 const MyCoBranding = lazy(() => import("./pages/MyCoBranding"));
 const Legal = lazy(() => import("./pages/Legal"));
 const NotFound = lazy(() => import("./pages/NotFound"));
