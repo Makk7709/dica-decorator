@@ -66,7 +66,7 @@ export function ResellerBrochureExportButton({
   const { toast } = useToast();
 
   const isResellerMode = resellerBranding?.enabled && resellerBranding?.companyName?.trim();
-  const brandName = isResellerMode ? resellerBranding!.companyName : 'DICA';
+  const brandName = isResellerMode ? resellerBranding.companyName : 'DICA';
 
   const handleOpenChange = (open: boolean) => {
     if (open && images.length > 0) {
@@ -158,7 +158,7 @@ export function ResellerBrochureExportButton({
         link.download = result.filename;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        link.remove();
         URL.revokeObjectURL(url);
 
         setProgress(100);

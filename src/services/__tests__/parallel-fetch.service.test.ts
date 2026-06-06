@@ -9,12 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  ParallelFetchService,
-  FetchResult,
-  ParallelFetchOptions,
-  ImageFetchResult,
-} from '../parallel-fetch.service';
+import {ParallelFetchService} from '../parallel-fetch.service';
 
 describe('ParallelFetchService', () => {
   let service: ParallelFetchService;
@@ -208,7 +203,7 @@ describe('ParallelFetchService', () => {
     });
 
     it('should be faster than sequential fetch for multiple URLs', async () => {
-      const urls = Array(5).fill(null).map((_, i) => `https://example.com/image${i}.jpg`);
+      const urls = new Array(5).fill(null).map((_, i) => `https://example.com/image${i}.jpg`);
       const fetchDelay = 50; // 50ms per fetch
 
       mockFetch.mockImplementation(() => 

@@ -140,7 +140,7 @@ export function FavoritesGallery({ projectId, onClose }: FavoritesGalleryProps) 
         link.download = `${fav.render.project.title}-${fav.render.decor?.referenceCode || 'render'}.jpg`;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        link.remove();
         URL.revokeObjectURL(url);
       } catch (error) {
         console.error('Download error:', error);

@@ -145,13 +145,13 @@ const DICA_COLORS = [
 
 export class AnalyticsService {
   private config: AnalyticsConfig;
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private readonly cache: Map<string, { data: any; timestamp: number }> = new Map();
   private mockData: any = {};
-  private mockTrends: Map<string, TrendDataPoint[]> = new Map();
-  private mockTopItems: Map<string, TopItem[]> = new Map();
+  private readonly mockTrends: Map<string, TrendDataPoint[]> = new Map();
+  private readonly mockTopItems: Map<string, TopItem[]> = new Map();
   private mockUsage: UsageByPeriod[] = [];
   private mockComparison: any = null;
-  private errorListeners: Array<(error: AnalyticsError) => void> = [];
+  private readonly errorListeners: Array<(error: AnalyticsError) => void> = [];
 
   constructor() {
     this.config = { ...DEFAULT_CONFIG };

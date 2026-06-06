@@ -5,53 +5,18 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  BarChart3,
-  Users,
-  FolderKanban,
-  Palette,
-  Image,
-  TrendingUp,
-  Download,
-  RefreshCw,
-  Calendar,
-  FileJson,
-  FileSpreadsheet,
-  FileText,
-} from 'lucide-react';
+import {ArrowLeft, BarChart3, Users, FolderKanban, Palette, Image, TrendingUp, Download, RefreshCw, Calendar, FileJson, FileSpreadsheet, FileText} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { PremiumLayout, ContentContainer, SectionTitle } from '@/components/ui/premium-layout';
+import {PremiumLayout, ContentContainer} from '@/components/ui/premium-layout';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { StatCard } from '@/components/analytics/stat-card';
 import { AnalyticsChart } from '@/components/analytics/analytics-chart';
-import {
-  AnalyticsService,
-  PeriodPreset,
-  GlobalMetrics,
-  TrendData,
-  TopItem,
-} from '@/services/analytics.service';
-import {
-  AnalyticsExportService,
-  AnalyticsExportData,
-  ExportFormat,
-} from '@/services/analytics-export.service';
+import {AnalyticsService, PeriodPreset, GlobalMetrics, TrendData, TopItem} from '@/services/analytics.service';
+import {AnalyticsExportService, AnalyticsExportData, ExportFormat} from '@/services/analytics-export.service';
 
 // ============================================================================
 // Types

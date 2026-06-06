@@ -747,7 +747,7 @@ const Admin = () => {
                               <Input
                                 type="number"
                                 value={editQuotaValue}
-                                onChange={(e) => setEditQuotaValue(parseInt(e.target.value))}
+                                onChange={(e) => setEditQuotaValue(Number.parseInt(e.target.value))}
                                 className="w-24"
                                 min="0"
                               />
@@ -1125,7 +1125,7 @@ const Admin = () => {
                         id="displayOrder"
                         type="number"
                         value={categoryFormData.displayOrder}
-                        onChange={(e) => setCategoryFormData({ ...categoryFormData, displayOrder: parseInt(e.target.value) })}
+                        onChange={(e) => setCategoryFormData({ ...categoryFormData, displayOrder: Number.parseInt(e.target.value) })}
                         required
                       />
                     </div>

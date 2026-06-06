@@ -81,11 +81,11 @@ export class ForbiddenError extends Error {
 // ============================================================================
 
 export class AuthGuardService {
-  private roleCache: Map<string, CacheEntry> = new Map();
+  private readonly roleCache: Map<string, CacheEntry> = new Map();
 
   constructor(
-    private supabase: SupabaseClient,
-    private config: AuthGuardConfig
+    private readonly supabase: SupabaseClient,
+    private readonly config: AuthGuardConfig
   ) {}
 
   /**

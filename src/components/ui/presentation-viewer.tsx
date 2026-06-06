@@ -4,26 +4,10 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Play,
-  Pause,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Maximize,
-  Minimize,
-  SkipBack,
-  SkipForward,
-  Grid,
-} from 'lucide-react';
+import {Play, Pause, ChevronLeft, ChevronRight, X, Maximize, Minimize, SkipBack, SkipForward} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import {
-  PresentationService,
-  Slide,
-  PresentationState,
-  SlideTransition,
-} from '@/services/presentation.service';
+import {PresentationService, Slide, PresentationState, SlideTransition} from '@/services/presentation.service';
 import { BeforeAfterSlider } from '@/components/ui/before-after-slider';
 import { SafeImage } from '@/components/ui/safe-image';
 
@@ -313,8 +297,8 @@ export const PresentationViewer: React.FC<PresentationViewerProps> = ({
       service.handleKeyDown(e);
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [service]);
 
   // Hide UI on inactivity
@@ -331,9 +315,9 @@ export const PresentationViewer: React.FC<PresentationViewerProps> = ({
       }, 3000);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
+    globalThis.addEventListener('mousemove', handleMouseMove);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      globalThis.removeEventListener('mousemove', handleMouseMove);
       if (hideUITimeoutRef.current) clearTimeout(hideUITimeoutRef.current);
     };
   }, [state.isPlaying, state.isPaused]);

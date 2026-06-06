@@ -4,50 +4,17 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import {
-  Link2,
-  Copy,
-  Check,
-  Loader2,
-  Calendar,
-  Lock,
-  Unlock,
-  Eye,
-  Download,
-  Share2,
-  QrCode,
-  Trash2,
-  RefreshCw,
-} from 'lucide-react';
+import {Link2, Copy, Check, Loader2, Calendar, Lock, Unlock, Eye, Download, Share2, Trash2} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import {
-  ShareLinkService,
-  ShareLinkData,
-  ExpirationPreset,
-  ShareLinkPermissions,
-} from '@/services/share-link.service';
+import {ShareLinkService, ShareLinkData, ExpirationPreset, ShareLinkPermissions} from '@/services/share-link.service';
 
 // ============================================================================
 // Types

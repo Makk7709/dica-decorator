@@ -11,17 +11,8 @@
  * - Accessibilité
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  ImageComparisonService,
-  ComparisonConfig,
-  ComparisonState,
-  SliderPosition,
-  ComparisonExport,
-  ImagePair,
-  SliderOrientation,
-  ComparisonError,
-} from '../image-comparison.service';
+import {describe, it, expect, vi, beforeEach} from 'vitest';
+import {ImageComparisonService, ComparisonConfig, ImagePair, ComparisonError} from '../image-comparison.service';
 
 describe('ImageComparisonService', () => {
   let service: ImageComparisonService;
@@ -392,7 +383,7 @@ describe('ImageComparisonService', () => {
     });
 
     it('should use smoothSetPosition with requestAnimationFrame', () => {
-      const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => {
         cb(0);
         return 0;
       });
@@ -695,7 +686,7 @@ describe('ImageComparisonService', () => {
     });
 
     it('should use requestAnimationFrame for smooth updates', () => {
-      const rafSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+      const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => {
         cb(0);
         return 0;
       });

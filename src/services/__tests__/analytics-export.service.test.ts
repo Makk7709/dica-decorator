@@ -9,11 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  AnalyticsExportService,
-  ExportFormat,
-  AnalyticsExportData,
-} from '../analytics-export.service';
+import {AnalyticsExportService, AnalyticsExportData} from '../analytics-export.service';
 
 describe('AnalyticsExportService', () => {
   let service: AnalyticsExportService;

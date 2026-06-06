@@ -12,12 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  ProjectDeletionService,
-  ProjectDeletionResult,
-  ProjectDeletionError,
-  ProjectDeletionValidation,
-} from '../project-deletion.service';
+import {ProjectDeletionService} from '../project-deletion.service';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock Supabase

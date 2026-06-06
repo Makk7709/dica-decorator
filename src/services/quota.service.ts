@@ -80,8 +80,8 @@ export class QuotaExhaustedError extends Error {
 
 export class QuotaService {
   constructor(
-    private supabase: SupabaseClient,
-    private config: QuotaConfig
+    private readonly supabase: SupabaseClient,
+    private readonly config: QuotaConfig
   ) {}
 
   /**

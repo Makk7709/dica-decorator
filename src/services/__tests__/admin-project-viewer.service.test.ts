@@ -8,17 +8,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { 
-  AdminProjectViewerService, 
-  createAdminProjectViewerService,
-  UserProjectSummary,
-  UserProjectDetails,
-  ProjectWithRenders,
-  AdminProjectViewerError,
-  UnauthorizedAdminAccessError,
-  UserNotFoundError,
-  ProjectNotFoundError,
-} from '../admin-project-viewer.service';
+import {AdminProjectViewerService, createAdminProjectViewerService, UserProjectSummary, ProjectWithRenders, AdminProjectViewerError, UnauthorizedAdminAccessError, UserNotFoundError, ProjectNotFoundError} from '../admin-project-viewer.service';
 
 // ============================================================================
 // Mock Setup

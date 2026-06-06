@@ -9,7 +9,7 @@ export interface AuthState {
 
 export const authService = {
   async signUp(email: string, password: string) {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${globalThis.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
       email,

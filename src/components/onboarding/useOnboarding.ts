@@ -82,7 +82,7 @@ export const useOnboarding = (): UseOnboardingReturn => {
 
   // Check if this is a new user or new version
   const isNewUser = !state.welcomeCompleted;
-  const isNewVersion = state.lastSeenVersion !== CURRENT_VERSION;
+  state.lastSeenVersion !== CURRENT_VERSION;
 
   // Computed values
   const showWelcome = isInitialized && !state.welcomeCompleted;

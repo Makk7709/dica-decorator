@@ -14,15 +14,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { 
-  ImageStorageService, 
-  ImageUploadError,
-  InvalidImageFormatError,
-  StorageQuotaExceededError,
-  type ImageUploadResult,
-  type ImageUploadOptions 
-} from '../image-storage.service';
-import { createMockSupabaseClient, createBase64Image } from '@/test/test-utils';
+import {ImageStorageService, ImageUploadError, InvalidImageFormatError, StorageQuotaExceededError, type ImageUploadOptions} from '../image-storage.service';
+import {createMockSupabaseClient} from '@/test/test-utils';
 
 describe('ImageStorageService', () => {
   let service: ImageStorageService;

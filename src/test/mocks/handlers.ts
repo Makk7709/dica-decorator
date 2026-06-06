@@ -153,7 +153,7 @@ export const handlers = [
 
   http.get(`${SUPABASE_URL}/rest/v1/render_results`, ({ request }) => {
     const url = new URL(request.url);
-    const userId = url.searchParams.get('user_id');
+    url.searchParams.get('user_id');
     const countOnly = request.headers.get('Prefer')?.includes('count=exact');
     
     // For rate limiting tests - return count header

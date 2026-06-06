@@ -168,7 +168,7 @@ export class UrlValidatorService {
     }
 
     // Check for blocked ports
-    const port = parsedUrl.port ? parseInt(parsedUrl.port, 10) : null;
+    const port = parsedUrl.port ? Number.parseInt(parsedUrl.port, 10) : null;
     if (port && BLOCKED_PORTS.has(port)) {
       throw new InvalidUrlError(
         `Port ${port} is blocked for security reasons`,
@@ -234,7 +234,7 @@ export class UrlValidatorService {
   normalizeIp(input: string): string {
     // Handle decimal notation (e.g., 2130706433 = 127.0.0.1)
     if (/^\d+$/.test(input)) {
-      const num = parseInt(input, 10);
+      const num = Number.parseInt(input, 10);
       if (num >= 0 && num <= 0xFFFFFFFF) {
         return this.numberToIp(num);
       }
@@ -242,17 +242,17 @@ export class UrlValidatorService {
 
     // Handle hex notation (e.g., 0x7f000001 = 127.0.0.1)
     if (/^0x[0-9a-fA-F]+$/.test(input)) {
-      const num = parseInt(input, 16);
+      const num = Number.parseInt(input, 16);
       if (num >= 0 && num <= 0xFFFFFFFF) {
         return this.numberToIp(num);
       }
     }
 
     // Handle octal notation in octets (e.g., 0177.0.0.1 = 127.0.0.1)
-    const octalMatch = input.match(/^(0[0-7]+)\.(\d+)\.(\d+)\.(\d+)$/);
+    const octalMatch = /^(0[0-7]+)\.(\d+)\.(\d+)\.(\d+)$/.exec(input);
     if (octalMatch) {
       const [, octet1, octet2, octet3, octet4] = octalMatch;
-      const dec1 = parseInt(octet1, 8);
+      const dec1 = Number.parseInt(octet1, 8);
       return `${dec1}.${octet2}.${octet3}.${octet4}`;
     }
 
@@ -313,8 +313,8 @@ export class UrlValidatorService {
 
     let num = 0;
     for (let i = 0; i < 4; i++) {
-      const octet = parseInt(parts[i], 10);
-      if (isNaN(octet) || octet < 0 || octet > 255) {
+      const octet = Number.parseInt(parts[i], 10);
+      if (Number.isNaN(octet) || octet < 0 || octet > 255) {
         return null;
       }
       num = (num << 8) + octet;

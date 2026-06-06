@@ -10,33 +10,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+import {Accordion, AccordionContent, AccordionItem, AccordionTrigger} from '@/components/ui/accordion';
 import { PremiumLayout, ContentContainer, SectionTitle } from '@/components/ui/premium-layout';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import {
-  ArrowLeft,
-  HelpCircle,
-  BookOpen,
-  Sparkles,
-  Zap,
-  Image,
-  Palette,
-  Download,
-  Heart,
-  Moon,
-  Share2,
-  FileText,
-  BarChart3,
-  Play,
-  MessageSquare,
-  Mail,
-  ExternalLink,
-} from 'lucide-react';
+import {ArrowLeft, HelpCircle, BookOpen, Sparkles, Zap, Image, Palette, Heart, Moon, Share2, FileText, BarChart3, Play, MessageSquare, Mail} from 'lucide-react';
 
 // ============================================================================
 // Types

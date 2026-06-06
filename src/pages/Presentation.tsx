@@ -47,7 +47,7 @@ const Presentation: React.FC = () => {
 
   // Parse URL params for presentation options
   const autoplay = searchParams.get('autoplay') === 'true';
-  const interval = parseInt(searchParams.get('interval') || '5000', 10);
+  const interval = Number.parseInt(searchParams.get('interval') || '5000', 10);
   const loop = searchParams.get('loop') !== 'false';
   const thumbnails = searchParams.get('thumbnails') === 'true';
 

@@ -144,7 +144,7 @@ export function MagazineDecoExportButton({
         link.download = result.filename;
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        link.remove();
         URL.revokeObjectURL(url);
 
         setProgress(100);

@@ -5,14 +5,8 @@
  * Process TDD strict - Tests écrits AVANT l'implémentation.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  FavoritesService,
-  FavoriteRender,
-  FavoritesFilter,
-  FavoritesStats,
-  ServiceResult,
-} from '../favorites.service';
+import {describe, it, expect, vi} from 'vitest';
+import {FavoritesService, FavoritesFilter} from '../favorites.service';
 
 // ============================================================================
 // Mock Setup
