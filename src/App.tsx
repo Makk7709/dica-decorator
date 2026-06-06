@@ -133,6 +133,14 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/ai-creations"
+                  element={
+                    <ProtectedRoute>
+                      <AiCreations />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/mon-cobranding"
                   element={
                     <ProtectedRoute>
