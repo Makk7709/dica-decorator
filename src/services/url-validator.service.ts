@@ -249,7 +249,7 @@ export class UrlValidatorService {
     }
 
     // Handle octal notation in octets (e.g., 0177.0.0.1 = 127.0.0.1)
-    const octalMatch = input.match(/^(0[0-7]+)\.(\d+)\.(\d+)\.(\d+)$/);
+    const octalMatch = /^(0[0-7]+)\.(\d+)\.(\d+)\.(\d+)$/.exec(input);
     if (octalMatch) {
       const [, octet1, octet2, octet3, octet4] = octalMatch;
       const dec1 = Number.parseInt(octet1, 8);

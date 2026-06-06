@@ -425,7 +425,7 @@ function extractValidReferenceCodes(decorContext: string): Set<string> {
   
   // Try to parse JSON list first (most reliable)
   try {
-    const jsonMatch = decorContext.match(/\[\s*\{[^}]*"ref"[^}]*\}[\s\S]*?\]/);
+    const jsonMatch = /\[\s*\{[^}]*"ref"[^}]*\}[\s\S]*?\]/.exec(decorContext);
     if (jsonMatch) {
       const jsonArray = JSON.parse(jsonMatch[0]);
       for (const item of jsonArray) {
@@ -494,8 +494,8 @@ function findBestMatch(invalidRef: string, validRefs: Set<string>): string | nul
     }
     
     // Extract number from both
-    const invalidNum = invalidRef.match(/(\d{3,4})/)?.[1];
-    const validNum = validRef.match(/(\d{3,4})/)?.[1];
+    const invalidNum = /(\d{3,4})/.exec(invalidRef)?.[1];
+    const validNum = /(\d{3,4})/.exec(validRef)?.[1];
     if (invalidNum && validNum && invalidNum === validNum) {
       score += 50;
     }
