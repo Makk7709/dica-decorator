@@ -286,8 +286,7 @@ const ProjectDetail = () => {
         
         // Traitement en une seule passe
         if (allRendersData) {
-          for (let i = 0; i < allRendersData.length; i++) {
-            const render = allRendersData[i];
+          for (const render of allRendersData) {
             if (render.decor_id === null) {
               // Création de l'assistant IA
               allCreativeImports.push({
