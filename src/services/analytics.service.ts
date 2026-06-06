@@ -451,10 +451,11 @@ export class AnalyticsService {
   }
 
   private calculateComparison(current: number, previous: number): ComparisonMetric {
-    const change = previous > 0 
-      ? ((current - previous) / previous) * 100 
-      : (current > 0 ? 100 : 0);
-    
+    const fallbackChange = current > 0 ? 100 : 0;
+    const change = previous > 0
+      ? ((current - previous) / previous) * 100
+      : fallbackChange;
+
     let direction: TrendDirection;
     if (change > 0) {
       direction = 'up';
