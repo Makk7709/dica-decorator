@@ -256,8 +256,8 @@
     position: relative;
     background: linear-gradient(
       135deg,
-      hsl(var(--card) / 0.7) 0%,
-      hsl(var(--card) / 0.5) 100%
+      hsl(var(--card) / 0.38) 0%,
+      hsl(var(--card) / 0.18) 100%
     );
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
