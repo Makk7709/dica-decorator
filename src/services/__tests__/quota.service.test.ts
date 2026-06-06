@@ -447,8 +447,9 @@ describe('QuotaService', () => {
       for (const { tier, expectedQuota } of tiers) {
         let capturedQuota: number | undefined;
         mockSupabase.from = vi.fn().mockReturnValue({
-          update: vi.fn().mockImplementation((data: unknown) => {
+          update: vi.fn().mockImplementation((data: { monthly_render_quota?: number }) => {
             capturedQuota = data.monthly_render_quota;
+
             return mockSupabase.from();
           }),
           eq: vi.fn().mockReturnThis(),

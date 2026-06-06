@@ -291,8 +291,9 @@ describe('OrganizationService', () => {
       });
 
       let capturedExpiry: string | undefined;
-      mockSupabase.from().insert.mockImplementation((data: unknown) => {
+      mockSupabase.from().insert.mockImplementation((data: { expires_at?: string }) => {
         capturedExpiry = data.expires_at;
+
         return mockSupabase.from();
       });
       mockSupabase.from().select.mockReturnThis();

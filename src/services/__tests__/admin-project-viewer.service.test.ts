@@ -369,8 +369,9 @@ describe('AdminProjectViewerService', () => {
       await service.getUserProjects(ADMIN_USER_ID, TARGET_USER_ID);
 
       // Assert
-      const projectsCall = mockFromCalls.projects;
+      const projectsCall = mockFromCalls.projects as { order: ReturnType<typeof vi.fn> };
       expect(projectsCall.order).toHaveBeenCalledWith('created_at', { ascending: false });
+
     });
   });
 

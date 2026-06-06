@@ -130,7 +130,8 @@ class GeminiImageService {
 
   parseResponse(apiResponse: unknown): ImageGenerationResponse {
     try {
-      const candidates = apiResponse?.candidates;
+      const response = apiResponse as { candidates?: Array<{ content?: { parts?: Array<{ inline_data?: { data?: string; mime_type?: string }; text?: string }> } }> };
+      const candidates = response?.candidates;
       
       if (!candidates || candidates.length === 0) {
         return {
@@ -140,6 +141,7 @@ class GeminiImageService {
       }
 
       const parts = candidates[0]?.content?.parts;
+
       
       if (!parts || parts.length === 0) {
         return {
