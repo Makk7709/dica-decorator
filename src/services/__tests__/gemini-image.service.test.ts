@@ -130,8 +130,11 @@ class GeminiImageService {
 
   parseResponse(apiResponse: unknown): ImageGenerationResponse {
     try {
-      const response = apiResponse as { candidates?: Array<{ content?: { parts?: Array<{ inline_data?: { data?: string; mime_type?: string }; text?: string }> } }> };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = apiResponse as any;
       const candidates = response?.candidates;
+
+
       
       if (!candidates || candidates.length === 0) {
         return {
