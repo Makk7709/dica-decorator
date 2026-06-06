@@ -939,14 +939,14 @@ const ProjectDetail = () => {
             )}
             
             {/* Liste des créations IA */}
-            {creativeImports.length > 0 && (
-            <div className={`grid gap-4 ${
-              creativeImports.length === 1 
-                ? "grid-cols-1 max-w-md" 
-                : creativeImports.length === 2
-                  ? "grid-cols-2"
-                  : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-            }`}>
+            {creativeImports.length > 0 && (() => {
+              let creativesGridCols: string;
+              if (creativeImports.length === 1) creativesGridCols = "grid-cols-1 max-w-md";
+              else if (creativeImports.length === 2) creativesGridCols = "grid-cols-2";
+              else creativesGridCols = "grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+              return (
+            <div className={`grid gap-4 ${creativesGridCols}`}>
+
               {creativeImports.map((creative, index) => (
                 <div 
                   key={creative.id}
