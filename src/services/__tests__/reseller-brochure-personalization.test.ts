@@ -206,10 +206,11 @@ describe('ResellerBrochurePdfService - Personalization', () => {
       expect(mockPdf.addPage).toHaveBeenCalled();
       
       // Vérifier que setFont et text ont été appelés avec le nom du revendeur
-      const textCalls = mockPdf.text.mock.calls;
-      textCalls.some((call: any[]) => 
-        call[0] === 'MARTIN DÉCO' || call[0]?.includes('MARTIN DÉCO')
+      const textCalls = (mockPdf.text as unknown as { mock: { calls: unknown[][] } }).mock.calls;
+      textCalls.some((call: unknown[]) =>
+        call[0] === 'MARTIN DÉCO' || (typeof call[0] === 'string' && call[0].includes('MARTIN DÉCO'))
       );
+
       
       // Note: On ne peut pas tester directement les méthodes privées,
       // mais on peut vérifier que le service fonctionne correctement

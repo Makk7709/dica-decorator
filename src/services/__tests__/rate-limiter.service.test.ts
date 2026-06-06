@@ -426,8 +426,9 @@ describe('RateLimiterService', () => {
     it('should record multiple renders in single call', async () => {
       // Arrange
       let capturedRenderCount: number | undefined;
-      mockSupabase.from().insert.mockImplementation((data: unknown) => {
+      mockSupabase.from().insert.mockImplementation((data: { render_count?: number }) => {
         capturedRenderCount = data.render_count;
+
         return mockSupabase.from();
       });
       mockSupabase.from().select.mockResolvedValue({

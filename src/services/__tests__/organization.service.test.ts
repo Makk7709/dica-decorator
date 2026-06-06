@@ -206,11 +206,12 @@ describe('OrganizationService', () => {
 
     it('should regenerate slug if name changes and autoUpdateSlug is true', async () => {
       // Arrange
-      let capturedUpdate: unknown;
-      mockSupabase.from().update.mockImplementation((data: unknown) => {
+      let capturedUpdate: { slug?: string } = {};
+      mockSupabase.from().update.mockImplementation((data: { slug?: string }) => {
         capturedUpdate = data;
         return mockSupabase.from();
       });
+
       mockSupabase.from().eq.mockReturnThis();
       mockSupabase.from().select.mockReturnThis();
       mockSupabase.from().single.mockResolvedValue({
@@ -291,8 +292,9 @@ describe('OrganizationService', () => {
       });
 
       let capturedExpiry: string | undefined;
-      mockSupabase.from().insert.mockImplementation((data: unknown) => {
+      mockSupabase.from().insert.mockImplementation((data: { expires_at?: string }) => {
         capturedExpiry = data.expires_at;
+
         return mockSupabase.from();
       });
       mockSupabase.from().select.mockReturnThis();

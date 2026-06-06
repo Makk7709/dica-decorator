@@ -88,8 +88,9 @@ const SlideRenderer: React.FC<{
         <div className={cn(baseClasses, 'p-8')}>
           <div className="w-full max-w-4xl">
             <BeforeAfterSlider
-              beforeImage={slide.metadata?.beforeImage || slide.content}
-              afterImage={slide.metadata?.afterImage || slide.content}
+              beforeImage={(slide.metadata?.beforeImage as string) || slide.content}
+              afterImage={(slide.metadata?.afterImage as string) || slide.content}
+
               beforeLabel="Avant"
               afterLabel="Après"
               aspectRatio="16/9"

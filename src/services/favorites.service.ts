@@ -177,15 +177,23 @@ export class FavoritesService {
           id: string;
           result_image_url: string;
           created_at: string;
-          decor_id?: string;
+          decor_id?: string | null;
+          project_photo_id?: string | null;
           project_photos?: {
             id: string;
             project_id?: string;
-            projects?: { id: string; title: string } | null;
+            original_image_url?: string;
+            projects?: { id: string; title: string; use_case?: string } | null;
           } | null;
-          [key: string]: unknown;
+          decors?: {
+            id: string;
+            name: string;
+            reference_code: string;
+            texture_image_url: string;
+          } | null;
         };
       };
+
       const favorites: FavoriteRender[] = ((data || []) as FavoriteRow[]).map((fav) => {
         const render = fav.render_results;
         const photo = render.project_photos;
@@ -201,11 +209,11 @@ export class FavoritesService {
             resultImageUrl: render.result_image_url,
             createdAt: new Date(render.created_at),
             projectId: photo?.project_id || '',
-            photoId: render.project_photo_id,
-            decorId: render.decor_id,
+            photoId: render.project_photo_id ?? null,
+            decorId: render.decor_id ?? null,
             photo: photo ? {
               id: photo.id,
-              originalImageUrl: photo.original_image_url,
+              originalImageUrl: photo.original_image_url || '',
             } : null,
             decor: render.decors ? {
               id: render.decors.id,
@@ -216,11 +224,12 @@ export class FavoritesService {
             project: project ? {
               id: project.id,
               title: project.title,
-              useCase: project.use_case,
+              useCase: project.use_case || '',
             } : { id: '', title: 'Projet inconnu', useCase: '' },
             // Creative import = pas de décor (render généré par IA)
             isCreativeImport: !render.decor_id,
           },
+
         };
       });
 
