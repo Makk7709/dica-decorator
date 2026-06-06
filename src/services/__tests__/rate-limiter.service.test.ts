@@ -14,14 +14,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  RateLimiterService,
-  RateLimitExceededError,
-  QuotaExceededError,
-  type RateLimitConfig,
-  type RateLimitCheckResult,
-  type UsageRecord,
-} from '../rate-limiter.service';
+import {RateLimiterService, RateLimitExceededError, QuotaExceededError, type RateLimitConfig} from '../rate-limiter.service';
 import { createMockSupabaseClient } from '@/test/test-utils';
 
 describe('RateLimiterService', () => {

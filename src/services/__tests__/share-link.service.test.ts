@@ -12,17 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  ShareLinkService,
-  ShareLinkConfig,
-  ShareLinkData,
-  ShareLinkPermissions,
-  ShareLinkValidation,
-  ShareLinkError,
-  ExpirationPreset,
-  AccessLog,
-  ShareLinkStats,
-} from '../share-link.service';
+import {ShareLinkService, ShareLinkConfig, ShareLinkPermissions, ShareLinkError, ExpirationPreset} from '../share-link.service';
 
 describe('ShareLinkService', () => {
   let service: ShareLinkService;

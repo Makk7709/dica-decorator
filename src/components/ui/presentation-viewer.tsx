@@ -4,26 +4,10 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  Play,
-  Pause,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Maximize,
-  Minimize,
-  SkipBack,
-  SkipForward,
-  Grid,
-} from 'lucide-react';
+import {Play, Pause, ChevronLeft, ChevronRight, X, Maximize, Minimize, SkipBack, SkipForward} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import {
-  PresentationService,
-  Slide,
-  PresentationState,
-  SlideTransition,
-} from '@/services/presentation.service';
+import {PresentationService, Slide, PresentationState, SlideTransition} from '@/services/presentation.service';
 import { BeforeAfterSlider } from '@/components/ui/before-after-slider';
 import { SafeImage } from '@/components/ui/safe-image';
 

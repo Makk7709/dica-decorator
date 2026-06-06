@@ -6,7 +6,7 @@
  * @date Décembre 2025
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {describe, it, expect, vi} from 'vitest';
 import type { ResellerBranding } from '@/types/plaquette.types';
 
 // Mock des types pour les tests

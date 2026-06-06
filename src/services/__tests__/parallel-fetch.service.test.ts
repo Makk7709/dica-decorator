@@ -9,12 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  ParallelFetchService,
-  FetchResult,
-  ParallelFetchOptions,
-  ImageFetchResult,
-} from '../parallel-fetch.service';
+import {ParallelFetchService} from '../parallel-fetch.service';
 
 describe('ParallelFetchService', () => {
   let service: ParallelFetchService;

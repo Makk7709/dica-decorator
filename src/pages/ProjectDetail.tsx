@@ -3,10 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+
+import {Dialog, DialogContent} from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, Upload, Sparkles, Download, Loader2, Trash2, Heart, RotateCcw, Home, ImageIcon, Maximize2, X, SplitSquareHorizontal, FileText, Share2, MoreVertical } from "lucide-react";
+import {ArrowLeft, Upload, Sparkles, Loader2, Trash2, Heart, RotateCcw, Home, ImageIcon, Maximize2, X, SplitSquareHorizontal, MoreVertical} from "lucide-react";
 import { toast } from "sonner";
 import { PremiumLayout, ContentContainer, SectionTitle } from "@/components/ui/premium-layout";
 import { BeforeAfterSlider } from "@/components/ui/before-after-slider";
@@ -17,10 +17,10 @@ import { ResellerBrochureExportButton } from "@/components/ui/reseller-brochure-
 import { MagazineDecoExportButton } from "@/components/ui/magazine-deco-export-button";
 import { SafeImage } from "@/components/ui/safe-image";
 import { DecorSelectorDialog, type DecorSelection } from "@/components/decor-selector";
-import { type CatalogDecor, type ProjectType, type Catalog } from "@/hooks/use-catalogs";
+import {type CatalogDecor, type ProjectType} from "@/hooks/use-catalogs";
 
 import { ImageExportDropdown, ImageExportMenuItems } from "@/components/ui/image-export-dropdown";
-import { PlaquetteProject, PlaquetteDecor, PlaquetteImage, DEFAULT_APP_SETTINGS } from "@/types/plaquette.types";
+
 import { signStorageUrl } from "@/lib/signed-storage";
 
 interface Project {

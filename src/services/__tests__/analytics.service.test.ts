@@ -11,19 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  AnalyticsService,
-  AnalyticsConfig,
-  DateRange,
-  MetricType,
-  GlobalMetrics,
-  TrendData,
-  TopItem,
-  UsageByPeriod,
-  AnalyticsReport,
-  ChartData,
-  AnalyticsError,
-} from '../analytics.service';
+import {AnalyticsService, TopItem, UsageByPeriod, AnalyticsError} from '../analytics.service';
 
 describe('AnalyticsService', () => {
   let service: AnalyticsService;

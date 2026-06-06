@@ -6,39 +6,14 @@
  */
 
 import { useState, useEffect } from 'react';
-import { 
-  Building2, 
-  Upload, 
-  Save, 
-  Check, 
-  AlertCircle,
-  Palette,
-  Globe,
-  Mail,
-  Phone,
-  MapPin,
-  User,
-  FileText,
-  Eye,
-  EyeOff,
-} from 'lucide-react';
+import {Building2, Upload, Save, AlertCircle, Palette, Globe, Mail, Phone, MapPin, User, FileText, Eye, EyeOff} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@/components/ui/alert';
+
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/components/ui/use-toast';
 import { ResellerBranding, ResellerBrandingValidation } from '@/types/plaquette.types';

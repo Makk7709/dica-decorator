@@ -7,11 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
-import {
-  ImageExportService,
-  ImageExportFormat,
-  ImageExportOptions,
-} from '../image-export.service';
+import {ImageExportService, ImageExportFormat} from '../image-export.service';
 
 // ============================================================================
 // Mocks globaux

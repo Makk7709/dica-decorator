@@ -4,23 +4,9 @@
  */
 
 import React from 'react';
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
+import {LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend} from 'recharts';
 import { cn } from '@/lib/utils';
-import { ChartData, ChartType } from '@/services/analytics.service';
+import {ChartType} from '@/services/analytics.service';
 
 // DICA Color Palette
 const COLORS = [

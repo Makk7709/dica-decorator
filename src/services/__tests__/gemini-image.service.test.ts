@@ -5,7 +5,7 @@
  * Developed by KOREV AI for DICA France
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {describe, it, expect, beforeEach} from 'vitest';
 
 // Types pour le service
 interface GeminiImageConfig {

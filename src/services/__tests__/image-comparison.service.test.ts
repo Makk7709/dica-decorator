@@ -11,17 +11,8 @@
  * - Accessibilité
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  ImageComparisonService,
-  ComparisonConfig,
-  ComparisonState,
-  SliderPosition,
-  ComparisonExport,
-  ImagePair,
-  SliderOrientation,
-  ComparisonError,
-} from '../image-comparison.service';
+import {describe, it, expect, vi, beforeEach} from 'vitest';
+import {ImageComparisonService, ComparisonConfig, ImagePair, ComparisonError} from '../image-comparison.service';
 
 describe('ImageComparisonService', () => {
   let service: ImageComparisonService;
