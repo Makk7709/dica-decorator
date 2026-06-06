@@ -722,6 +722,15 @@ ${exampleRefs}
           </div>
           
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/ai-creations")}
+              className="text-primary hover:text-primary hover:bg-primary/5"
+            >
+              <ImagePlus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Mes créations</span>
+            </Button>
             <ThemeToggle className="text-muted-foreground" />
             <Button 
               variant="ghost" 
