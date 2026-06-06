@@ -215,6 +215,7 @@ export class AnalyticsService {
         start.setDate(start.getDate() - 7);
         break;
       case '30d':
+      default:
         start = new Date(now);
         start.setDate(start.getDate() - 30);
         break;
@@ -229,16 +230,13 @@ export class AnalyticsService {
         start = new Date(now.getFullYear(), 0, 1);
         break;
       case 'custom':
-        if (!custom || !custom.start || !custom.end) {
+        if (!custom?.start || !custom?.end) {
           throw new AnalyticsError('Custom period requires start and end dates', 'INVALID_PERIOD');
         }
         if (custom.start > custom.end) {
           throw new AnalyticsError('Start date must be before end date', 'INVALID_DATE_RANGE');
         }
         return { start: custom.start, end: custom.end };
-      default:
-        start = new Date(now);
-        start.setDate(start.getDate() - 30);
     }
 
     return { start, end };
