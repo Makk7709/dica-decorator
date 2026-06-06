@@ -528,7 +528,7 @@ const ProjectDetail = () => {
       if (deleteError) throw deleteError;
 
       // Generate new render with same parameters
-      const { data, error } = await supabase.functions.invoke("apply-decor", {
+      const { error } = await supabase.functions.invoke("apply-decor", {
         body: {
           photoUrl: photo.original_image_url,
           textureUrl: decor.texture_image_url,
