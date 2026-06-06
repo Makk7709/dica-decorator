@@ -856,11 +856,11 @@ ${exampleRefs}
                                       role="button"
                                       tabIndex={0}
                                       className="relative group cursor-pointer"
-                                      onClick={() => setZoomedImage(message.imageUrl as string)}
+                                      onClick={() => setZoomedImage(message.imageUrl ?? null)}
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter' || e.key === ' ') {
                                           e.preventDefault();
-                                          setZoomedImage(message.imageUrl as string);
+                                          setZoomedImage(message.imageUrl ?? null);
                                         }
                                       }}
                                     >
@@ -881,7 +881,7 @@ ${exampleRefs}
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setZoomedImage(message.imageUrl as string)}
+                                        onClick={() => setZoomedImage(message.imageUrl ?? null)}
                                       >
                                         <Maximize2 className="h-4 w-4 mr-2" />
                                         Agrandir
@@ -896,7 +896,7 @@ ${exampleRefs}
                                         variant="outline"
                                         size="sm"
                                         onClick={() => {
-                                          setSelectedImageUrl(message.imageUrl as string);
+                                          setSelectedImageUrl(message.imageUrl ?? null);
                                           setSaveToProjectDialogOpen(true);
                                         }}
                                       >
@@ -1114,11 +1114,11 @@ ${exampleRefs}
                           role="button"
                           tabIndex={0}
                           className="relative group cursor-pointer"
-                          onClick={() => setZoomedImage(favorite.image_data!)}
+                          onClick={() => setZoomedImage(favorite.image_data)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              setZoomedImage(favorite.image_data!);
+                              setZoomedImage(favorite.image_data);
                             }
                           }}
                         >
