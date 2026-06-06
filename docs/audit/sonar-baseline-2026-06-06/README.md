@@ -162,7 +162,20 @@ Issues du plan de correction du 2026-06-06.
 | Issues SonarLint S3358 | ~7 | 0 | 0 | 0 | 0 |
 | Issues SonarLint a11y | ~30 | ~30 | 0 | 0 | 0 |
 | Issues SonarLint S3776 (complexité) | 5 fichiers | 5 | 5 | 0 | 0 |
-| Quality gate Sonar branché en CI | Non | Non | Non | Non | **Oui (LOT 5)** |
+| Quality gate CI branché (garde-fou opposable) | Non | Non | Non | Non | **Oui (LOT 5) ✅** |
+| Scan Sonar optionnel câblé en CI | Non | Non | Non | Non | **Oui (LOT 5) ✅** |
+
+> **Clôture LOT 5 (2026-06-06).** Le quality gate CI est désormais branché via
+> `.github/workflows/quality-gate.yml`. Job `guard` (auto-suffisant, sans serveur
+> Sonar ni secret) : `npm ci` → `npx eslint . --max-warnings 22` → `npx tsc --noEmit`
+> → `npm run test:run` → `npm run build`, déclenché sur `pull_request` et `push`
+> (`main`, `develop`, `audit/tier1-2026-05-07`). Le seuil retenu pour le mécanisme
+> anti-régression est **`--max-warnings 22`** (= warnings courants mesurés ; le gate
+> échoue dès le 23e), avec stratégie « ratchet » (abaisser le seuil à chaque foyer
+> résorbé). Un job `sonar` OPTIONNEL réutilise `sonar-project.properties` et ne
+> s'exécute que si le secret `SONAR_TOKEN` est présent. Le job E2E (`e2e.yml`) est
+> passé d'un déclenchement manuel à un déclenchement automatique. Détail complet :
+> [`lot5-report.md`](./lot5-report.md).
 
 ---
 

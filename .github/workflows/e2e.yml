@@ -1,17 +1,23 @@
 # DICA Decorator — Pipeline E2E (Playwright)
 #
 # Mise en place LOT 4 vague 1 : filet anti-régression de caractérisation des
-# pages monolithiques (Creative, Auth, ProjectDetail, Admin, Dashboard) AVANT
-# les refactos de complexité cognitive prévus en vague 2.
+# pages monolithiques (Creative, Auth, ProjectDetail, Admin, Dashboard).
 #
-# Déclenchement MANUEL (workflow_dispatch) volontairement : la suite E2E
-# requiert des secrets (Supabase + compte de test) et n'a pas vocation à
-# bloquer chaque PR tant que la vague 2 n'est pas lancée. Les tests des pages
-# protégées sont SKIP proprement si les secrets E2E_TEST_* sont absents.
+# ACTIVATION LOT 5 : déclenchement AUTOMATIQUE sur `pull_request` et sur
+# `push` des branches principales, tout en conservant `workflow_dispatch`.
 #
-# Secrets attendus (Repository settings → Secrets and variables → Actions) :
-#   - VITE_SUPABASE_URL              (obligatoire pour démarrer l'app)
-#   - VITE_SUPABASE_PUBLISHABLE_KEY  (obligatoire pour démarrer l'app)
+# Gestion de l'ABSENCE de credentials (auto-suffisance) :
+#   - La page /auth est PUBLIQUE : `e2e/auth.spec.ts` (6 tests) tourne avec des
+#     valeurs PLACEHOLDER `VITE_SUPABASE_*` injectées ci-dessous (aucun appel
+#     réseau au chargement). Si les secrets `VITE_SUPABASE_*` existent, ils
+#     priment ; sinon on retombe sur les placeholders publics.
+#   - Les specs des pages PROTÉGÉES (Creative, ProjectDetail, Admin, Dashboard)
+#     restent SKIP tant que `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD` sont absents
+#     (lecture optionnelle des secrets, sans casser la CI).
+#
+# Secrets FACULTATIFS (Repository settings → Secrets and variables → Actions) :
+#   - VITE_SUPABASE_URL              (sinon placeholder public)
+#   - VITE_SUPABASE_PUBLISHABLE_KEY  (sinon placeholder public)
 #   - E2E_TEST_EMAIL                 (parcours authentifiés ; sinon SKIP)
 #   - E2E_TEST_PASSWORD              (parcours authentifiés ; sinon SKIP)
 #
@@ -20,6 +26,9 @@
 name: E2E (Playwright)
 
 on:
+  push:
+    branches: [main, develop, audit/tier1-2026-05-07]
+  pull_request:
   workflow_dispatch:
 
 concurrency:
@@ -51,8 +60,11 @@ jobs:
       - name: Run E2E tests
         env:
           CI: 'true'
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # Placeholders publics par défaut : la page /auth démarre sans backend.
+          # Les secrets, s'ils existent, priment (parcours réels).
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY || 'placeholder-anon-key' }}
+          # Lecture optionnelle : si absents, les specs protégées restent SKIP.
           E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
           E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
         run: npm run test:e2e

@@ -1,0 +1,147 @@
+# DICA Decorator — Quality Gate (garde-fou opposable)
+#
+# LOT 5 du plan qualité (clôture). Ce workflow constitue le GARDE-FOU
+# OPPOSABLE et REPRODUCTIBLE de la base logicielle. Contrairement à
+# `ci.yml` (rapports d'audit non bloquants : npm audit, licences, secrets),
+# ce workflow ÉCHOUE durement dès qu'une régression de qualité est introduite.
+#
+# Pourquoi un workflow séparé de `ci.yml` ?
+#   - `ci.yml` reste un job de COLLECTE/REPORTING (lint en `continue-on-error`,
+#     audits non bloquants, artefacts) déclenché sur main/develop.
+#   - `quality-gate.yml` est le CONTRAT de merge : il fait autorité, est
+#     volontairement minimal, déterministe et auto-suffisant (aucun service
+#     externe requis). Cette séparation évite de mélanger « mesure » et
+#     « blocage », et permet d'exiger ce seul check en branch protection.
+#
+# Auto-suffisance : le job `guard` n'utilise AUCUN secret ni serveur externe.
+# Il passe « out of the box » sur un runner GitHub standard.
+#
+# Le job `sonar` (analyse SonarQube/SonarCloud) est OPTIONNEL : il ne s'exécute
+# que si le secret `SONAR_TOKEN` est renseigné. Son absence ne casse jamais la CI.
+#
+# Auteur : KOREV AI
+
+name: Quality Gate
+
+on:
+  push:
+    branches: [main, develop, audit/tier1-2026-05-07]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Plafond anti-régression de warnings ESLint.
+  # Mesure de référence au 2026-06-06 (LOT 5) : `npm run lint` = 0 erreur,
+  # 22 warnings (sonarjs/cognitive-complexity sur edge functions + services PDF,
+  # sonarjs/no-nested-functions, react-refresh, 1 react-hooks/exhaustive-deps).
+  # Le gate échoue dès le 23e warning : on n'exige pas 0 immédiatement, on
+  # interdit toute HAUSSE. Stratégie « ratchet » : à chaque foyer résorbé,
+  # abaisser cette valeur (ex. 22 → 18 → ...) pour cliqueter le seuil vers 0.
+  ESLINT_MAX_WARNINGS: '22'
+
+jobs:
+  guard:
+    name: Garde-fou (lint • types • tests • build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies (clean install)
+        run: npm ci --no-audit --no-fund
+        timeout-minutes: 5
+
+      # Échoue sur TOUTE erreur ESLint, et sur toute HAUSSE de warnings
+      # au-delà du plafond ESLINT_MAX_WARNINGS (mécanisme anti-régression).
+      - name: Lint (0 erreur + plafond warnings)
+        run: npx eslint . --max-warnings "$ESLINT_MAX_WARNINGS"
+
+      - name: Vérification des types (tsc --noEmit)
+        run: npx tsc --noEmit
+
+      - name: Tests unitaires (Vitest)
+        run: npm run test:run
+
+      - name: Build production (Vite)
+        run: npm run build
+
+  # ----------------------------------------------------------------------
+  # Détection du secret SONAR_TOKEN.
+  # Le contexte `secrets` n'est pas utilisable directement dans un `if:` de
+  # job ; on le mappe donc en sortie booléenne via un job léger dédié.
+  # ----------------------------------------------------------------------
+  detect-sonar:
+    name: Détection SONAR_TOKEN
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - name: Vérifier la présence du secret
+        id: check
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -n "$SONAR_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "SONAR_TOKEN présent : l'analyse Sonar sera exécutée."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "SONAR_TOKEN absent : analyse Sonar ignorée (non bloquant)."
+          fi
+
+  # ----------------------------------------------------------------------
+  # Analyse SonarQube / SonarCloud — OPTIONNELLE et NON bloquante.
+  # Ne s'exécute que si `detect-sonar` a trouvé le secret SONAR_TOKEN.
+  # Réutilise `sonar-project.properties` à la racine.
+  # ----------------------------------------------------------------------
+  sonar:
+    name: Analyse SonarQube/SonarCloud (optionnelle)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [guard, detect-sonar]
+    if: needs.detect-sonar.outputs.enabled == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Analyse Sonar plus pertinente avec l'historique complet (blame).
+          fetch-depth: 0
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies (clean install)
+        run: npm ci --no-audit --no-fund
+
+      # Génère coverage/lcov.info (cf. sonar.javascript.lcov.reportPaths).
+      - name: Tests + couverture (pour Sonar)
+        run: npm run test:coverage
+
+      - name: Scan Sonar
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # SonarCloud par défaut ; surchargeable par une variable de dépôt
+          # `SONAR_HOST_URL` pour un serveur SonarQube self-hosted.
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
