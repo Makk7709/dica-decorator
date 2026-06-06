@@ -712,7 +712,7 @@ ${decorContext}
 2. Propose UNIQUEMENT des décors qui existent dans le catalogue ci-dessus
 3. N'invente JAMAIS de référence ou nom de décor
 4. Si le client demande un décor non disponible → Propose des alternatives du catalogue
-5. Chaque demande est INDÉPENDANTE
+5. **CONSERVE LE CONTEXTE de la conversation** : tiens compte des messages précédents, des décors déjà évoqués, du projet en cours et des préférences exprimées par le client.
 
 TON RÔLE:
 - Conseiller sur les décors DICA listés dans le catalogue
@@ -741,12 +741,8 @@ TON RÔLE:
 
 Réponds en français de manière claire et professionnelle.`;
 
-    // Build conversation for Gemini
-    const geminiContents = [
-      { role: "user", parts: [{ text: systemPrompt }] },
-      { role: "model", parts: [{ text: "Compris. Je suis prêt à vous aider avec les décors DICA." }] },
-    ];
-    
+    // Build conversation for Gemini (system prompt via systemInstruction)
+    const geminiContents = [];
     for (const msg of messages) {
       geminiContents.push({
         role: msg.role === "user" ? "user" : "model",
@@ -762,6 +758,7 @@ Réponds en français de manière claire et professionnelle.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
         contents: geminiContents,
       }),
     });
