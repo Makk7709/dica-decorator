@@ -856,11 +856,11 @@ ${exampleRefs}
                                       role="button"
                                       tabIndex={0}
                                       className="relative group cursor-pointer"
-                                      onClick={() => setZoomedImage(message.imageUrl!)}
+                                      onClick={() => setZoomedImage(message.imageUrl as string)}
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter' || e.key === ' ') {
                                           e.preventDefault();
-                                          setZoomedImage(message.imageUrl!);
+                                          setZoomedImage(message.imageUrl as string);
                                         }
                                       }}
                                     >
@@ -881,7 +881,7 @@ ${exampleRefs}
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setZoomedImage(message.imageUrl!)}
+                                        onClick={() => setZoomedImage(message.imageUrl as string)}
                                       >
                                         <Maximize2 className="h-4 w-4 mr-2" />
                                         Agrandir
@@ -896,7 +896,7 @@ ${exampleRefs}
                                         variant="outline"
                                         size="sm"
                                         onClick={() => {
-                                          setSelectedImageUrl(message.imageUrl!);
+                                          setSelectedImageUrl(message.imageUrl as string);
                                           setSaveToProjectDialogOpen(true);
                                         }}
                                       >
