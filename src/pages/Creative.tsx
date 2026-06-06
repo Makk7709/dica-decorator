@@ -428,6 +428,10 @@ ${exampleRefs}
             decorReferences: data.decorReferences || [],
           },
         ]);
+        // Auto-save to AI creations gallery (fire-and-forget)
+        autoSaveCreation(data.imageUrl, userMessage).catch((e) =>
+          console.error("Auto-save AI creation failed:", e)
+        );
         return;
       }
 
@@ -532,6 +536,39 @@ ${exampleRefs}
 
   // La fonction downloadImage a été remplacée par ImageExportDropdown
   // qui supporte PNG, JPEG et WebP avec choix du format
+
+  // Auto-save AI creation to dedicated gallery (table ai_creations)
+  const autoSaveCreation = async (imageUrl: string, promptText: string) => {
+    if (!user || !imageUrl) return;
+    try {
+      let storedUrl = imageUrl;
+      if (imageUrl.startsWith("data:image")) {
+        const base64Data = imageUrl.split(",")[1];
+        const mimeType = imageUrl.split(":")[1]?.split(";")[0] || "image/png";
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mimeType });
+        const extension = mimeType.split("/")[1] || "png";
+        const filePath = `${user.id}/creative/creation-${Date.now()}.${extension}`;
+        const { error: uploadError } = await supabase.storage
+          .from("project-photos")
+          .upload(filePath, blob, { contentType: mimeType, upsert: false });
+        if (uploadError) throw uploadError;
+        const { data } = supabase.storage.from("project-photos").getPublicUrl(filePath);
+        storedUrl = data.publicUrl;
+      }
+      const { error } = await supabase.from("ai_creations").insert({
+        user_id: user.id,
+        image_url: storedUrl,
+        prompt: promptText.slice(0, 2000),
+      });
+      if (error) throw error;
+      console.log("AI creation auto-saved to gallery");
+    } catch (err) {
+      console.error("autoSaveCreation error:", err);
+    }
+  };
 
   const saveImageToProject = async () => {
     if (!user || !selectedImageUrl) {
@@ -722,6 +759,15 @@ ${exampleRefs}
           </div>
           
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/ai-creations")}
+              className="text-primary hover:text-primary hover:bg-primary/5"
+            >
+              <ImagePlus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Mes créations</span>
+            </Button>
             <ThemeToggle className="text-muted-foreground" />
             <Button 
               variant="ghost" 

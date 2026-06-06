@@ -251,6 +251,25 @@ const Dashboard = () => {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => navigate("/ai-creations")}
+              className="hidden sm:flex items-center gap-2 text-primary hover:text-primary hover:bg-primary/5 rounded-xl"
+            >
+              <Wand2 className="h-4 w-4" />
+              <span className="hidden md:inline font-medium">Créations IA</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/ai-creations")}
+              className="sm:hidden text-primary rounded-xl"
+            >
+              <Wand2 className="h-5 w-5" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => navigate("/favorites")}
               className="hidden sm:flex items-center gap-2 text-primary hover:text-primary hover:bg-primary/5 rounded-xl"
             >

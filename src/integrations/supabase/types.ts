@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_creations: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          prompt: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          prompt?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          prompt?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       catalog_decor_links: {
         Row: {
           catalog_id: string
