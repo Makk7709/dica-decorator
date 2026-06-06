@@ -184,7 +184,7 @@ serve(async (req) => {
 
       // For each catalog, fetch linked decors
       const catalogSections: string[] = [];
-      const allDecorRefs: string[] = [];
+      // allDecorRefs declared in outer scope
       
       for (const cat of (catalogs || [])) {
         const { data: links } = await supabaseAdmin
