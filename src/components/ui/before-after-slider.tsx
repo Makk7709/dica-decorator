@@ -193,7 +193,9 @@ export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
   // Calculate clip paths
   const clipPaths = service.calculateClipPaths(position, orientation);
 
-  // Aria attributes
+  // Aria attributes (le rôle 'slider' est défini par le service et appliqué
+  // explicitement ci-dessous afin que les linters statiques détectent que
+  // l'élément est interactif). Cf. règle jsx-a11y/no-static-element-interactions.
   const ariaProps = service.getAriaAttributes();
 
   // Aspect ratio class
@@ -214,6 +216,12 @@ export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
   return (
     <div
       ref={containerRef}
+      role="slider"
+      tabIndex={0}
+      aria-valuenow={ariaProps['aria-valuenow']}
+      aria-valuemin={ariaProps['aria-valuemin']}
+      aria-valuemax={ariaProps['aria-valuemax']}
+      aria-label={ariaProps['aria-label']}
       className={cn(
         'relative overflow-hidden rounded-xl select-none cursor-col-resize',
         'bg-muted',
@@ -225,7 +233,6 @@ export const BeforeAfterSlider: React.FC<Readonly<BeforeAfterSliderProps>> = ({
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onKeyDown={handleKeyDown}
-      tabIndex={0}
       {...ariaProps}
     >
       {/* Loading skeleton */}

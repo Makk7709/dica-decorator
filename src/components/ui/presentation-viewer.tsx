@@ -365,15 +365,28 @@ export const PresentationViewer: React.FC<Readonly<PresentationViewerProps>> = (
   const transitionCSS = service.getTransitionCSS();
   const currentSlide = slides[state.currentIndex];
 
+  const revealUI = () => setShowUI(true);
+  // Le viewer de présentation gère la navigation clavier (flèches, Esc…)
+  // via `document.addEventListener('keydown', …)` dans son service. Les
+  // gestionnaires `onClick` / `onKeyDown` ci-dessous servent uniquement à
+  // révéler l'UI overlay (équivalent d'un mouvement de souris). On annote
+  // donc la règle `no-noninteractive-element-interactions` car le rôle
+  // landmark `region` est sémantiquement correct ici (le widget actif
+  // est l'overlay, pas le conteneur).
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       ref={containerRef}
+      role="region"
+      aria-label="Visionneuse de présentation"
       className={cn(
         'relative w-full h-full bg-black overflow-hidden',
         'select-none',
         className
       )}
-      onClick={() => setShowUI(true)}
+      onClick={revealUI}
+      onKeyDown={revealUI}
+      onMouseMove={revealUI}
     >
       {/* Slides */}
       <div className="absolute inset-0">

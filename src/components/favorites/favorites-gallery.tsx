@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FavoritesService, FavoriteRender, FavoritesFilter } from '@/services/favorites.service';
+import { onActivateKeyDown } from '@/lib/utils';
 
 // ============================================================================
 // Types
@@ -347,10 +348,15 @@ function FavoriteCard({ favorite, isSelected, onToggleSelect }: Readonly<Favorit
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      aria-label={`${isSelected ? 'Désélectionner' : 'Sélectionner'} ce rendu favori`}
       className={`relative group rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
         isSelected ? 'border-primary shadow-lg' : 'border-transparent hover:border-border'
       }`}
       onClick={onToggleSelect}
+      onKeyDown={(e) => onActivateKeyDown(e, onToggleSelect)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

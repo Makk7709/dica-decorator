@@ -1,0 +1,65 @@
+
+> dica-decorator@2.2.0 lint
+> eslint .
+
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/admin/catalog-management.tsx
+  330:25  error  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  330:25  error  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/admin/user-projects-dialog.tsx
+  363:15  error  Redundant alt attribute. Screen-readers already announce `img` tags as an image. You don’t need to use the words `image`, `photo,` or `picture` (or any specified custom words) in the alt prop  jsx-a11y/img-redundant-alt
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/favorites/favorites-gallery.tsx
+  349:5  error  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  349:5  error  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/onboarding/OnboardingChecklist.tsx
+  49:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/ui/before-after-slider.tsx
+  215:5  error  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  228:7  error  `tabIndex` should only be declared on interactive elements                                                                                                                                         jsx-a11y/no-noninteractive-tabindex
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/components/ui/presentation-viewer.tsx
+  369:5  error  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  369:5  error  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/contexts/AuthContext.tsx
+  17:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/contexts/ThemeContext.tsx
+  103:17  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/Creative.tsx
+   831:37  error  Redundant alt attribute. Screen-readers already announce `img` tags as an image. You don’t need to use the words `image`, `photo,` or `picture` (or any specified custom words) in the alt prop    jsx-a11y/img-redundant-alt
+   842:35  error  Redundant alt attribute. Screen-readers already announce `img` tags as an image. You don’t need to use the words `image`, `photo,` or `picture` (or any specified custom words) in the alt prop    jsx-a11y/img-redundant-alt
+   854:37  error  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+   854:37  error  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  1104:25  error  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1104:25  error  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  1238:21  error  A form label must be associated with a control                                                                                                                                                     jsx-a11y/label-has-associated-control
+  1264:19  error  A form label must be associated with a control                                                                                                                                                     jsx-a11y/label-has-associated-control
+  1342:19  error  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  1342:19  error  Non-interactive elements should not be assigned mouse or keyboard event listeners                                                                                                                  jsx-a11y/no-noninteractive-element-interactions
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/Dashboard.tsx
+  384:15  error  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  384:15  error  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  416:21  error  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  416:21  error  Avoid non-native interactive elements. If using native HTML is not possible, add an appropriate role and support for tabbing, mouse, keyboard, and touch inputs to an interactive content element  jsx-a11y/no-static-element-interactions
+  422:25  error  The autoFocus prop should not be used, as it can reduce usability and accessibility for users                                                                                                      jsx-a11y/no-autofocus
+  451:23  error  Visible, non-interactive elements with click handlers must have at least one keyboard listener                                                                                                     jsx-a11y/click-events-have-key-events
+  451:23  error  Non-interactive elements should not be assigned mouse or keyboard event listeners                                                                                                                  jsx-a11y/no-noninteractive-element-interactions
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/pages/ProjectDetail.tsx
+   112:6   warning  React Hook useEffect has missing dependencies: 'loadFavorites', 'loadProject', and 'loadUserProfile'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+   838:13  error    A form label must have accessible text                                                                                                                    jsx-a11y/label-has-associated-control
+  1004:15  error    A form label must have accessible text                                                                                                                    jsx-a11y/label-has-associated-control
+
+/Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator/src/test/test-utils.tsx
+  27:7  warning  Fast refresh only works when a file only exports components. Move your component(s) to a separate file  react-refresh/only-export-components
+  50:1  warning  This rule can't verify that `export *` only exports components                                          react-refresh/only-export-components
+
+✖ 34 problems (28 errors, 6 warnings)
+

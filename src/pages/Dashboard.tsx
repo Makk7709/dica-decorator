@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { projectDeletionService, type ProjectDeletionStats } from "@/services/project-deletion.service";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, onActivateKeyDown } from "@/lib/utils";
 import { projectRenameService } from "@/services/project-rename.service";
 import { AppFooter } from "@/components/ui/app-footer";
 import { useProjects } from "@/hooks/use-projects";
@@ -380,14 +380,20 @@ const Dashboard = () => {
           </PremiumCard>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project, index) => (
+            {projects.map((project, index) => {
+              const handleOpenProject = () => {
+                if (editingProjectId !== project.id) {
+                  navigate(`/project/${project.id}`);
+                }
+              };
+              return (
               <div
                 key={project.id}
-                onClick={() => {
-                  if (editingProjectId !== project.id) {
-                    navigate(`/project/${project.id}`);
-                  }
-                }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Ouvrir le projet ${project.title}`}
+                onClick={handleOpenProject}
+                onKeyDown={(e) => onActivateKeyDown(e, handleOpenProject)}
                 className="card-premium p-5 cursor-pointer group animate-slide-up"
                 style={{ animationDelay: `${index * 50}ms` }}
               >
@@ -413,12 +419,14 @@ const Dashboard = () => {
                 {/* Content */}
                 <div className="space-y-1.5">
                   {editingProjectId === project.id ? (
+                    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <Input
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
                         onKeyDown={(e) => handleKeyDown(e, project)}
                         className="h-8 text-sm font-semibold flex-1"
+                        // eslint-disable-next-line jsx-a11y/no-autofocus -- focus immédiat justifié pour l'édition inline (UX standard)
                         autoFocus
                         disabled={isRenaming}
                         maxLength={200}
@@ -448,9 +456,8 @@ const Dashboard = () => {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 group/title">
-                      <h3 
+                      <h3
                         className="font-semibold text-lg text-foreground line-clamp-1 group-hover:text-primary transition-colors flex-1"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         {project.title}
                       </h3>
@@ -486,7 +493,8 @@ const Dashboard = () => {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </ContentContainer>

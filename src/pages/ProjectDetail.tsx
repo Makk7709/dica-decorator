@@ -835,11 +835,11 @@ const ProjectDetail = () => {
               subtitle="Uploadez vos photos et appliquez les décors DICA en un clic."
             />
             
-            <label htmlFor="photo-upload">
-              <Button 
-                asChild 
-                disabled={isUploading} 
-                size="lg" 
+            <label htmlFor="photo-upload" aria-label="Uploader des photos du projet">
+              <Button
+                asChild
+                disabled={isUploading}
+                size="lg"
                 className="btn-primary-premium h-12 px-6 rounded-xl cursor-pointer"
               >
                 <span>
@@ -1001,10 +1001,10 @@ const ProjectDetail = () => {
               <p className="text-muted-foreground mb-8 text-balance">
                 Commencez par uploader une photo de votre espace pour visualiser les décors DICA.
               </p>
-              <label htmlFor="photo-upload-empty">
-                <Button 
-                  asChild 
-                  disabled={isUploading} 
+              <label htmlFor="photo-upload-empty" aria-label="Uploader la première photo du projet">
+                <Button
+                  asChild
+                  disabled={isUploading}
                   size="lg"
                   className="btn-primary-premium h-12 px-8 rounded-xl cursor-pointer"
                 >

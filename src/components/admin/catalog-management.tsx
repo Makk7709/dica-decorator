@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Loader2, Save, Search, CheckCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { onActivateKeyDown } from "@/lib/utils";
 
 interface Catalog {
   id: string;
@@ -326,15 +327,21 @@ export const CatalogManagement = () => {
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {categoryDecors.map((decor) => {
                       const isSelected = selectedLinks.has(`${activeCatalog}:${decor.id}`);
+                      const handleToggle = () => toggleLink(activeCatalog, decor.id);
                       return (
                         <div
                           key={decor.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-pressed={isSelected}
+                          aria-label={`${isSelected ? 'Désélectionner' : 'Sélectionner'} ${decor.name}`}
                           className={`relative rounded-lg border-2 transition-all cursor-pointer overflow-hidden ${
-                            isSelected 
-                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
+                            isSelected
+                              ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                               : 'border-transparent hover:border-muted-foreground/30'
                           }`}
-                          onClick={() => toggleLink(activeCatalog, decor.id)}
+                          onClick={handleToggle}
+                          onKeyDown={(e) => onActivateKeyDown(e, handleToggle)}
                         >
                           <div className="aspect-square relative">
                             <img

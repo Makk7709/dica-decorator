@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PremiumLayout, ContentContainer } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ImageExportDropdown } from "@/components/ui/image-export-dropdown";
+import { onActivateKeyDown } from "@/lib/utils";
 
 interface DecorReference {
   reference: string;
@@ -828,10 +829,10 @@ ${exampleRefs}
                               {message.sourceImageUrls && message.sourceImageUrls.length > 0 && message.role === "user" && (
                                 <div className="mb-2 flex flex-wrap gap-2">
                                   {message.sourceImageUrls.map((url, idx) => (
-                                    <img 
+                                    <img
                                       key={idx}
-                                      src={url} 
-                                      alt={`Photo source ${idx + 1}`} 
+                                      src={url}
+                                      alt={`Source ${idx + 1}`}
                                       className="rounded-lg h-16 w-16 object-cover"
                                     />
                                   ))}
@@ -839,9 +840,9 @@ ${exampleRefs}
                               )}
                               {message.sourceImageUrl && !message.sourceImageUrls && message.role === "user" && (
                                 <div className="mb-2">
-                                  <img 
-                                    src={message.sourceImageUrl} 
-                                    alt="Photo source" 
+                                  <img
+                                    src={message.sourceImageUrl}
+                                    alt="Source"
                                     className="rounded-lg max-h-40 w-auto"
                                   />
                                 </div>
@@ -851,9 +852,13 @@ ${exampleRefs}
                                   <p className="whitespace-pre-wrap text-sm text-foreground">{message.content}</p>
                                   <div className="space-y-2">
                                     {/* Image avec overlay de zoom */}
-                                    <div 
+                                    <div
+                                      role="button"
+                                      tabIndex={0}
+                                      aria-label="Agrandir la visualisation"
                                       className="relative group cursor-pointer"
                                       onClick={() => setZoomedImage(message.imageUrl!)}
+                                      onKeyDown={(e) => onActivateKeyDown(e, () => setZoomedImage(message.imageUrl!))}
                                     >
                                       <img 
                                         src={message.imageUrl} 
@@ -1101,9 +1106,13 @@ ${exampleRefs}
                     >
                       {/* Image si présente */}
                       {favorite.image_data && (
-                        <div 
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Agrandir le favori"
                           className="relative group cursor-pointer"
                           onClick={() => setZoomedImage(favorite.image_data!)}
+                          onKeyDown={(e) => onActivateKeyDown(e, () => setZoomedImage(favorite.image_data!))}
                         >
                           <img 
                             src={favorite.image_data} 
@@ -1235,9 +1244,9 @@ ${exampleRefs}
               <div className="space-y-4">
                 {projects.length > 0 && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Projet existant</label>
+                    <label htmlFor="creative-existing-project" className="text-sm font-medium text-foreground">Projet existant</label>
                     <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                      <SelectTrigger>
+                      <SelectTrigger id="creative-existing-project">
                         <SelectValue placeholder="Sélectionner un projet" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1261,8 +1270,9 @@ ${exampleRefs}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Nouveau projet</label>
+                  <label htmlFor="creative-new-project-title" className="text-sm font-medium text-foreground">Nouveau projet</label>
                   <Input
+                    id="creative-new-project-title"
                     value={newProjectTitle}
                     onChange={(e) => {
                       setNewProjectTitle(e.target.value);
@@ -1337,14 +1347,21 @@ ${exampleRefs}
                   </Button>
                 </div>
 
-                {/* Image zoomée */}
+                {/* Image zoomée — wrappée pour intercepter le click et
+                    éviter que le Dialog ne se ferme si on clique l'image
+                    (le fond noir conserve son comportement de fermeture). */}
                 {zoomedImage && (
-                  <img
-                    src={zoomedImage}
-                    alt="Visualisation en plein écran"
-                    className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                  // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+                  <div
+                    className="max-w-full max-h-[90vh]"
                     onClick={(e) => e.stopPropagation()}
-                  />
+                  >
+                    <img
+                      src={zoomedImage}
+                      alt="Visualisation en plein écran"
+                      className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                    />
+                  </div>
                 )}
               </div>
             </DialogContent>

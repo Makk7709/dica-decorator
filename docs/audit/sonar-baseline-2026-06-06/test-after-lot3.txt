@@ -1,0 +1,166 @@
+
+> dica-decorator@2.2.0 test:run
+> vitest run
+
+
+ RUN  v3.2.4 /Users/aminemohamed/Desktop/APP/DICADECOR/dica-decorator
+
+ ✓ supabase/functions/_shared/__tests__/logger.test.ts (14 tests) 36ms
+ ✓ src/services/__tests__/image-comparison.service.test.ts (67 tests) 16ms
+ ✓ src/hooks/__tests__/use-optimistic-render.test.ts (20 tests) 28ms
+ ✓ src/hooks/__tests__/use-decor-context-cache.test.ts (18 tests) 27ms
+ ✓ src/services/__tests__/share-link.service.test.ts (58 tests) 20ms
+ ✓ src/hooks/__tests__/use-creative-image-export.test.ts (28 tests) 48ms
+ ✓ src/services/__tests__/analytics-export.service.test.ts (29 tests) 27ms
+ ✓ src/services/__tests__/image-storage.service.test.ts (29 tests) 21ms
+ ✓ src/services/__tests__/organization.service.test.ts (27 tests) 35ms
+ ✓ src/services/__tests__/rate-limiter.service.test.ts (30 tests) 41ms
+ ✓ src/services/__tests__/quota.service.test.ts (21 tests) 43ms
+ ✓ src/components/ui/__tests__/image-export-dropdown.test.tsx (18 tests) 119ms
+ ✓ src/services/__tests__/parallel-fetch.service.test.ts (33 tests) 367ms
+ ✓ src/services/__tests__/image-export.service.strict.test.ts (27 tests) 13ms
+stdout | src/services/__tests__/reseller-brochure-personalization.test.ts > ResellerBrochurePdfService - Personalization > Interior Pages Personalization > should use reseller name in header of interior pages when branding is enabled
+📖 Brochure Revendeur - Starting PDF generation
+🏢 Reseller branding object: {
+  "enabled": true,
+  "companyName": "MARTIN DÉCO"
+}
+🏢 Reseller branding enabled: true
+🏢 Reseller branding companyName: MARTIN DÉCO
+🏢 getCoverTitle result: MARTIN DÉCO
+👤 Client name: (none)
+
+stdout | src/services/__tests__/project-deletion.service.test.ts > ProjectDeletionService > Deletion Process > should delete project successfully with all security checks
+🔒 Security: Project deletion initiated Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001 Stats: 0 items to delete
+
+stdout | src/services/__tests__/project-deletion.service.test.ts > ProjectDeletionService > Deletion Process > should delete project successfully with all security checks
+✅ Security: Project deleted successfully Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001 Deleted: 0 related items
+
+stdout | src/services/__tests__/project-deletion.service.test.ts > ProjectDeletionService > Deletion Process > should handle deletion errors gracefully
+🔒 Security: Project deletion initiated Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001 Stats: 0 items to delete
+
+stdout | src/services/__tests__/reseller-brochure-personalization.test.ts > ResellerBrochurePdfService - Personalization > Interior Pages Personalization > should use reseller name in header of interior pages when branding is enabled
+✅ Brochure Revendeur PDF generated: {
+  filename: 'martin_d_co_brochure_test_project_2026-06-06.pdf',
+  pageCount: 3,
+  resellerName: 'MARTIN DÉCO',
+  clientName: '(none)'
+}
+
+stdout | src/services/__tests__/reseller-brochure-personalization.test.ts > ResellerBrochurePdfService - Personalization > Footer Personalization > should use reseller name in footer when branding is enabled
+📖 Brochure Revendeur - Starting PDF generation
+🏢 Reseller branding object: {
+  "enabled": true,
+  "companyName": "MARTIN DÉCO",
+  "contactName": "Jean Martin"
+}
+🏢 Reseller branding enabled: true
+🏢 Reseller branding companyName: MARTIN DÉCO
+🏢 getCoverTitle result: MARTIN DÉCO
+👤 Client name: (none)
+
+stdout | src/services/__tests__/project-deletion.service.test.ts > ProjectDeletionService > Edge Cases > should handle network errors during deletion
+🔒 Security: Project deletion initiated Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001 Stats: 0 items to delete
+
+stdout | src/services/__tests__/reseller-brochure-personalization.test.ts > ResellerBrochurePdfService - Personalization > Footer Personalization > should use reseller name in footer when branding is enabled
+✅ Brochure Revendeur PDF generated: {
+  filename: 'martin_d_co_brochure_test_project_2026-06-06.pdf',
+  pageCount: 3,
+  resellerName: 'MARTIN DÉCO',
+  clientName: '(none)'
+}
+
+stdout | src/services/__tests__/reseller-brochure-personalization.test.ts > ResellerBrochurePdfService - Personalization > Closing Page Personalization > should include reseller contact info in closing page when branding is enabled
+📖 Brochure Revendeur - Starting PDF generation
+🏢 Reseller branding object: {
+  "enabled": true,
+  "companyName": "MARTIN DÉCO",
+  "contactName": "Jean Martin",
+  "email": "contact@martin-deco.fr",
+  "phone": "01 23 45 67 89",
+  "addressLine1": "123 Rue de la Déco",
+  "city": "Paris",
+  "postalCode": "75001",
+  "website": "www.martin-deco.fr"
+}
+🏢 Reseller branding enabled: true
+🏢 Reseller branding companyName: MARTIN DÉCO
+🏢 getCoverTitle result: MARTIN DÉCO
+👤 Client name: (none)
+
+ ✓ src/services/__tests__/presentation.service.test.ts (67 tests) 15ms
+stdout | src/services/__tests__/reseller-brochure-personalization.test.ts > ResellerBrochurePdfService - Personalization > Closing Page Personalization > should include reseller contact info in closing page when branding is enabled
+✅ Brochure Revendeur PDF generated: {
+  filename: 'martin_d_co_brochure_test_project_2026-06-06.pdf',
+  pageCount: 3,
+  resellerName: 'MARTIN DÉCO',
+  clientName: '(none)'
+}
+
+stdout | src/services/__tests__/reseller-brochure-personalization.test.ts > ResellerBrochurePdfService - Personalization > Complete Personalization > should personalize all DICA references when full branding is provided
+📖 Brochure Revendeur - Starting PDF generation
+🏢 Reseller branding object: {
+  "enabled": true,
+  "companyName": "MARTIN DÉCO",
+  "contactName": "Jean Martin",
+  "email": "contact@martin-deco.fr",
+  "phone": "01 23 45 67 89",
+  "addressLine1": "123 Rue de la Déco",
+  "addressLine2": "Bâtiment A",
+  "city": "Paris",
+  "postalCode": "75001",
+  "country": "France",
+  "website": "www.martin-deco.fr",
+  "tagline": "Votre partenaire décoration",
+  "siret": "12345678901234"
+}
+🏢 Reseller branding enabled: true
+🏢 Reseller branding companyName: MARTIN DÉCO
+🏢 getCoverTitle result: MARTIN DÉCO
+👤 Client name: Hôtel Le Palace
+
+stdout | src/services/__tests__/reseller-brochure-personalization.test.ts > ResellerBrochurePdfService - Personalization > Complete Personalization > should personalize all DICA references when full branding is provided
+✅ Brochure Revendeur PDF generated: {
+  filename: 'martin_d_co_brochure_test_project_2026-06-06.pdf',
+  pageCount: 3,
+  resellerName: 'MARTIN DÉCO',
+  clientName: 'Hôtel Le Palace'
+}
+
+ ✓ src/services/__tests__/project-deletion.service.test.ts (13 tests) 9ms
+ ✓ src/services/__tests__/reseller-brochure-personalization.test.ts (9 tests) 21ms
+ ✓ src/services/__tests__/image-export.service.test.ts (32 tests) 36ms
+ ✓ src/services/__tests__/url-validator.service.test.ts (71 tests) 19ms
+ ✓ src/services/__tests__/auth-guard.service.test.ts (31 tests) 27ms
+ ✓ src/services/__tests__/analytics.service.test.ts (49 tests) 8ms
+ ✓ src/services/__tests__/admin-project-viewer.service.test.ts (21 tests) 16ms
+ ✓ supabase/functions/_shared/__tests__/ssrf-guard.test.ts (17 tests) 8ms
+stdout | src/services/__tests__/project-rename.service.test.ts > ProjectRenameService > Rename Process > should rename project successfully with all security checks
+🔒 Security: Project rename initiated Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001 Old: "Ancien Nom" → New: "Nouveau Nom Projet"
+
+stdout | src/services/__tests__/project-rename.service.test.ts > ProjectRenameService > Rename Process > should rename project successfully with all security checks
+✅ Security: Project renamed successfully Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001
+
+stdout | src/services/__tests__/project-rename.service.test.ts > ProjectRenameService > Rename Process > should handle update errors gracefully
+🔒 Security: Project rename initiated Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001 Old: "Ancien Nom" → New: "Nouveau Nom"
+
+stdout | src/services/__tests__/project-rename.service.test.ts > ProjectRenameService > Edge Cases > should handle network errors during rename
+🔒 Security: Project rename initiated Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001 Old: "Ancien Nom" → New: "Nouveau Nom"
+
+stdout | src/services/__tests__/project-rename.service.test.ts > ProjectRenameService > Edge Cases > should trim whitespace from new title
+🔒 Security: Project rename initiated Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001 Old: "Ancien Nom" → New: "Nouveau Nom"
+
+stdout | src/services/__tests__/project-rename.service.test.ts > ProjectRenameService > Edge Cases > should trim whitespace from new title
+✅ Security: Project renamed successfully Project: 550e8400-e29b-41d4-a716-446655440000 User: 550e8400-e29b-41d4-a716-446655440001
+
+ ✓ src/services/__tests__/favorites.service.test.ts (20 tests) 9ms
+ ✓ src/services/__tests__/project-rename.service.test.ts (13 tests) 10ms
+ ✓ src/services/__tests__/gemini-image.service.test.ts (46 tests) 7ms
+ ✓ src/types/__tests__/render-response.test.ts (18 tests) 5ms
+ ✓ src/services/__tests__/reseller-brochure-pdf.service.test.ts (16 tests) 4ms
+
+ Test Files  28 passed (28)
+      Tests  842 passed (842)
+   Start at  14:43:15
+   Duration  2.32s (transform 1.14s, setup 5.81s, collect 2.71s, tests 1.04s, environment 10.63s, prepare 1.99s)
+

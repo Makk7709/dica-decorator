@@ -1,3 +1,4 @@
+import type React from "react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -51,4 +52,32 @@ export function isApiErrorLike(value: unknown): value is ApiErrorLike {
     "message" in value &&
     typeof (value as { message: unknown }).message === "string"
   );
+}
+
+/**
+ * Construit un gestionnaire `onKeyDown` qui exécute la même action que
+ * `onClick` lorsqu'on appuie sur Entrée ou Espace, et empêche le scroll
+ * navigateur sur Espace. À utiliser sur les éléments non natifs interactifs
+ * (cartes cliquables, lignes de tableau, etc.) qui doivent rester
+ * accessibles au clavier (cf. WCAG 2.1 - 2.1.1 Keyboard, et règle ESLint
+ * jsx-a11y/click-events-have-key-events).
+ *
+ * Combine en pratique avec `role="button"` et `tabIndex={0}`.
+ *
+ * @example
+ * <div
+ *   role="button"
+ *   tabIndex={0}
+ *   onClick={handleClick}
+ *   onKeyDown={(e) => onActivateKeyDown(e, handleClick)}
+ * >...</div>
+ */
+export function onActivateKeyDown<E extends Element = HTMLElement>(
+  event: React.KeyboardEvent<E>,
+  handler: (event: React.KeyboardEvent<E>) => void
+): void {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    handler(event);
+  }
 }

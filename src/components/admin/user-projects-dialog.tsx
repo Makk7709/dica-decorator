@@ -362,7 +362,7 @@ const ProjectDetailsView = ({
               <p className="text-xs font-medium text-muted-foreground mb-2">Photo originale</p>
               <img
                 src={photo.originalImageUrl}
-                alt="Photo originale"
+                alt="Originale"
                 className="w-full max-h-48 object-contain rounded-md bg-background"
               />
             </div>
