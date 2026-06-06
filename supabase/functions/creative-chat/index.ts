@@ -170,6 +170,7 @@ serve(async (req) => {
     // BUILD STRUCTURED DECOR CONTEXT FROM CATALOGS (replaces flat frontend list)
     // ========================================================================
     let decorContext: string;
+    const allDecorRefs: string[] = [];
     try {
       // Fetch all active catalogs with their linked decors
       const { data: catalogs, error: catErr } = await supabaseAdmin
