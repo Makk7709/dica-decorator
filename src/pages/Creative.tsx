@@ -802,6 +802,8 @@ ${exampleRefs}
                       </div>
                     ) : null}
                   </div>
+                    );
+                  })()}
 
                   <Button
                     type="button"
