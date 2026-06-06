@@ -1331,7 +1331,7 @@ const ProjectDetail = () => {
                     Fermer
                   </Button>
                   <ImageExportDropdown
-                    imageUrl={zoomedImage!}
+                    imageUrl={zoomedImage}
                     filename={`dica-render-${Date.now()}`}
                     variant="secondary"
                     className="h-10 px-4 bg-white hover:bg-gray-100 shadow-lg text-gray-800 border border-gray-200"
