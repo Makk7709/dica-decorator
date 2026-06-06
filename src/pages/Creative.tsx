@@ -171,7 +171,7 @@ const Creative = () => {
           const fileName = `creative-${Date.now()}.png`;
           const filePath = `${user.id}/creative/${fileName}`;
           
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from("project-photos")
             .upload(filePath, blob, {
               contentType: 'image/png',
@@ -341,7 +341,7 @@ ${exampleRefs}
     setIsUploading(true);
     try {
       const fileName = `source-${Date.now()}.${file.name.split('.').pop()}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("project-photos")
         .upload(`${user.id}/${fileName}`, file);
 
