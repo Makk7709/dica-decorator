@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WelcomeModal, useOnboarding } from "@/components/onboarding";
-import { Plus, LogOut, Settings, FolderOpen, Wand2, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart, Building2 } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen, Wand2, BookOpen, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -254,7 +254,7 @@ const Dashboard = () => {
               onClick={() => navigate("/ai-creations")}
               className="hidden sm:flex items-center gap-2 text-primary hover:text-primary hover:bg-primary/5 rounded-xl"
             >
-              <Wand2 className="h-4 w-4" />
+              <BookOpen className="h-4 w-4" />
               <span className="hidden md:inline font-medium">Créations IA</span>
             </Button>
 
@@ -264,7 +264,7 @@ const Dashboard = () => {
               onClick={() => navigate("/ai-creations")}
               className="sm:hidden text-primary rounded-xl"
             >
-              <Wand2 className="h-5 w-5" />
+              <BookOpen className="h-5 w-5" />
             </Button>
 
             <Button
