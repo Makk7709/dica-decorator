@@ -21,13 +21,13 @@ L'analyse SonarLint (côté IDE) remonte un volume significatif de violations su
 - `S6481` — Contexts React sans mémoïsation de `value` (carousel, form, sidebar, toggle-group, chart).
 - Diverses règles a11y JSX héritées du template.
 
-Au 2026-06-06, l'audit identifie **48 fichiers** dans `src/components/ui/` qui sont des templates shadcn purs (dérivés directement de la base [ui.shadcn.com/docs/components](https://ui.shadcn.com/docs/components) sans modification fonctionnelle), et **10 fichiers** qui sont des composants custom développés par KOREV AI pour le projet et qui restent dans le périmètre d'audit normal.
+Au 2026-06-06, l'audit identifie **49 fichiers** dans `src/components/ui/` qui sont des templates shadcn purs (dérivés directement de la base [ui.shadcn.com/docs/components](https://ui.shadcn.com/docs/components) sans modification fonctionnelle, dont 48 composants `.tsx` plus le hook `use-toast.ts`), et **10 fichiers** qui sont des composants custom développés par KOREV AI pour le projet et qui restent dans le périmètre d'audit normal.
 
 ---
 
 ## 2. Décision
 
-**Les 48 fichiers `src/components/ui/` correspondant à des composants shadcn purs sont exclus du périmètre d'analyse SonarQube / SonarLint** via la propriété `sonar.exclusions` du fichier `sonar-project.properties` (cf. LOT 0).
+**Les 49 fichiers `src/components/ui/` correspondant à des composants shadcn purs sont exclus du périmètre d'analyse SonarQube / SonarLint** via la propriété `sonar.exclusions` du fichier `sonar-project.properties` (cf. LOT 0).
 
 Liste exhaustive des fichiers exclus :
 
@@ -111,7 +111,7 @@ Cette décision concerne **uniquement** l'analyse SonarQube / SonarLint. Les com
 
 ### 3.1 Coût d'opportunité d'une correction
 
-Corriger les violations SonarLint sur les 48 fichiers shadcn représente, d'après le bilan IDE 2026-06-06, environ **50 violations**. Le coût de correction est modéré (~3-4 j/h) mais le bénéfice est nul à court terme et **négatif à moyen terme** :
+Corriger les violations SonarLint sur les 49 fichiers shadcn représente, d'après le bilan IDE 2026-06-06, environ **50 violations**. Le coût de correction est modéré (~3-4 j/h) mais le bénéfice est nul à court terme et **négatif à moyen terme** :
 
 - À chaque mise à jour de shadcn/ui (en moyenne tous les 3-6 mois), les corrections locales doivent être ré-appliquées manuellement, ou bien la mise à jour est rejetée en bloc, ce qui prive le projet des correctifs upstream (sécurité, accessibilité, perf).
 - Le mainteneur amont (shadcn) est lui-même actif sur ces sujets ; les corrections amont arrivent sans coût pour nous quand on tient la version à jour.
@@ -158,7 +158,7 @@ Cette règle sera vérifiée par revue de code lors des PR.
 | Corriger les violations sur les composants shadcn | Sonar 100 % vert | Surcharge de maintenance à chaque update shadcn ; signal noyé par le bruit. | Rejetée |
 | Exclure tout `src/components/ui/` sans distinction | Plus simple à maintenir | Exclut aussi les 10 composants custom du projet (perte de couverture sur du code propriétaire). | Rejetée |
 | Garder `src/components/ui/` audité mais marquer chaque issue comme « Won't Fix » dans Sonar | Traçabilité issue par issue | Travail manuel à chaque scan, pas pérenne face aux updates shadcn. | Rejetée |
-| **Exclure nominativement les 48 fichiers shadcn purs** | Précis, justifiable, pérenne | Nécessite de tenir la liste à jour si shadcn ajoute / retire des composants. | **Retenue** |
+| **Exclure nominativement les 49 fichiers shadcn purs** | Précis, justifiable, pérenne | Nécessite de tenir la liste à jour si shadcn ajoute / retire des composants. | **Retenue** |
 
 ---
 
