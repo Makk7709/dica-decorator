@@ -46,7 +46,7 @@ const GEMINI_CONFIG = {
   // Gemini 3 Pro Image Preview - Meilleure qualité pour génération d'images
   imageModel: "gemini-3-pro-image-preview",
   // Modèle pour le chat texte avec streaming
-  textModel: "gemini-2.0-flash",
+  textModel: "gemini-2.5-flash",
   // Endpoint de base
   apiEndpoint: "https://generativelanguage.googleapis.com/v1beta/models",
   // Modalités de réponse pour la génération d'images
