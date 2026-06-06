@@ -291,9 +291,10 @@ export class AnalyticsService {
 
     const firstValue = data[0].value;
     const lastValue = data[data.length - 1].value;
-    const percentageChange = firstValue > 0 
-      ? ((lastValue - firstValue) / firstValue) * 100 
-      : (lastValue > 0 ? 100 : 0);
+    const fallbackChange = lastValue > 0 ? 100 : 0;
+    const percentageChange = firstValue > 0
+      ? ((lastValue - firstValue) / firstValue) * 100
+      : fallbackChange;
 
     let direction: TrendDirection;
     if (percentageChange > 5) {
