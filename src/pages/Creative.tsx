@@ -90,7 +90,7 @@ const Creative = () => {
   const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
   const [zoomedImage, setZoomedImage] = useState<string | null>(null); // Image en plein écran
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
