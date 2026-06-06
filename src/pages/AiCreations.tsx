@@ -164,7 +164,7 @@ export default function AiCreations() {
                       </Button>
                       <ImageExportDropdown
                         imageUrl={c.image_url}
-                        fileName={`creation-ia-${c.id.slice(0, 8)}`}
+                        filename={`creation-ia-${c.id.slice(0, 8)}`}
                       />
                       <Button
                         variant="ghost"
