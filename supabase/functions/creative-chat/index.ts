@@ -741,12 +741,8 @@ TON RÔLE:
 
 Réponds en français de manière claire et professionnelle.`;
 
-    // Build conversation for Gemini
-    const geminiContents = [
-      { role: "user", parts: [{ text: systemPrompt }] },
-      { role: "model", parts: [{ text: "Compris. Je suis prêt à vous aider avec les décors DICA." }] },
-    ];
-    
+    // Build conversation for Gemini (system prompt via systemInstruction)
+    const geminiContents = [];
     for (const msg of messages) {
       geminiContents.push({
         role: msg.role === "user" ? "user" : "model",
@@ -762,6 +758,7 @@ Réponds en français de manière claire et professionnelle.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
         contents: geminiContents,
       }),
     });
