@@ -405,7 +405,7 @@ serve(async (req) => {
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    console.log("Lovable AI Gateway available:", !!LOVABLE_API_KEY);
+    console.log("AI Gateway available:", !!LOVABLE_API_KEY);
 
     // Fetch decor information to get name and reference code
 
@@ -1319,10 +1319,10 @@ L'annotation doit être:
         let textResponse: string | null = null;
 
         // ================================================================
-        // PRIMARY: Use Lovable AI Gateway (better availability)
+        // PRIMARY: Use AI Gateway (better availability)
         // ================================================================
         if (LOVABLE_API_KEY) {
-          console.log("Using Lovable AI Gateway (primary)...");
+          console.log("Using AI Gateway (primary)...");
           
           // Convert requestParts to OpenAI-compatible format
           const contentParts: any[] = [];

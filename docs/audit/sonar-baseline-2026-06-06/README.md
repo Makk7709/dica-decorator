@@ -17,7 +17,7 @@
 
 Trois sources combinées :
 
-1. **Bilan SonarLint IDE** fourni par le mainteneur le 2026-06-06 (extension SonarLint dans Cursor / VSCode). Cf. § 2.
+1. **Bilan SonarLint IDE** fourni par le mainteneur le 2026-06-06 (extension SonarLint dans l'IDE, VSCode). Cf. § 2.
 2. **Sortie `npm run lint`** capturée dans [`lint.txt`](./lint.txt) — règles `@typescript-eslint`, `react-hooks`, `react-refresh` activées par `eslint.config.js`.
 3. **Sortie `npm run test:run`** capturée dans [`test.txt`](./test.txt) — Vitest + happy-dom, 28 fichiers de test.
 

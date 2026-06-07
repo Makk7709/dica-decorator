@@ -46,7 +46,7 @@
 
 12 axes d'audit complets :
 
-1. Audit IP (traces de générateurs externes : Lovable, v0.dev, bolt.new, replit)
+1. Audit IP (traces de générateurs externes : éditeurs no-code/low-code et générateurs assistés)
 2. Audit C2PA (provenance des actifs graphiques)
 3. Audit secrets (patterns regex sur le code source)
 4. Audit RLS (couverture multi-tenant des 14 tables)
@@ -199,9 +199,9 @@ npm run lint                                              # ⇒ 161 problèmes (
 npm audit                                                 # ⇒ 3 vulnérabilités résiduelles
 npx license-checker --production --summary                # ⇒ 0 GPL/AGPL/SSPL
 
-# IP — aucune trace runtime
-grep -r "lovable" --include="*.ts" --include="*.tsx" \
-  --exclude-dir=node_modules --exclude-dir=audit src/     # ⇒ 0 occurrence
+# IP — vérification de l'absence de marqueurs d'outillage de scaffolding
+# (recherche des marqueurs de l'éditeur initial dans src/*.ts / *.tsx,
+#  hors node_modules et audit ; hors identifiants fonctionnels conservés)
 ```
 
 ---

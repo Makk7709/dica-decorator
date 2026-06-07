@@ -58,7 +58,7 @@ Pour ne pas induire en erreur un nouvel arrivant ou un auditeur, les services et
 |---|---|---|
 | `plaquette-pdf.service.ts` (avec classe `PlaquettePdfService`) | **Supprimé du code** ; remplacé par `magazine-deco-pdf.service.ts` + `reseller-brochure-pdf.service.ts` | `docs/archive/obsolete/PLAQUETTE_PDF_COBRANDING.md` |
 | `PDFExportService` (alias documenté) | **Jamais présent dans le code actuel** ; vestige de doc | `docs/archive/obsolete/API_SERVICES.md` |
-| `lovable-tagger` (plugin Vite Lovable) | **Retiré** des dépendances runtime/devDependencies | `docs/AUDIT_DEPENDANCES.md` |
+| Plugin Vite de tagging hérité de l'outil de scaffolding initial | **Retiré** des dépendances runtime/devDependencies | `docs/AUDIT_DEPENDANCES.md` |
 | Index documentaire v2.0.0 (décembre 2025) | **Remplacé** par `docs/README.md` (à jour) | `docs/archive/obsolete/README_v2.0.0_2025-12.md` |
 | Audit technique snapshot (17 décembre 2025, 784 tests / 25 suites) | **Historique** ; conservé pour traçabilité | `docs/archive/historical/AUDIT_TECHNIQUE_2025-12.md` |
 | Plan correctif personnalisation revendeur (décembre 2025) | **Plan exécuté** ; conservé pour traçabilité TDD | `docs/archive/historical/PLAN_CORRECTIF_PLAQUETTE_REVENDEUR.md` |
@@ -180,7 +180,7 @@ Le point d'entrée détaillé est `docs/README.md`.
 | `docs/DICA_ORCHESTRATOR_GUIDE.md` | Orchestrateur AI Gemini et fonctions associées. |
 | `docs/HANDOVER_DEVELOPPEUR.md` | Handover technique structuré (architecture, scripts, alertes, points de vigilance). |
 | `docs/MIGRATIONS_DIFFEREES_DEPENDANCES.md` | Vulnérabilités npm en migration différée et plan de traitement. |
-| `docs/AUDIT_DEPENDANCES.md` | Suivi des dépendances tierces et retraits (ex. `lovable-tagger`). |
+| `docs/AUDIT_DEPENDANCES.md` | Suivi des dépendances tierces et retraits (ex. plugin Vite de tagging du scaffolding initial). |
 | `docs/AUDIT_TIER1_BUREAU_DIAGNOSTIQUE.md` | Audit ciblé bureau diagnostique. |
 | `docs/CHECKLIST_SMOKE_KILLSWITCH.md` | Checklist de vérification post-déploiement (smoke + killswitch). |
 | `docs/MODE_EMPLOI.md` | Mode opératoire condensé. |

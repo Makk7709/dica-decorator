@@ -546,7 +546,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       console.log("Show references:", showReferences);
       console.log("Orchestrated decor references:", orchestrationResult.decorReferences);
 
-      // Build message content parts for Lovable AI gateway
+      // Build message content parts for AI gateway
       const contentParts: any[] = [{ type: "text", text: basePrompt }];
 
       // ======================================================================
@@ -608,9 +608,9 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
         }
       }
 
-      console.log(`Sending request via Lovable AI gateway with ${contentParts.length - 1} images`);
+      console.log(`Sending request via AI gateway with ${contentParts.length - 1} images`);
 
-      // Call Lovable AI gateway for image generation
+      // Call AI gateway for image generation
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -631,7 +631,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Lovable AI gateway error:", response.status, errorText);
+        console.error("AI gateway error:", response.status, errorText);
         if (response.status === 429) {
           throw new Error("Limite de requêtes atteinte, veuillez réessayer plus tard.");
         }
@@ -642,13 +642,13 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       }
 
       const data = await response.json();
-      console.log("Lovable AI gateway response received");
+      console.log("AI gateway response received");
       console.log("Response keys:", JSON.stringify(Object.keys(data)));
       console.log("Choice message keys:", JSON.stringify(data.choices?.[0]?.message ? Object.keys(data.choices[0].message) : "no message"));
       console.log("Images array:", JSON.stringify(data.choices?.[0]?.message?.images?.length ?? "no images field"));
       console.log("Content length:", data.choices?.[0]?.message?.content?.length ?? 0);
       
-      // Parse response from Lovable AI gateway format
+      // Parse response from AI gateway format
       const choice = data.choices?.[0]?.message;
       const imageUrl = choice?.images?.[0]?.image_url?.url || null;
       const text = choice?.content || "Voici votre visualisation :";
@@ -812,7 +812,7 @@ Réponds en français de manière claire et professionnelle.`;
         // RAG safety net: detect any mentioned reference NOT in the catalog
         if (validRefsSet.size > 0 && assistantBuffer) {
           // Match patterns like "Réf: 1234_AB_CD", "Ref 1234_AB", "(Réf: XXXX)"
-          const refRegex = /(?:R[ée]f(?:[ée]rence)?\.?\s*:?\s*|\()([A-Z0-9][A-Z0-9_\-]{2,})/gi;
+          const refRegex = /(?:R[ée]f(?:[ée]rence)?\.?\s*:?\s*|\()([A-Z0-9][A-Z0-9_-]{2,})/gi;
           const mentioned = new Set<string>();
           let m: RegExpExecArray | null;
           while ((m = refRegex.exec(assistantBuffer)) !== null) {

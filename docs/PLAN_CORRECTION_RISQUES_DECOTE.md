@@ -271,7 +271,7 @@
 |-------|--------|
 | Action | (1) Provisionner les secrets `AI_GATEWAY_URL=https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` et `AI_GATEWAY_API_KEY=<google-ai-key>`. (2) Tester en staging. (3) Déployer en production. (4) Retirer la lecture `LOVABLE_API_KEY` et la constante URL legacy dans le code. |
 | Coût estimé | 1 j/h |
-| Validation | Aucune trace `lovable` résiduelle dans le code applicatif ; orchestrateur et magazine-captions fonctionnels en prod |
+| Validation | Aucune trace résiduelle de l'outil de scaffolding dans le code applicatif (hors variable d'environnement de rétrocompatibilité et URL de repli) ; orchestrateur et magazine-captions fonctionnels en prod |
 | Risque résiduel | Faible si validation staging exhaustive ; modéré si latence ou format de réponse différent (Google AI vs gateway tierce) |
 
 #### P3-4 — Observabilité runtime (R-OBS-1)

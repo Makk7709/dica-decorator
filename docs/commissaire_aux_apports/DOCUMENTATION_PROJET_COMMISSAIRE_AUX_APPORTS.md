@@ -300,13 +300,13 @@ Aucune licence à effet viral (GPL, AGPL, LGPL) n'apparaît dans ce relevé. La 
 
 ### 7.4 Outils de génération et d'édition assistée — qualification factuelle
 
-Des mentions à Lovable peuvent apparaître dans l'historique du dépôt, dans certains documents techniques et dans une configuration de fallback dans le code des fonctions Edge. Elles doivent être interprétées comme des traces d'outillage ou de génération/édition assistée, sauf présence d'une dépendance runtime active constatée dans `package.json` ou dans le code applicatif.
+Des mentions à l'outil de scaffolding et d'édition assistée initial peuvent apparaître dans l'historique du dépôt, dans certains documents techniques et dans une configuration de fallback dans le code des fonctions Edge. Elles doivent être interprétées comme des traces d'outillage ou de génération/édition assistée, sauf présence d'une dépendance runtime active constatée dans `package.json` ou dans le code applicatif.
 
 | Catégorie d'occurrence | Qualification observée dans le périmètre audité |
 |---|---|
 | Dépendance runtime active dans `package.json` | Aucune. |
 | Dépendance dev dans `package.json` | Aucune. |
-| Dépendance retirée et documentée | `lovable-tagger` (plugin Vite dev-only) retiré du projet ; retrait documenté dans `docs/AUDIT_DEPENDANCES.md`. |
+| Dépendance retirée et documentée | Plugin Vite de tagging (dev-only) retiré du projet ; retrait documenté dans `docs/AUDIT_DEPENDANCES.md`. |
 | Endpoint de fallback dans le code Edge | URL `https://ai.gateway.lovable.dev/v1/chat/completions` présente comme valeur de repli dans `supabase/functions/creative-chat/orchestrator.ts` et `supabase/functions/generate-magazine-captions/index.ts`. Cette URL est substituable par la variable d'environnement `AI_GATEWAY_URL` (cf. `.env.example` qui recommande `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`). |
 | Variable d'environnement de rétrocompatibilité | `LOVABLE_API_KEY` lue uniquement en repli de `AI_GATEWAY_API_KEY` dans `supabase/functions/creative-chat/index.ts` et `supabase/functions/generate-magazine-captions/index.ts`. |
 | Mentions dans la documentation | Présentes dans des documents internes d'audit et de plan de migration (`docs/AUDIT_DEPENDANCES.md`, `docs/PLAN_CORRECTION_RISQUES_DECOTE.md`, `docs/HANDOVER_DEVELOPPEUR.md`, `docs/RAPPORT_EXECUTION_PLAN_CORRECTION.md`, `docs/DOSSIER_COMMISSAIRE_AUX_APPORTS.md`, etc.) qui documentent précisément le périmètre et le plan de substitution. |

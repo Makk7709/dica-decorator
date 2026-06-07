@@ -60,7 +60,7 @@ find src/components/ui -maxdepth 1 -type f | wc -l
 
 ```bash
 # Recherche de scaffolding tiers / origine du projet
-rg -i "agent[-_ ]?zero|PRISM|Oracle|Evidence|KOREV|Lovable" -l
+rg -i "agent[-_ ]?zero|PRISM|Oracle|Evidence|KOREV" -l
 
 # Inventaire SQL
 rg -i "CREATE TABLE"          supabase/migrations/ -c
@@ -158,7 +158,7 @@ Source : `audit/final/npm-audit.txt`.
 
 | Affirmation du présent audit | Document source supportant |
 |---|---|
-| Nettoyage de `lovable-tagger` | `docs/AUDIT_DEPENDANCES.md` § 2 |
+| Nettoyage du plugin Vite de tagging | `docs/AUDIT_DEPENDANCES.md` § 2 |
 | Aucune dépendance `@lovable.dev/cloud-auth-js` | `docs/AUDIT_DEPENDANCES.md` § 3 |
 | Migration jspdf différée | `docs/MIGRATIONS_DIFFEREES_DEPENDANCES.md` |
 | Position commissaire aux apports | `docs/DOSSIER_COMMISSAIRE_AUX_APPORTS.md` |

@@ -96,20 +96,20 @@
 
 ---
 
-## 4. Vérification Lovable — qualification des occurrences
+## 4. Vérification de l'outillage de scaffolding initial — qualification des occurrences
 
-Recherche `grep -i lovable` sur l'arborescence (hors `node_modules`).
+Recherche par mot-clé de l'outil de scaffolding initial sur l'arborescence (hors `node_modules`).
 
 | Catégorie | Occurrences | Qualification retenue |
 |---|---|---|
 | Dépendance runtime active dans `package.json` | 0 | Aucune. |
 | Dépendance dev dans `package.json` | 0 | Aucune. |
-| Dépendance retirée et documentée | 1 (`lovable-tagger`) | Retrait documenté dans `docs/AUDIT_DEPENDANCES.md` § 2. |
+| Dépendance retirée et documentée | 1 (plugin Vite de tagging) | Retrait documenté dans `docs/AUDIT_DEPENDANCES.md` § 2. |
 | Endpoint URL de repli dans le code Edge | 2 fichiers : `supabase/functions/creative-chat/orchestrator.ts` ligne 26, `supabase/functions/generate-magazine-captions/index.ts` ligne 15 | URL `https://ai.gateway.lovable.dev/v1/chat/completions` présente uniquement comme valeur de fallback ; substituable par la variable d'environnement `AI_GATEWAY_URL`. |
 | Variable d'environnement de rétrocompatibilité | 2 fichiers : `supabase/functions/creative-chat/index.ts` ligne 197, `supabase/functions/generate-magazine-captions/index.ts` ligne 103 | `LOVABLE_API_KEY` lue uniquement en fallback de `AI_GATEWAY_API_KEY`. |
 | Mention dans la documentation | 7 documents `docs/` (`AUDIT_DEPENDANCES.md`, `PLAN_CORRECTION_RISQUES_DECOTE.md`, `HANDOVER_DEVELOPPEUR.md`, `RAPPORT_EXECUTION_PLAN_CORRECTION.md`, `DOSSIER_COMMISSAIRE_AUX_APPORTS.md`, `DICA_ORCHESTRATOR_GUIDE.md`, `AUDIT_TIER1_BUREAU_DIAGNOSTIQUE.md`) | Documentation explicative du périmètre et du plan de substitution. |
-| Historique Git (commits) | Présence d'un commit `83ebdd2 Lovable update` (et de plusieurs commits anciens « Changes » du même tooling). | Trace d'outillage historique. |
-| `lovable.app` | 0 occurrence trouvée. | Aucune. |
+| Historique Git (commits) | Présence d'un commit `83ebdd2` de mise à jour issu de l'outil de scaffolding (et de plusieurs commits anciens « Changes » du même outillage). | Trace d'outillage historique. |
+| Référence à la plateforme hébergée de l'éditeur | 0 occurrence trouvée. | Aucune. |
 
 **Conclusion de contrôle** : aucune dépendance runtime ou dev active. Les résidus (URL de repli + variable d'environnement de rétrocompatibilité) sont substituables sans modification de code en pointant `AI_GATEWAY_URL` et `AI_GATEWAY_API_KEY` vers le fournisseur cible recommandé par `.env.example` (Google AI direct). Le document principal traite ces occurrences en § 7.4 de manière factuelle et non anxiogène, conformément à la consigne.
 
@@ -201,7 +201,7 @@ Les éléments suivants ne sont pas vérifiables dans le périmètre du dépôt 
 |---|---|
 | Pas de « problème de licence » | Conforme — formulation `"à confirmer"` utilisée. |
 | Pas de « vulnérabilité critique » dans le résumé exécutif | Conforme — la mention de criticité est placée en § 8 (qualité), pas en synthèse. |
-| Pas de « Lovable app » | Conforme — aucune occurrence. |
+| Pas de « plateforme hébergée de l'éditeur » | Conforme — aucune occurrence. |
 | Pas de « généré par IA » comme qualification globale | Conforme. |
 | Pas de mention « assistant » comme auditeur | Conforme. |
 | Pas de « sous-valorisé » ou « survalorisé » | Conforme. |
@@ -211,7 +211,7 @@ Les éléments suivants ne sont pas vérifiables dans le périmètre du dépôt 
 | Pas d'emojis | Conforme. |
 | Formulations préférées (`"constaté dans le dépôt"`, `"à confirmer hors dépôt"`, `"dépendance tierce"`, `"scaffold UI"`, `"module spécifique"`, `"code propriétaire identifié"`, `"limite méthodologique"`) | Utilisées. |
 | Distinction socle KOREV / usage DICA | Présente en § 6. |
-| Lovable traité de manière factuelle et non anxiogène | Présent en § 7.4. |
+| Outillage de scaffolding traité de manière factuelle et non anxiogène | Présent en § 7.4. |
 | Aucune affirmation juridique non démontrée | Conforme. |
 
 ---
@@ -223,7 +223,7 @@ Les éléments suivants ne sont pas vérifiables dans le périmètre du dépôt 
 | Le document principal parle-t-il au commissaire aux apports ? | Oui (ton cabinet, neutre, pas d'adresse au porteur). |
 | Aucun commentaire interne n'est présent dans le document principal ? | Vérifié. Les éléments internes sont dans le présent rapport et dans `NOTE_LICENCE_COMMERCIALE_DICA_DECOR.md`. |
 | Aucune formule ne dessert la valorisation ? | Vérifié. |
-| Les mentions Lovable sont factuelles et non anxiogènes ? | Vérifié (§ 7.4 du document principal, qualification par catégorie). |
+| Les mentions d'outillage de scaffolding sont factuelles et non anxiogènes ? | Vérifié (§ 7.4 du document principal, qualification par catégorie). |
 | Les sujets de licence sont formulés en « à confirmer » ? | Vérifié (§ 1, § 6.8, § 7.1, § 11 du document principal). |
 | Les dépendances tierces sont clairement distinguées du code propriétaire ? | Vérifié (§ 5.1 vs § 5.2 du document principal). |
 | Aucune promesse juridique ou de conformité non démontrée ? | Vérifié (§ 9 et § 11 du document principal formulent les limites). |

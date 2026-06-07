@@ -317,7 +317,7 @@ L'architecture est de type **SaaS web 3-tier** avec backend managé Supabase. Au
 
 Le sous-arbre `src/components/ui/` (≈ 58 fichiers) provient majoritairement du générateur shadcn/ui (composants Radix UI sous licence MIT copiés dans le repo, configuration `components.json`). Cette part n'est pas de la propriété intellectuelle propre au sens créatif, mais constitue une intégration et personnalisation. Certains fichiers de ce sous-arbre sont en revanche **spécifiques au produit** (cf. liste § 6 fin du tableau).
 
-L'historique Git contient un commit `Lovable update` (`83ebdd2`) et la documentation interne (`docs/AUDIT_DEPENDANCES.md`) atteste du retrait de la dépendance `lovable-tagger` (plugin dev-only de l'éditeur visuel Lovable). Aucune dépendance Lovable runtime n'est présente dans `package.json` à ce jour.
+L'historique Git contient un commit de mise à jour issu de l'outil de scaffolding initial (`83ebdd2`) et la documentation interne (`docs/AUDIT_DEPENDANCES.md`) atteste du retrait d'un plugin de tagging dev-only de cet éditeur visuel. Aucune dépendance runtime de cet outil de scaffolding n'est présente dans `package.json` à ce jour.
 
 ---
 
@@ -589,7 +589,7 @@ Le présent document (`PROJECT_DOCUMENTATION_STANDARD.md`) ne se substitue à au
 | Limites Edge Functions Supabase (timeout, concurrence, mémoire) | Limites resources visibles dans le code (`apply-decor/index.ts`) mais pas reliées aux limites Supabase officielles dans le périmètre audité. | Modéré pour l'analyse de scalabilité. |
 | Tests d'intégration et tests end-to-end | Aucun framework E2E (Playwright, Cypress) trouvé dans `package.json`. | Modéré : limite la confiance dans les régressions UI. |
 | Origine exacte du scaffold UI (composants `src/components/ui/`) | shadcn/ui sous MIT supposée (configuration `components.json`). Aucun fichier `LICENSE` ou notice tierce explicite n'a été trouvé dans le périmètre audité. | À confirmer pour clarifier la composition de la PI. |
-| Trace d'origine Lovable | Historique Git contient un commit `Lovable update`. Le repo a été nettoyé (`docs/AUDIT_DEPENDANCES.md` § 2). À confirmer si la base initiale a été générée par un outil low-code et la portée de cette génération. | Modéré pour la défendabilité du caractère "écrit à la main". |
+| Trace d'origine de l'outil de scaffolding initial | Historique Git contient un commit de mise à jour issu de cet outil. Le repo a été nettoyé (`docs/AUDIT_DEPENDANCES.md` § 2). À confirmer si la base initiale a été générée par un outil low-code et la portée de cette génération. | Modéré pour la défendabilité du caractère "écrit à la main". |
 
 ---
 

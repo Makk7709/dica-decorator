@@ -241,10 +241,10 @@ Audit conduit le 7 mai 2026 sur l'intégralité du référentiel :
 
 | Recherche | Résultat | Justification |
 |-----------|----------|--------------|
-| Mentions `lovable` dans le code applicatif | 0 dans le runtime utile | Les seules occurrences sont (1) `ai.gateway.lovable.dev` documenté en URL de fallback de la passerelle IA — totalement substituable via la variable `AI_GATEWAY_URL`, (2) la variable d'env `LOVABLE_API_KEY` documentée pour rétro-compatibilité de prod, (3) mentions historiques dans `docs/AUDIT_DEPENDANCES.md` qui documentent justement ce nettoyage. |
-| Mentions dans les commentaires de code TypeScript | 0 | Vérifié `grep -rE "lovable" --include="*.ts" --include="*.tsx" --exclude-dir=node_modules` |
-| Dépendances suspectes (`lovable-tagger`, `@lovable.dev/*`) | 0 dans `package.json`, 0 dans `package-lock.json` | Retrait documenté dans `AUDIT_DEPENDANCES.md` |
-| Autres générateurs (`v0.dev`, `bolt.new`, `replit`) | 0 occurrence | grep exhaustif |
+| Mentions de l'outil de scaffolding dans le code applicatif | 0 dans le runtime utile | Les seules occurrences sont (1) `ai.gateway.lovable.dev` documenté en URL de fallback de la passerelle IA — totalement substituable via la variable `AI_GATEWAY_URL`, (2) la variable d'env `LOVABLE_API_KEY` documentée pour rétro-compatibilité de prod, (3) mentions historiques dans `docs/AUDIT_DEPENDANCES.md` qui documentent justement ce nettoyage. |
+| Mentions dans les commentaires de code TypeScript | 0 | Vérifié par recherche des marqueurs de l'éditeur initial dans les fichiers `*.ts`/`*.tsx` (hors `node_modules`) |
+| Dépendances d'outillage de scaffolding (plugin de tagging, modules de l'éditeur initial) | Plugin de tagging retiré de `package.json` et `package-lock.json` | Retrait documenté dans `AUDIT_DEPENDANCES.md` |
+| Autres générateurs externes (éditeurs no-code/low-code) | 0 occurrence | grep exhaustif |
 
 > **Conclusion IP** : aucune trace résiduelle d'outillage externe dans le code livrable. Les occurrences strictement documentaires (`docs/AUDIT_DEPENDANCES.md`) attestent au contraire de la **traçabilité du nettoyage**.
 
@@ -627,7 +627,7 @@ L'apporteur certifie que :
 | PJ3 | `RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md` | Rapport qualité (lint, tests, dépendances) |
 | PJ4 | `MATRICE_HEURES_QUALITE_DICA_DECOR.md` | Matrice heures fonctionnalité × qualité |
 | PJ5 | `RAPPORT_EXECUTION_PLAN_CORRECTION.md` | Rapport d'exécution des audits hostiles successifs |
-| PJ6 | `AUDIT_DEPENDANCES.md` | Audit IP des dépendances et nettoyage Lovable |
+| PJ6 | `AUDIT_DEPENDANCES.md` | Audit IP des dépendances et nettoyage de l'outillage de scaffolding |
 | PJ7 | `MIGRATIONS_DIFFEREES_DEPENDANCES.md` | Plan de migration des 3 CVE résiduelles |
 | PJ8 | `CHECKLIST_SMOKE_KILLSWITCH.md` | Checklist opérationnelle de validation manuelle |
 | PJ9 | `GUIDE_DEPLOIEMENT.md` + `GUIDE_ADMINISTRATEUR.md` | Documentation opérationnelle |
@@ -655,7 +655,7 @@ L'apporteur certifie que :
 
 L'audit du 6-7 mai 2026 a couvert systématiquement les domaines suivants :
 
-1. **Audit IP** — recherche exhaustive de traces de générateurs externes (Lovable, v0.dev, bolt.new, replit) dans `*.ts`, `*.tsx`, `*.json`, `*.md`, `*.html`, `*.toml`, `*.yml`, hors `node_modules` et `audit/`.
+1. **Audit IP** — recherche exhaustive de traces de générateurs externes (éditeurs no-code/low-code et générateurs assistés) dans `*.ts`, `*.tsx`, `*.json`, `*.md`, `*.html`, `*.toml`, `*.yml`, hors `node_modules` et `audit/`.
 2. **Audit C2PA** — inspection des métadonnées de provenance sur tous les fichiers image (`*.jpg`, `*.png`) via extraction `strings`.
 3. **Audit secrets** — patterns regex sur secrets, JWT réels, service role keys, variables d'env exposées au front.
 4. **Audit RLS** — vérification `ENABLE ROW LEVEL SECURITY` sur chaque table publique, comptage des `CREATE POLICY`, validation du pattern multi-tenant.

@@ -19,7 +19,7 @@ La note ne se substitue pas aux actes juridiques applicables et doit être valid
 | Confusion socle logiciel / usage client | Risque qu'une lecture des éléments commerciaux et documentaires laisse penser que DICA France serait propriétaire du code source du fait de l'usage exclusif du produit. |
 | Composants tiers revendiqués à tort | Risque de revendiquer comme propriétaire des composants relevant de licences open-source (Radix UI, shadcn/ui, jsPDF, etc.). |
 | Composants client (catalogue, marques, données) intégrés au périmètre KOREV | Risque inverse : faire entrer dans la propriété du socle logiciel des éléments fournis par DICA France (catalogue, marques, contenus). |
-| Outillage assisté présenté comme dépendance | Risque que des traces d'outillage (mentions Lovable dans l'historique, URL de repli) soient interprétées à tort comme une dépendance active conditionnant l'exploitation. |
+| Outillage assisté présenté comme dépendance | Risque que des traces d'outillage (mentions de l'outil de scaffolding dans l'historique, URL de repli) soient interprétées à tort comme une dépendance active conditionnant l'exploitation. |
 | Affirmations juridiques absolues sans contrat | Risque d'écrire dans un document de transmission que la propriété est « garantie », « acquise » ou « incontestable » alors qu'aucun acte de cession formel ne figure dans le dépôt. |
 
 ---
@@ -119,7 +119,7 @@ Aucune licence à effet viral (GPL, AGPL, LGPL) n'a été identifiée dans le gr
 
 ---
 
-## 9. Mentions Lovable et outils assistés
+## 9. Mentions de l'outillage de scaffolding et outils assistés
 
 Qualification factuelle dans le périmètre du dépôt à la date de la note :
 
@@ -127,11 +127,11 @@ Qualification factuelle dans le périmètre du dépôt à la date de la note :
 |---|---|
 | Dépendance runtime active dans `package.json` | Aucune. |
 | Dépendance dev dans `package.json` | Aucune. |
-| Dépendance retirée et documentée | `lovable-tagger` (plugin Vite dev-only). |
+| Dépendance retirée et documentée | Plugin Vite de tagging (dev-only). |
 | URL de repli dans le code Edge | `https://ai.gateway.lovable.dev/v1/chat/completions` présente comme valeur de fallback dans `supabase/functions/creative-chat/orchestrator.ts` et `supabase/functions/generate-magazine-captions/index.ts`. Substituable par la variable d'environnement `AI_GATEWAY_URL`. |
 | Variable d'environnement de rétrocompatibilité | `LOVABLE_API_KEY` lue uniquement en fallback de `AI_GATEWAY_API_KEY`. |
 | Mentions dans la documentation `docs/` | Présentes dans des documents d'audit et de plan de migration. |
-| Historique Git | Commit `Lovable update` présent dans l'historique. |
+| Historique Git | Commit de mise à jour de l'outil de scaffolding présent dans l'historique. |
 
 **Position de travail.** Ces occurrences sont qualifiées comme éléments d'outillage ou d'assistance au développement, sans constituer une cession de propriété ni une limitation d'exploitation du logiciel. La substitution opérationnelle des deux résidus (URL de repli, variable d'env de rétrocompatibilité) se fait par configuration des secrets d'environnement et ne nécessite pas de modification de code.
 
@@ -149,7 +149,7 @@ Qualification factuelle dans le périmètre du dépôt à la date de la note :
 | Périmètre des éléments DICA exclus (§ 7) | Inventaire et qualification des marques, du catalogue et des données ; clauses spécifiques sur la propriété des rendus générés. |
 | Statut des données personnelles traitées | Définition du responsable de traitement, du sous-traitant éventuel au sens RGPD, des engagements de sécurité, de la durée de conservation et de la portabilité. |
 | Compatibilité avec les licences open-source du graphe (§ 8) | Vérification que la distribution UNLICENSED du projet et les conditions d'usage propriétaire restent compatibles avec les licences MIT / ISC / Apache-2.0 / BSD / MPL identifiées. |
-| Qualification juridique des mentions Lovable (§ 9) | Position juridique sur la portée d'une trace d'outillage (commit, URL de repli, variable de rétrocompatibilité) dans la chaîne de propriété. |
+| Qualification juridique des mentions de l'outillage de scaffolding (§ 9) | Position juridique sur la portée d'une trace d'outillage (commit, URL de repli, variable de rétrocompatibilité) dans la chaîne de propriété. |
 | Sécurisation de la propriété antérieure à la constitution de la société | Existence et formalisation d'un acte d'apport en nature ou de cession des droits du porteur vers KOREV AI à la constitution. |
 | Reconnaissance des contributions tierces éventuelles | Identification de toute contribution rémunérée ou bénévole de tiers (freelances, stagiaires) et vérification de la cession des droits associés. |
 | Clauses de confidentialité et non-concurrence | Vérification de la cohérence des engagements antérieurs du porteur. |

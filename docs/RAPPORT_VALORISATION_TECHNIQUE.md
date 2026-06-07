@@ -551,7 +551,7 @@ Le code applicatif DICA Decorator est un logiciel propriétaire — seules les d
 | Composant | Lock-in | Effort de Migration |
 |-----------|---------|---------------------|
 | Supabase | **Moyen** | PostgreSQL standard → AWS RDS, GCP (~5-10 jours) |
-| Google Gemini | **Élevé** | Vers OpenAI DALL-E / Anthropic → refonte orchestrateur (~10-20 jours) |
+| Google Gemini | **Élevé** | Vers OpenAI DALL-E / un autre fournisseur d'IA → refonte orchestrateur (~10-20 jours) |
 | Hébergement frontend | **Nul** | Build statique → tout hébergeur (Vercel, Netlify, AWS S3, ~1 jour) |
 | React/TypeScript | **Nul** | Standard industriel |
 

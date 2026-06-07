@@ -13,7 +13,7 @@
 |-----------|--------|----------|
 | Dépendances runtime frontend | 30 (post-nettoyage) | Conservées — toutes activement utilisées |
 | Dépendances dev frontend | 25 | Conservées — chaîne de build / test / lint |
-| Dépendance retirée | 1 (`lovable-tagger`) | Supprimée — outillage éditeur de générateur externe, dev-only, sans impact runtime |
+| Dépendance retirée | 1 (plugin Vite de tagging) | Supprimée — outillage éditeur de générateur externe, dev-only, sans impact runtime |
 | Dépendances suspectes (`@lovable.dev/cloud-auth-js`) | 0 | **Aucune trace dans `package.json` ni dans le lockfile** (vérifié) |
 | Edge Functions — runtime tiers | Deno std + `npm:@supabase/supabase-js` | Conservés — runtime Supabase officiel |
 
@@ -21,7 +21,7 @@
 
 ---
 
-## 2. Dépendance retirée — `lovable-tagger`
+## 2. Dépendance retirée — plugin Vite de tagging
 
 ### 2.1 Contexte
 
@@ -29,7 +29,7 @@
 |---------|--------|
 | Présence avant nettoyage | `package.json` (dépendance runtime déclarée) + `vite.config.ts` (plugin dev-only) |
 | Type effectif | Plugin Vite chargé **uniquement en mode `development`** (`mode === 'development'`) |
-| Rôle | Annotation des composants React avec leur source pour faciliter la sélection visuelle dans l'éditeur Lovable. Aucun apport fonctionnel à l'application elle-même. |
+| Rôle | Annotation des composants React avec leur source pour faciliter la sélection visuelle dans l'éditeur visuel d'origine. Aucun apport fonctionnel à l'application elle-même. |
 | Impact production | Aucun — non bundlé en production |
 | Impact tests | Aucun — non utilisé par Vitest |
 
@@ -37,14 +37,14 @@
 
 **Suppression directe** :
 
-1. Retrait de `"lovable-tagger": "^1.1.11"` dans `package.json`.
-2. Retrait de l'import `import { componentTagger } from "lovable-tagger";` et de l'appel conditionnel `mode === 'development' && componentTagger()` dans `vite.config.ts`.
+1. Retrait de la déclaration du plugin de tagging dans `package.json`.
+2. Retrait de l'import du plugin de tagging et de l'appel conditionnel `mode === 'development' && componentTagger()` dans `vite.config.ts`.
 3. Régénération du `package-lock.json` (`npm install`).
 4. Vérification : `npm run build` réussit (3.86s, 0 erreur).
 
 ### 2.3 Risque post-suppression
 
-Aucun risque fonctionnel. La perte concerne uniquement la productivité éventuelle dans l'éditeur visuel Lovable, qui n'est pas l'environnement de développement cible de l'actif livré (l'actif est destiné à être maintenu en IDE classique — VSCode, Cursor, JetBrains).
+Aucun risque fonctionnel. La perte concerne uniquement la productivité éventuelle dans l'éditeur visuel d'origine, qui n'est pas l'environnement de développement cible de l'actif livré (l'actif est destiné à être maintenu en IDE classique — VSCode, JetBrains).
 
 ---
 
@@ -53,7 +53,7 @@ Aucun risque fonctionnel. La perte concerne uniquement la productivité éventue
 ### 3.1 Vérification
 
 ```bash
-$ rg -i "lovable.dev/cloud-auth-js|cloud-auth-js" --glob '!node_modules'
+$ rg -i "cloud-auth-js" --glob '!node_modules'
 # (aucun résultat)
 ```
 
@@ -144,7 +144,7 @@ Aucune dépendance tierce supplémentaire. Tout le reste est implémenté en Typ
 | `npm audit` | 19 vulnérabilités (2 critical, 9 high, 8 moderate) — toutes pré-existantes, héritées des dépendances transitives Vite/Vitest/jspdf | `npm audit fix --force` à programmer dans une fenêtre dédiée, avec re-test complet (changement potentiel de versions majeures de Vite/Vitest) |
 | Engine | `type-fest@5.2.0` requiert Node ≥20 alors que CI tourne sur Node 18 | Mettre à jour la pipeline CI vers Node LTS (20 ou 22) |
 
-Ces points constituent de la **dette technique standard**, sans rapport avec le nettoyage Lovable. Ils sont documentés dans `docs/RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md`.
+Ces points constituent de la **dette technique standard**, sans rapport avec ce nettoyage d'outillage. Ils sont documentés dans `docs/RAPPORT_QUALITE_LOGICIELLE_DICA_DECOR.md`.
 
 ---
 
