@@ -31,7 +31,7 @@ const RESOURCE_LIMITS = {
 
 const GEMINI_CONFIG = {
   // Gemini 3 Pro Image Preview - Meilleure qualité pour génération d'images
-  model: "gemini-3-pro-image-preview",
+  model: "gemini-3.1-flash-image-preview",
   apiEndpoint: "https://generativelanguage.googleapis.com/v1beta/models",
   responseModalities: ["TEXT", "IMAGE"],
 };
@@ -193,7 +193,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 /**
  * Map arbitrary width/height to closest Gemini-supported aspect ratio.
- * Supported ratios for gemini-3-pro-image-preview:
+ * Supported ratios for gemini-3.1-flash-image-preview:
  *   "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
  */
 function mapToSupportedAspectRatio(width: number, height: number): string {
@@ -1348,7 +1348,7 @@ L'annotation doit être:
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  model: "google/gemini-3-pro-image-preview",
+                  model: "google/gemini-3.1-flash-image-preview",
                   messages: [{ role: "user", content: contentParts }],
                   modalities: ["image", "text"],
                   // Force the output aspect ratio so Avant/Après are perfectly superposable

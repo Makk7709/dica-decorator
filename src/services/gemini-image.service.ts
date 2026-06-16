@@ -4,7 +4,7 @@
  * Ce service encapsule la configuration et les utilitaires pour interagir
  * avec l'API Google Gemini pour la génération d'images.
  * 
- * Modèle recommandé: gemini-3-pro-image-preview
+ * Modèle recommandé: gemini-3.1-flash-image-preview
  * 
  * Developed by KOREV AI for DICA France
  */
@@ -60,10 +60,10 @@ export interface GeminiApiRequest {
 // ============================================================================
 
 /** Modèle par défaut pour la génération d'images - Gemini 3 Pro */
-export const DEFAULT_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+export const DEFAULT_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
 
 /** Modèle Gemini 3 Pro pour génération d'images haute qualité */
-export const GEMINI_3_PRO_IMAGE_MODEL = 'gemini-3-pro-image-preview';
+export const GEMINI_3_PRO_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
 
 /** Endpoint de base de l'API Google AI */
 export const GOOGLE_AI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';

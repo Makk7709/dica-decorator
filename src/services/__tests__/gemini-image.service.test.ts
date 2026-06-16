@@ -62,7 +62,7 @@ class GeminiImageService {
     
     this.apiKey = apiKey;
     this.config = {
-      model: config?.model || 'gemini-3-pro-image-preview',
+      model: config?.model || 'gemini-3.1-flash-image-preview',
       apiEndpoint: config?.apiEndpoint || 'https://generativelanguage.googleapis.com/v1beta/models',
       defaultAspectRatio: config?.defaultAspectRatio || '1:1',
       responseModalities: config?.responseModalities || ['TEXT', 'IMAGE'],
@@ -244,16 +244,16 @@ describe('GeminiImageService', () => {
       expect(() => new GeminiImageService('   ')).toThrow('API key is required');
     });
 
-    it('should use default model gemini-3-pro-image-preview', () => {
+    it('should use default model gemini-3.1-flash-image-preview', () => {
       const config = service.getConfig();
-      expect(config.model).toBe('gemini-3-pro-image-preview');
+      expect(config.model).toBe('gemini-3.1-flash-image-preview');
     });
 
     it('should allow custom model configuration', () => {
       const customService = new GeminiImageService(testApiKey, {
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-3.1-flash-image-preview',
       });
-      expect(customService.getConfig().model).toBe('gemini-3-pro-image-preview');
+      expect(customService.getConfig().model).toBe('gemini-3.1-flash-image-preview');
     });
 
     it('should use default API endpoint', () => {
@@ -274,7 +274,7 @@ describe('GeminiImageService', () => {
     it('should build correct API URL with key', () => {
       const url = service.getApiUrl();
       expect(url).toContain('generativelanguage.googleapis.com');
-      expect(url).toContain('gemini-3-pro-image-preview');
+      expect(url).toContain('gemini-3.1-flash-image-preview');
       expect(url).toContain(':generateContent');
       expect(url).toContain(`key=${testApiKey}`);
     });
@@ -620,24 +620,24 @@ describe('GeminiImageService', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Model Configuration Tests for gemini-3-pro-image-preview
+  // Model Configuration Tests for gemini-3.1-flash-image-preview
   // -------------------------------------------------------------------------
   describe('Gemini 3 Pro Image Preview Model', () => {
     let gemini3Service: GeminiImageService;
 
     beforeEach(() => {
       gemini3Service = new GeminiImageService(testApiKey, {
-        model: 'gemini-3-pro-image-preview',
+        model: 'gemini-3.1-flash-image-preview',
       });
     });
 
-    it('should use gemini-3-pro-image-preview model', () => {
-      expect(gemini3Service.getConfig().model).toBe('gemini-3-pro-image-preview');
+    it('should use gemini-3.1-flash-image-preview model', () => {
+      expect(gemini3Service.getConfig().model).toBe('gemini-3.1-flash-image-preview');
     });
 
-    it('should build URL with gemini-3-pro-image-preview', () => {
+    it('should build URL with gemini-3.1-flash-image-preview', () => {
       const url = gemini3Service.getApiUrl();
-      expect(url).toContain('gemini-3-pro-image-preview');
+      expect(url).toContain('gemini-3.1-flash-image-preview');
     });
 
     it('should maintain same response modalities', () => {

@@ -44,7 +44,7 @@ const corsHeaders = {
 
 const GEMINI_CONFIG = {
   // Gemini 3 Pro Image Preview - Meilleure qualité pour génération d'images
-  imageModel: "gemini-3-pro-image-preview",
+  imageModel: "gemini-3.1-flash-image-preview",
   // Modèle pour le chat texte avec streaming
   textModel: "gemini-2.5-flash",
   // Endpoint de base
@@ -618,7 +618,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
+          model: "google/gemini-3.1-flash-image-preview",
           messages: [
             {
               role: "user",
