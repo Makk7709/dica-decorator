@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { resellerBrochurePdfService } from '@/services/reseller-brochure-pdf.service';
+import { SafeImage } from '@/components/ui/safe-image';
 import type { ResellerBranding } from '@/types/plaquette.types';
 import type { 
   PlaquetteProject, 
@@ -332,7 +333,7 @@ export function ResellerBrochureExportButton({
                             : 'border-border opacity-50 grayscale hover:opacity-75 hover:grayscale-0'
                       }`}
                     >
-                      <img
+                      <SafeImage
                         src={image.url}
                         alt={`Option ${image.decorName}`}
                         className="w-full h-full object-cover"

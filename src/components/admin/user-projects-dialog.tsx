@@ -29,6 +29,7 @@ import {
   ProjectWithRenders,
   ProjectSummary
 } from "@/services/admin-project-viewer.service";
+import { SafeImage } from "@/components/ui/safe-image";
 
 interface UserProjectsDialogProps {
   open: boolean;
@@ -360,7 +361,7 @@ const ProjectDetailsView = ({
             {/* Photo originale */}
             <div className="p-3 bg-muted/30 border-b border-border">
               <p className="text-xs font-medium text-muted-foreground mb-2">Photo originale</p>
-              <img
+              <SafeImage
                 src={photo.originalImageUrl}
                 alt="Originale"
                 className="w-full max-h-48 object-contain rounded-md bg-background"
@@ -376,7 +377,7 @@ const ProjectDetailsView = ({
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {photo.renders.map((render) => (
                     <div key={render.id} className="relative group">
-                      <img
+                      <SafeImage
                         src={render.resultImageUrl}
                         alt="Rendu"
                         className="w-full aspect-square object-cover rounded-md"

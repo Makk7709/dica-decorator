@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { z } from "zod";
@@ -269,9 +269,11 @@ const Auth = () => {
           <div className="card-premium p-8 md:p-10">
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-                <Sparkles className="h-7 w-7 text-white" />
-              </div>
+              <img
+                src="/images/dica-logo.png"
+                alt="DICA Visual Studio"
+                className="mx-auto mb-4 h-16 md:h-20 w-auto"
+              />
               <h1 className="text-2xl font-semibold tracking-tight mb-2">DICA Visual Studio</h1>
               <p className="text-muted-foreground text-sm">
                 Visualisez vos décors en un clic grâce à l'IA

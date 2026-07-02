@@ -22,6 +22,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { FavoritesService, FavoriteRender, FavoritesFilter } from '@/services/favorites.service';
 import { onActivateKeyDown } from '@/lib/utils';
+import { SafeImage } from '@/components/ui/safe-image';
+import { signStorageUrl } from '@/lib/signed-storage';
 
 // ============================================================================
 // Types
@@ -133,7 +135,7 @@ export function FavoritesGallery({ projectId, onClose }: Readonly<FavoritesGalle
     
     for (const fav of selectedFavorites) {
       try {
-        const response = await fetch(fav.render.resultImageUrl);
+        const response = await fetch(await signStorageUrl(fav.render.resultImageUrl));
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -361,7 +363,7 @@ function FavoriteCard({ favorite, isSelected, onToggleSelect }: Readonly<Favorit
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image */}
-      <img
+      <SafeImage
         src={favorite.render.resultImageUrl}
         alt={favorite.render.project.title}
         className="w-full h-auto object-cover"

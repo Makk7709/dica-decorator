@@ -17,20 +17,25 @@ password_requirements = "lower_upper_letters_digits_symbols"
 # et bloquerait les inscriptions.
 enable_confirmations = true
 
+# verify_jwt = true : la passerelle Supabase valide la signature du JWT avant
+# d'exécuter la fonction (défense en profondeur). Ces 5 fonctions sont toujours
+# appelées depuis le client avec le token de session utilisateur.
+# La vérification cryptographique est aussi refaite dans le handler via
+# supabaseAdmin.auth.getUser(token). Nécessite un redéploiement des fonctions.
 [functions.apply-decor]
-verify_jwt = false
+verify_jwt = true
 
 [functions.creative-chat]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-magazine-captions]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-analytics]
-verify_jwt = false
+verify_jwt = true
 
 [functions.get-users-admin]
-verify_jwt = false
+verify_jwt = true
 
 [functions.process-email-queue]
 verify_jwt = true

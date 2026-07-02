@@ -128,26 +128,13 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    let payload: Record<string, unknown> | null = null;
-    try {
-      const parts = token.split(".");
-      if (parts.length === 3) {
-        payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-        if (payload?.exp && (payload.exp as number) < Math.floor(Date.now() / 1000)) payload = null;
-      }
-    } catch { payload = null; }
-    
-    if (!payload?.sub || typeof payload.sub !== "string") {
-      return new Response(
-        JSON.stringify({ error: "Non autorisé - Token invalide" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const { createClient } = await import("npm:@supabase/supabase-js@2");
     const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const { data: { user: verifiedUser }, error: authError } = await supabaseAdmin.auth.admin.getUserById(payload.sub as string);
+    // Vérifie cryptographiquement le JWT via le serveur Auth (signature + expiration).
+    // Le décodage manuel précédent ne validait pas la signature : un token forgé passait.
+    const { data: { user: verifiedUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !verifiedUser) {
       return new Response(

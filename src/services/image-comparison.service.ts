@@ -3,6 +3,8 @@
  * Gère la logique du slider de comparaison d'images
  */
 
+import { signStorageUrl } from '@/lib/signed-storage';
+
 // ============================================================================
 // Types & Interfaces
 // ============================================================================
@@ -671,13 +673,15 @@ export class ImageComparisonService {
     }
   }
 
-  private loadImage(src: string): Promise<HTMLImageElement> {
+  private async loadImage(src: string): Promise<HTMLImageElement> {
+    // Signe l'URL si elle pointe vers un bucket Supabase privé
+    const resolvedSrc = await signStorageUrl(src);
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
-      img.src = src;
+      img.onerror = () => reject(new Error(`Failed to load image: ${resolvedSrc}`));
+      img.src = resolvedSrc;
     });
   }
 

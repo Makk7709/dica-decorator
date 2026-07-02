@@ -19,6 +19,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { magazineDecoPdfService } from '@/services/magazine-deco-pdf.service';
+import { SafeImage } from '@/components/ui/safe-image';
 import type { 
   PlaquetteProject, 
   PlaquetteDecor, 
@@ -260,7 +261,7 @@ export function MagazineDecoExportButton({
                             : 'border-border opacity-50 grayscale hover:opacity-75 hover:grayscale-0'
                       }`}
                     >
-                      <img
+                      <SafeImage
                         src={image.url}
                         alt={`Option ${image.decorName}`}
                         className="w-full h-full object-cover"

@@ -6,18 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
-    return payload;
-  } catch {
-    return null;
-  }
-}
-
 async function authenticateAdmin(req: Request) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -29,16 +17,11 @@ async function authenticateAdmin(req: Request) {
   }
 
   const token = authHeader.replace("Bearer ", "");
-  const payload = decodeJwtPayload(token);
-
-  if (!payload?.sub || typeof payload.sub !== "string") {
-    throw { status: 401, message: "Non autorisé - Token invalide" };
-  }
-
-  const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(payload.sub);
+  // Vérifie cryptographiquement le JWT via le serveur Auth (signature + expiration).
+  const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
   if (userError || !user) {
-    throw { status: 401, message: "Non autorisé - Utilisateur introuvable" };
+    throw { status: 401, message: "Non autorisé - Token invalide" };
   }
 
   const userId = user.id;

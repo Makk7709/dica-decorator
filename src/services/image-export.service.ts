@@ -338,9 +338,9 @@ export class ImageExportService {
       try {
         blob = await this.fetchImageAsBlob(imageUrl);
       } catch (fetchError) {
-        // Dernier recours: ouvrir l'image dans un nouvel onglet
+        // Dernier recours: ouvrir l'image dans un nouvel onglet (URL signée si bucket privé)
         console.error('[ImageExport] Téléchargement direct échoué:', fetchError);
-        window.open(imageUrl, '_blank');
+        window.open(await signStorageUrl(imageUrl), '_blank');
         throw new Error('Téléchargement impossible - image ouverte dans un nouvel onglet');
       }
     }
