@@ -464,6 +464,7 @@ const Auth = () => {
                       password={signupData.password}
                       onValidityChange={(isValid) => setSignupPasswordValid(isValid)}
                     />
+                    <PasswordRulesInfo password={signupData.password} className="mt-2" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm" className="text-sm font-medium">Confirmer le mot de passe</Label>
