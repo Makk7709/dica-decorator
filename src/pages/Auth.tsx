@@ -13,6 +13,7 @@ import { z } from "zod";
 import { PremiumLayout } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
+import { PasswordRulesInfo } from "@/components/auth/PasswordRulesInfo";
 import { checkPwnedPassword } from "@/lib/password-strength";
 
 // Validation schemas
@@ -365,8 +366,9 @@ const Auth = () => {
                         {showLoginPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                       </Button>
                     </div>
+                    <PasswordRulesInfo password={loginData.password} className="mt-3" />
                   </div>
-                  <Button 
+                  <Button
                     type="submit" 
                     className="w-full btn-primary-premium h-11 rounded-xl" 
                     disabled={isLoading || isGoogleLoading}
@@ -462,6 +464,7 @@ const Auth = () => {
                       password={signupData.password}
                       onValidityChange={(isValid) => setSignupPasswordValid(isValid)}
                     />
+                    <PasswordRulesInfo password={signupData.password} className="mt-2" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm" className="text-sm font-medium">Confirmer le mot de passe</Label>
