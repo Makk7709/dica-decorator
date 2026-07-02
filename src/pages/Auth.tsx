@@ -13,6 +13,7 @@ import { z } from "zod";
 import { PremiumLayout } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
+import { PasswordRulesInfo } from "@/components/auth/PasswordRulesInfo";
 import { checkPwnedPassword } from "@/lib/password-strength";
 
 // Validation schemas
