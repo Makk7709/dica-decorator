@@ -1,5 +1,22 @@
 project_id = "urkftxznsynmvkskytih"
 
+[auth]
+# Enforcement serveur des règles de mot de passe (miroir des règles client dans
+# src/lib/password-strength.ts). Bloque les signups qui contournent l'UI.
+# Appliquer sur le projet hébergé via `supabase config push` (ou dashboard :
+# Authentication > Sign In / Providers > Password Requirements).
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits_symbols"
+
+[auth.email]
+# Confirmation d'email obligatoire à l'inscription. Sans elle, n'importe qui
+# peut créer un compte actif avec l'email d'un tiers (constaté en prod le
+# 2026-07-02 : mailer_autoconfirm était à true).
+# PRÉREQUIS avant push : un SMTP custom configuré dans le dashboard
+# (Settings > Auth > SMTP). Le SMTP intégré Supabase est limité à ~2 emails/h
+# et bloquerait les inscriptions.
+enable_confirmations = true
+
 [functions.apply-decor]
 verify_jwt = false
 

@@ -124,9 +124,17 @@ const Auth = () => {
       await signIn(loginData.email, loginData.password);
       toast.success("Connexion réussie !");
       navigate("/dashboard");
-    } catch {
-      // Messages d'erreur génériques pour éviter l'énumération de comptes
-      toast.error("Email ou mot de passe incorrect");
+    } catch (error: unknown) {
+      const err = error as { code?: string; message?: string } | null;
+      if (err?.code === "email_not_confirmed" || (err?.message ?? "").toLowerCase().includes("not confirmed")) {
+        toast.error(
+          "Votre email n'est pas encore confirmé. Cliquez sur le lien reçu par email avant de vous connecter.",
+          { duration: 9000 }
+        );
+      } else {
+        // Message générique pour éviter l'énumération de comptes
+        toast.error("Email ou mot de passe incorrect");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -196,9 +204,14 @@ const Auth = () => {
       const code = err?.code ?? "";
       const msg = (err?.message ?? "").toLowerCase();
 
-      if (code === "weak_password" || msg.includes("pwned") || msg.includes("weak")) {
+      if (msg.includes("pwned") || msg.includes("leak") || msg.includes("easy to guess")) {
         toast.error(
           "Ce mot de passe apparaît dans une fuite de données connue. Choisissez-en un autre, unique à Dica Decor.",
+          { duration: 9000 }
+        );
+      } else if (code === "weak_password" || msg.includes("weak") || msg.includes("password should")) {
+        toast.error(
+          "Mot de passe refusé : 8 caractères minimum avec majuscule, minuscule, chiffre et caractère spécial.",
           { duration: 9000 }
         );
       } else if (code === "user_already_exists" || msg.includes("already registered") || msg.includes("already been registered")) {
