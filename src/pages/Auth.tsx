@@ -454,9 +454,10 @@ const Auth = () => {
                         {showSignupPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Min. 8 caractères, majuscule, minuscule, chiffre et caractère spécial
-                    </p>
+                    <PasswordStrengthMeter
+                      password={signupData.password}
+                      onValidityChange={(isValid) => setSignupPasswordValid(isValid)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm" className="text-sm font-medium">Confirmer le mot de passe</Label>
@@ -473,7 +474,7 @@ const Auth = () => {
                   <Button 
                     type="submit" 
                     className="w-full btn-primary-premium h-11 rounded-xl" 
-                    disabled={isLoading || isGoogleLoading}
+                    disabled={isLoading || isGoogleLoading || (signupData.password.length > 0 && !signupPasswordValid)}
                   >
                     {isLoading ? (
                       <>
