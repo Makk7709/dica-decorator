@@ -166,6 +166,22 @@ const Auth = () => {
 
     setIsLoading(true);
 
+    // Pré-vérification HIBP (k-anonymity) — évite un aller-retour serveur pour un
+    // mot de passe déjà compromis et donne un message d'erreur immédiat.
+    try {
+      const pwned = await checkPwnedPassword(signupData.password);
+      if (pwned && pwned > 0) {
+        toast.error(
+          "Ce mot de passe apparaît dans une fuite de données connue. Choisissez-en un autre, unique à Dica Decor.",
+          { duration: 9000 }
+        );
+        setIsLoading(false);
+        return;
+      }
+    } catch {
+      // Silencieux : le serveur (HIBP Supabase) fera un second contrôle.
+    }
+
     try {
       await signUp(signupData.email, signupData.password);
       toast.success("Compte créé ! Vérifiez votre email pour confirmer votre inscription.", {
