@@ -366,8 +366,9 @@ const Auth = () => {
                         {showLoginPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                       </Button>
                     </div>
+                    <PasswordRulesInfo password={loginData.password} className="mt-3" />
                   </div>
-                  <Button 
+                  <Button
                     type="submit" 
                     className="w-full btn-primary-premium h-11 rounded-xl" 
                     disabled={isLoading || isGoogleLoading}
