@@ -12,6 +12,8 @@ import { lovable } from "@/integrations/lovable/index";
 import { z } from "zod";
 import { PremiumLayout } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
+import { checkPwnedPassword } from "@/lib/password-strength";
 
 // Validation schemas
 const emailSchema = z.string().email("Email invalide").trim();
@@ -35,6 +37,7 @@ const Auth = () => {
   
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ email: "", password: "", confirmPassword: "" });
+  const [signupPasswordValid, setSignupPasswordValid] = useState(false);
 
   useEffect(() => {
     // Don't redirect if in password recovery mode
@@ -163,6 +166,22 @@ const Auth = () => {
 
     setIsLoading(true);
 
+    // Pré-vérification HIBP (k-anonymity) — évite un aller-retour serveur pour un
+    // mot de passe déjà compromis et donne un message d'erreur immédiat.
+    try {
+      const pwned = await checkPwnedPassword(signupData.password);
+      if (pwned && pwned > 0) {
+        toast.error(
+          "Ce mot de passe apparaît dans une fuite de données connue. Choisissez-en un autre, unique à Dica Decor.",
+          { duration: 9000 }
+        );
+        setIsLoading(false);
+        return;
+      }
+    } catch {
+      // Silencieux : le serveur (HIBP Supabase) fera un second contrôle.
+    }
+
     try {
       await signUp(signupData.email, signupData.password);
       toast.success("Compte créé ! Vérifiez votre email pour confirmer votre inscription.", {
@@ -187,7 +206,11 @@ const Auth = () => {
         });
       } else if (code === "over_email_send_rate_limit" || msg.includes("rate limit") || err?.status === 429) {
         toast.error("Trop de tentatives. Merci de patienter quelques minutes avant de réessayer.");
-      } else if (code === "email_address_invalid" || msg.includes("invalid") && msg.includes("email")) {
+      } else if (
+        code === "email_address_invalid" ||
+        code === "validation_failed" ||
+        (msg.includes("invalid") && msg.includes("email"))
+      ) {
         toast.error("Adresse email invalide ou non acceptée par le fournisseur.");
       } else if (msg.includes("network") || err?.name === "TypeError") {
         toast.error("Problème réseau. Vérifiez votre connexion internet et réessayez.");
@@ -435,9 +458,10 @@ const Auth = () => {
                         {showSignupPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Min. 8 caractères, majuscule, minuscule, chiffre et caractère spécial
-                    </p>
+                    <PasswordStrengthMeter
+                      password={signupData.password}
+                      onValidityChange={(isValid) => setSignupPasswordValid(isValid)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm" className="text-sm font-medium">Confirmer le mot de passe</Label>
@@ -454,7 +478,7 @@ const Auth = () => {
                   <Button 
                     type="submit" 
                     className="w-full btn-primary-premium h-11 rounded-xl" 
-                    disabled={isLoading || isGoogleLoading}
+                    disabled={isLoading || isGoogleLoading || (signupData.password.length > 0 && !signupPasswordValid)}
                   >
                     {isLoading ? (
                       <>
