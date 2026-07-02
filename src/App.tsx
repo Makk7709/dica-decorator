@@ -150,6 +150,7 @@ const App = () => (
                   }
                 />
                 <Route path="/mentions-legales" element={<Legal />} />
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
