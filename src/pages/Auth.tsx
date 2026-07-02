@@ -206,7 +206,11 @@ const Auth = () => {
         });
       } else if (code === "over_email_send_rate_limit" || msg.includes("rate limit") || err?.status === 429) {
         toast.error("Trop de tentatives. Merci de patienter quelques minutes avant de réessayer.");
-      } else if (code === "email_address_invalid" || msg.includes("invalid") && msg.includes("email")) {
+      } else if (
+        code === "email_address_invalid" ||
+        code === "validation_failed" ||
+        (msg.includes("invalid") && msg.includes("email"))
+      ) {
         toast.error("Adresse email invalide ou non acceptée par le fournisseur.");
       } else if (msg.includes("network") || err?.name === "TypeError") {
         toast.error("Problème réseau. Vérifiez votre connexion internet et réessayez.");
