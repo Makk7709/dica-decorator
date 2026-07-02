@@ -56,11 +56,13 @@ serve(async (req) => {
     console.log("Admin access granted, fetching analytics...");
 
     const { period = "30d" } = await req.json().catch(() => ({ period: "30d" }));
-    
-    // Calculate date range
+
+    // ------------------------------------------------------------------------
+    // Fenêtre courante + fenêtre précédente (même durée) pour comparaison réelle
+    // ------------------------------------------------------------------------
     const now = new Date();
-    const startDate = new Date();
-    
+    const startDate = new Date(now);
+
     switch (period) {
       case "7d":
         startDate.setDate(now.getDate() - 7);
@@ -72,73 +74,167 @@ serve(async (req) => {
         startDate.setDate(now.getDate() - 90);
         break;
       case "year":
-        startDate.setFullYear(now.getFullYear() - 1);
+        // "Cette année" = depuis le 1er janvier (cohérent avec le libellé UI)
+        startDate.setMonth(0, 1);
+        startDate.setHours(0, 0, 0, 0);
         break;
       default:
         startDate.setDate(now.getDate() - 30);
     }
 
-    // Get total metrics
-    const { count: totalProjects } = await supabaseAdmin
-      .from("projects")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", startDate.toISOString());
+    const windowMs = now.getTime() - startDate.getTime();
+    const prevStart = new Date(startDate.getTime() - windowMs);
+    const startIso = startDate.toISOString();
+    const prevStartIso = prevStart.toISOString();
 
-    const { count: totalRenders } = await supabaseAdmin
-      .from("render_results")
-      .select("*", { count: "exact", head: true })
-      .gte("created_at", startDate.toISOString());
+    // Helper: nombre de lignes sur une plage [from, to)
+    const countRows = async (
+      table: string,
+      from: string,
+      to?: string
+    ): Promise<number> => {
+      let q = supabaseAdmin.from(table).select("*", { count: "exact", head: true }).gte("created_at", from);
+      if (to) q = q.lt("created_at", to);
+      const { count } = await q;
+      return count || 0;
+    };
 
-    const { count: totalUsers } = await supabaseAdmin
+    // Helper: utilisateurs distincts ayant créé un projet sur une plage [from, to)
+    const distinctActiveUsers = async (from: string, to?: string): Promise<number> => {
+      let q = supabaseAdmin.from("projects").select("user_id").gte("created_at", from);
+      if (to) q = q.lt("created_at", to);
+      const { data } = await q;
+      return new Set((data || []).map((r: any) => r.user_id).filter(Boolean)).size;
+    };
+
+    // Helper: variation en % + direction entre période courante et précédente
+    const compare = (current: number, previous: number) => {
+      let percentageChange: number;
+      if (previous > 0) {
+        percentageChange = ((current - previous) / previous) * 100;
+      } else {
+        percentageChange = current > 0 ? 100 : 0;
+      }
+      percentageChange = Math.round(percentageChange * 10) / 10;
+      let direction: "up" | "down" | "stable";
+      if (percentageChange > 1) direction = "up";
+      else if (percentageChange < -1) direction = "down";
+      else direction = "stable";
+      return { percentageChange, direction };
+    };
+
+    // Métriques période courante
+    const totalProjects = await countRows("projects", startIso);
+    const totalRenders = await countRows("render_results", startIso);
+    const activeUsers = await distinctActiveUsers(startIso);
+
+    // Métriques période précédente (pour les tendances)
+    const prevProjects = await countRows("projects", prevStartIso, startIso);
+    const prevRenders = await countRows("render_results", prevStartIso, startIso);
+    const prevActiveUsers = await distinctActiveUsers(prevStartIso, startIso);
+
+    // Total utilisateurs (tous comptes confondus, indépendant de la période)
+    const { count: totalUsersCount } = await supabaseAdmin
       .from("profiles")
       .select("*", { count: "exact", head: true });
+    const totalUsers = totalUsersCount || 0;
 
-    const { count: activeUsers } = await supabaseAdmin
-      .from("projects")
-      .select("user_id", { count: "exact", head: true })
-      .gte("created_at", startDate.toISOString());
-
-    const { count: totalDecors } = await supabaseAdmin
+    const { count: totalDecorsCount } = await supabaseAdmin
       .from("decors")
       .select("*", { count: "exact", head: true })
       .eq("is_active", true);
+    const totalDecors = totalDecorsCount || 0;
 
-    // Calculate average renders per project
-    const avgRendersPerProject = totalProjects && totalRenders 
-      ? Math.round(totalRenders / totalProjects) 
+    // Moyenne rendus/projet (1 décimale)
+    const avgRendersPerProject = totalProjects > 0
+      ? Math.round((totalRenders / totalProjects) * 10) / 10
       : 0;
 
-    // Calculate engagement rate
-    const engagementRate = totalUsers && activeUsers
-      ? Math.round((activeUsers / totalUsers) * 100)
+    // Taux d'engagement = utilisateurs actifs distincts / total utilisateurs
+    const engagementRate = totalUsers > 0
+      ? Math.min(100, Math.round((activeUsers / totalUsers) * 100))
       : 0;
 
-    // Get daily trends for renders
+    const rendersComparison = compare(totalRenders, prevRenders);
+    const projectsComparison = compare(totalProjects, prevProjects);
+    const usersComparison = compare(activeUsers, prevActiveUsers);
+
+    // ------------------------------------------------------------------------
+    // Séries temporelles : granularité adaptée + remplissage des trous à zéro
+    // ------------------------------------------------------------------------
+    const granularity: "day" | "week" | "month" =
+      period === "90d" ? "week" : period === "year" ? "month" : "day";
+
+    // Clé de bucket (UTC) pour une date donnée
+    const bucketKey = (d: Date): string => {
+      if (granularity === "month") return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+      if (granularity === "week") {
+        // Lundi de la semaine ISO
+        const tmp = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+        const day = tmp.getUTCDay() || 7;
+        tmp.setUTCDate(tmp.getUTCDate() - day + 1);
+        return tmp.toISOString().slice(0, 10);
+      }
+      return d.toISOString().slice(0, 10);
+    };
+
+    // Libellé lisible FR pour un bucket
+    const bucketLabel = (key: string): string => {
+      if (granularity === "month") {
+        const [y, m] = key.split("-");
+        return `${m}/${y}`;
+      }
+      const [y, m, dd] = key.split("-");
+      return `${dd}/${m}`;
+    };
+
+    // Construit la liste ordonnée des buckets couvrant [startDate, now]
+    const buildBuckets = (): string[] => {
+      const keys: string[] = [];
+      const seen = new Set<string>();
+      const cursor = new Date(startDate);
+      cursor.setUTCHours(0, 0, 0, 0);
+      while (cursor.getTime() <= now.getTime()) {
+        const k = bucketKey(cursor);
+        if (!seen.has(k)) {
+          seen.add(k);
+          keys.push(k);
+        }
+        cursor.setUTCDate(cursor.getUTCDate() + (granularity === "month" ? 1 : granularity === "week" ? 7 : 1));
+      }
+      return keys;
+    };
+
+    const groupSeries = (rows: any[], buckets: string[]) => {
+      const counts: Record<string, number> = {};
+      for (const k of buckets) counts[k] = 0;
+      (rows || []).forEach((item) => {
+        const k = bucketKey(new Date(item.created_at));
+        if (k in counts) counts[k] += 1;
+        else counts[k] = (counts[k] || 0) + 1;
+      });
+      // Réordonne selon buckets (chronologique)
+      const orderedKeys = Array.from(new Set([...buckets, ...Object.keys(counts)]))
+        .sort((a, b) => a.localeCompare(b));
+      return orderedKeys.map((k) => ({ date: bucketLabel(k), value: counts[k] || 0 }));
+    };
+
+    const buckets = buildBuckets();
+
     const { data: renderTrends } = await supabaseAdmin
       .from("render_results")
       .select("created_at")
-      .gte("created_at", startDate.toISOString())
+      .gte("created_at", startIso)
       .order("created_at", { ascending: true });
 
-    // Get daily trends for projects
     const { data: projectTrends } = await supabaseAdmin
       .from("projects")
       .select("created_at")
-      .gte("created_at", startDate.toISOString())
+      .gte("created_at", startIso)
       .order("created_at", { ascending: true });
 
-    // Group by date
-    const groupByDate = (data: any[]) => {
-      const grouped: Record<string, number> = {};
-      data?.forEach((item) => {
-        const date = new Date(item.created_at).toLocaleDateString("fr-FR");
-        grouped[date] = (grouped[date] || 0) + 1;
-      });
-      return Object.entries(grouped).map(([date, value]) => ({ date, value }));
-    };
-
-    const rendersData = groupByDate(renderTrends || []);
-    const projectsData = groupByDate(projectTrends || []);
+    const rendersData = groupSeries(renderTrends || [], buckets);
+    const projectsData = groupSeries(projectTrends || [], buckets);
 
     // Get top decors
     const { data: topDecorsData } = await supabaseAdmin
@@ -224,29 +320,29 @@ serve(async (req) => {
 
     const response = {
       metrics: {
-        totalProjects: totalProjects || 0,
-        totalRenders: totalRenders || 0,
-        totalUsers: totalUsers || 0,
-        activeUsers: activeUsers || 0,
-        totalDecors: totalDecors || 0,
+        totalProjects,
+        totalRenders,
+        totalUsers,
+        activeUsers,
+        totalDecors,
         avgRendersPerProject,
         engagementRate,
       },
       trends: {
         renders: {
           data: rendersData,
-          direction: rendersData.length > 1 && rendersData[rendersData.length - 1].value > rendersData[0].value ? "up" : "stable",
-          percentageChange: 0,
+          direction: rendersComparison.direction,
+          percentageChange: rendersComparison.percentageChange,
         },
         projects: {
           data: projectsData,
-          direction: projectsData.length > 1 && projectsData[projectsData.length - 1].value > projectsData[0].value ? "up" : "stable",
-          percentageChange: 0,
+          direction: projectsComparison.direction,
+          percentageChange: projectsComparison.percentageChange,
         },
         users: {
           data: [],
-          direction: "stable",
-          percentageChange: 0,
+          direction: usersComparison.direction,
+          percentageChange: usersComparison.percentageChange,
         },
       },
       topDecors,

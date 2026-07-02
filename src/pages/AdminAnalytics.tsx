@@ -267,7 +267,7 @@ const AdminAnalytics: React.FC = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
-            title="Projets totaux"
+            title="Nouveaux projets"
             value={data?.metrics.totalProjects || 0}
             icon={FolderKanban}
             trend={data?.trends.projects.direction}
@@ -292,7 +292,7 @@ const AdminAnalytics: React.FC = () => {
             icon={Users}
             trend={data?.trends.users.direction}
             trendValue={data?.trends.users.percentageChange}
-            description={`sur ${data?.metrics.totalUsers || 0} total`}
+            description={`sur ${data?.metrics.totalUsers || 0} au total`}
             iconColor="text-green-500"
             isLoading={isLoading}
           />
