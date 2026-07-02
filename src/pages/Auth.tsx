@@ -12,6 +12,8 @@ import { lovable } from "@/integrations/lovable/index";
 import { z } from "zod";
 import { PremiumLayout } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
+import { checkPwnedPassword } from "@/lib/password-strength";
 
 // Validation schemas
 const emailSchema = z.string().email("Email invalide").trim();
@@ -35,6 +37,7 @@ const Auth = () => {
   
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ email: "", password: "", confirmPassword: "" });
+  const [signupPasswordValid, setSignupPasswordValid] = useState(false);
 
   useEffect(() => {
     // Don't redirect if in password recovery mode
