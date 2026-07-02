@@ -170,9 +170,30 @@ const Auth = () => {
       });
       // Reset le formulaire et revenir sur l'onglet connexion
       setSignupData({ email: "", password: "", confirmPassword: "" });
-    } catch {
-      // Messages génériques pour éviter l'énumération
-      toast.error("Impossible de créer le compte. Veuillez réessayer.");
+    } catch (error: unknown) {
+      // Extraction du code / message Supabase pour donner une raison utile à l'utilisateur
+      const err = error as { code?: string; message?: string; status?: number; name?: string } | null;
+      const code = err?.code ?? "";
+      const msg = (err?.message ?? "").toLowerCase();
+
+      if (code === "weak_password" || msg.includes("pwned") || msg.includes("weak")) {
+        toast.error(
+          "Ce mot de passe apparaît dans une fuite de données connue. Choisissez-en un autre, unique à Dica Decor.",
+          { duration: 9000 }
+        );
+      } else if (code === "user_already_exists" || msg.includes("already registered") || msg.includes("already been registered")) {
+        toast.error("Un compte existe déjà avec cet email. Utilisez l'onglet Connexion ou « Mot de passe oublié ».", {
+          duration: 9000,
+        });
+      } else if (code === "over_email_send_rate_limit" || msg.includes("rate limit") || err?.status === 429) {
+        toast.error("Trop de tentatives. Merci de patienter quelques minutes avant de réessayer.");
+      } else if (code === "email_address_invalid" || msg.includes("invalid") && msg.includes("email")) {
+        toast.error("Adresse email invalide ou non acceptée par le fournisseur.");
+      } else if (msg.includes("network") || err?.name === "TypeError") {
+        toast.error("Problème réseau. Vérifiez votre connexion internet et réessayez.");
+      } else {
+        toast.error(err?.message || "Impossible de créer le compte. Veuillez réessayer.");
+      }
     } finally {
       setIsLoading(false);
     }
