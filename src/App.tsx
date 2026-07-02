@@ -24,6 +24,7 @@ const Favorites = lazy(() => import("./pages/Favorites"));
 const AiCreations = lazy(() => import("./pages/AiCreations"));
 const MyCoBranding = lazy(() => import("./pages/MyCoBranding"));
 const Legal = lazy(() => import("./pages/Legal"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading component
@@ -149,6 +150,7 @@ const App = () => (
                   }
                 />
                 <Route path="/mentions-legales" element={<Legal />} />
+                <Route path="/unsubscribe" element={<Unsubscribe />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
