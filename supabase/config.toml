@@ -51,3 +51,6 @@ verify_jwt = false
 
 [functions.handle-email-suppression]
 verify_jwt = false
+
+[functions.migrate-render-results]
+verify_jwt = true
