@@ -1475,26 +1475,37 @@ L'annotation doit être:
 
         // Save result if not already saved by gateway URL path
         if (imageBase64 && imageBase64 !== "__ALREADY_SAVED__") {
-          const resultUrl = `data:image/png;base64,${imageBase64}`;
-          generatedUrls.push(resultUrl);
-        
-          console.log(`Image ${i + 1} generated successfully, saving to database`);
+          // Upload the PNG to storage instead of stuffing base64 in the DB.
+          // Base64 in Postgres ballooned the DB to 574 MB / 292 rows in prod.
+          const bin = atob(imageBase64);
+          const bytes = new Uint8Array(bin.length);
+          for (let b = 0; b < bin.length; b++) bytes[b] = bin.charCodeAt(b);
 
-          // Save result to database
-          const { error: insertError } = await supabase
+          const insertRes = await supabase
             .from("render_results")
-            .insert({
-              project_photo_id: photoId,
-              decor_id: decorId,
-              result_image_url: resultUrl,
-            });
-
-          if (insertError) {
-            console.error("Error saving render result:", insertError);
+            .insert({ project_photo_id: photoId, decor_id: decorId, result_image_url: "" })
+            .select("id")
+            .single();
+          if (insertRes.error || !insertRes.data) {
+            console.error("Error saving render result:", insertRes.error);
             throw new Error("Erreur lors de la sauvegarde du rendu");
           }
+          const renderId = insertRes.data.id as string;
+          const path = `${user.id}/${photoId}/${renderId}.png`;
 
-          console.log(`Render result ${i + 1} saved successfully`);
+          const { error: upErr } = await supabase.storage
+            .from("render-results")
+            .upload(path, bytes, { contentType: "image/png", upsert: true, cacheControl: "31536000" });
+          if (upErr) {
+            console.error("Error uploading render to storage:", upErr);
+            await supabase.from("render_results").delete().eq("id", renderId);
+            throw new Error("Erreur lors du stockage du rendu");
+          }
+
+          const resultUrl = `${supabaseUrl}/storage/v1/object/public/render-results/${path}`;
+          await supabase.from("render_results").update({ result_image_url: resultUrl }).eq("id", renderId);
+          generatedUrls.push(resultUrl);
+          console.log(`Render result ${i + 1} saved to storage: ${path}`);
         }
         
         // Quota already incremented atomically at the start via check_and_increment_quota
