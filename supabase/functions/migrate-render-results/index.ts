@@ -38,22 +38,10 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  // Admin gate
-  const auth = req.headers.get("Authorization")?.replace("Bearer ", "");
-  if (!auth) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  const { data: userRes } = await admin.auth.getUser(auth);
-  const userId = userRes?.user?.id;
-  if (!userId) {
-    return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  const { data: isAdmin } = await admin.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (!isAdmin) {
+  // Shared-secret gate (one-shot maintenance function).
+  const provided = req.headers.get("x-migration-secret") ?? "";
+  const expected = Deno.env.get("MIGRATION_SECRET") ?? "";
+  if (!expected || provided !== expected) {
     return new Response(JSON.stringify({ error: "forbidden" }), {
       status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
