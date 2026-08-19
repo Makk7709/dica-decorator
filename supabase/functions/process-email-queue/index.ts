@@ -53,10 +53,20 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 }
 
 // Move a message to the dead letter queue and log the reason.
+type QueueClient = {
+  from: (table: string) => any
+  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>
+}
+
+interface QueueMessage {
+  msg_id: number
+  message: Record<string, any>
+}
+
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  supabase: QueueClient,
   queue: string,
-  msg: { msg_id: number; message: Record<string, unknown> },
+  msg: QueueMessage,
   reason: string
 ): Promise<void> {
   const payload = msg.message
@@ -155,13 +165,13 @@ Deno.serve(async (req) => {
     // messages not attempted when a 429 stops processing early.
     const messageIds = Array.from(
       new Set(
-        messages
-          .map((msg) =>
+        (messages as QueueMessage[])
+          .map((msg: QueueMessage) =>
             msg?.message?.message_id && typeof msg.message.message_id === 'string'
               ? msg.message.message_id
               : null
           )
-          .filter((id): id is string => Boolean(id))
+          .filter((id: string | null): id is string => Boolean(id))
       )
     )
     const failedAttemptsByMessageId = new Map<string, number>()
