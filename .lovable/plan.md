@@ -1,25 +1,29 @@
-# Activer la confirmation d'email à l'inscription
+# Rendre effective la désactivation d'un compte par l'administrateur
 
-## Constat (vérifié en production)
+## Constat (vérifié)
 
-Les comptes sont créés **déjà confirmés** : pour les 10 derniers comptes, `email_confirmed_at` est identique à la date de création (à 8 ms près) et `confirmation_sent_at` est vide. Aucun email de confirmation n'a donc été envoyé — l'auto-confirmation est active côté backend, alors que `supabase/config.toml` déclare l'intention inverse (`enable_confirmations = true`). Le fichier local n'est pas ce qui pilote l'instance : c'est la configuration Auth déployée qui décide.
+Le bouton « Désactiver » de la page Admin appelle la fonction `get-users-admin` qui **se contente d'inverser le champ `is_active` du profil**. Rien n'exploite ensuite cette valeur :
 
-Conséquence de sécurité : n'importe qui peut créer un compte actif avec l'adresse d'un tiers.
+- aucune politique de sécurité base de données ne filtre sur `is_active` pour les données utilisateur (seuls les décors, catégories et catalogues l'utilisent) ;
+- la protection des routes (`ProtectedRoute`) ne vérifie que « connecté » et « admin », jamais `is_active` ;
+- aucune session n'est révoquée et le compte d'authentification n'est pas bloqué (`banned_until` vide pour tous).
+
+Résultat : un compte « désactivé » continue de se connecter et d'utiliser l'app normalement. Le drapeau n'est aujourd'hui qu'un indicateur d'affichage.
 
 ## Ce qui va être fait
 
-1. **Désactiver l'auto-confirmation** dans la configuration Auth de l'instance. À partir de là, chaque inscription envoie un email de confirmation et le compte reste inactif jusqu'au clic sur le lien.
-2. **Adapter l'écran d'inscription** (`src/pages/Auth.tsx` / `src/lib/supabase.ts`) : après un `signUp`, la session est `null`. L'app doit afficher un message clair « Vérifiez votre boîte mail pour confirmer votre inscription » au lieu de considérer l'utilisateur comme connecté, et gérer le cas « email non confirmé » à la connexion avec un message explicite plutôt qu'une erreur brute.
-3. **Vérifier le lien de retour** : `emailRedirectTo` pointe déjà vers l'origine du site ; on s'assure que le domaine de production est bien celui utilisé.
-
-## À trancher avec toi
-
-- Les **89 comptes existants** ont été confirmés automatiquement. Deux options : les laisser tels quels (ils fonctionnent), ou exiger une re-vérification pour les comptes jamais connectés. Par défaut : on ne touche à rien d'existant.
-- Les emails de confirmation partiront avec l'expéditeur intégré par défaut. Si tu veux qu'ils arrivent depuis ton domaine avec le design DICA, il faut en plus mettre en place les **modèles d'emails d'authentification** — chantier séparé, à faire dans un second temps.
+1. **Blocage réel côté authentification** — lors d'une désactivation, la fonction admin bloquera aussi le compte d'authentification et révoquera ses sessions en cours : l'utilisateur est déconnecté immédiatement et ne peut plus se reconnecter. La réactivation lève le blocage.
+2. **Filet de sécurité côté base de données** — les écritures des tables métier (projets, photos, rendus, créations IA, favoris) seront conditionnées à un profil actif, afin qu'un jeton encore valide ne puisse pas créer de données.
+3. **Message clair côté app** — si un compte désactivé garde une page ouverte, il est redirigé vers l'écran de connexion avec le message « Votre compte a été désactivé. Contactez l'administrateur. », au lieu d'un échec silencieux.
+4. **Protection contre l'auto-blocage** — un administrateur ne pourra pas désactiver son propre compte.
 
 ## Détails techniques
 
-- Changement de configuration Auth : `auto_confirm_email = false`, en conservant les règles de mot de passe et la protection HIBP existantes.
-- Aucune migration de base de données, aucune donnée utilisateur modifiée.
-- Le flux `signUp()` renverra `data.session === null` : la logique de redirection post-inscription doit être remplacée par un état « en attente de confirmation ».
-- Point de vigilance : si le débit d'emails d'authentification est limité, une vague d'inscriptions simultanées peut déclencher une erreur 429 ; on relèvera la limite horaire si nécessaire.
+- `supabase/functions/get-users-admin` (action `toggle_active`) : en plus du `update` sur `profiles`, appel de l'API admin d'authentification pour poser/retirer un bannissement et invalider les sessions (`ban_duration`, déconnexion globale). Refus si `userId` = appelant.
+- Migration : fonction `SECURITY DEFINER` `public.is_profile_active(uuid)` (stable, `search_path` figé), utilisée dans les clauses `WITH CHECK` des politiques INSERT/UPDATE de `projects`, `project_photos`, `render_results`, `ai_creations`, `render_favorites`, `creative_favorites`. La lecture reste autorisée pour ne pas casser une éventuelle réactivation.
+- `AuthContext` : lecture de `profiles.is_active` en même temps que le rôle ; si `false`, `signOut()` puis redirection `/auth` avec le message. `ProtectedRoute` s'appuie sur cet état.
+- Page Admin : le libellé du bouton reflète l'état réel après retour de la fonction.
+
+## Point à confirmer
+
+Aucun compte n'est désactivé aujourd'hui, donc la mise en place ne coupe l'accès à personne. Si tu veux en plus une **liste noire d'emails** empêchant la recréation d'un compte après désactivation, dis-le : ce n'est pas inclus dans ce plan.
