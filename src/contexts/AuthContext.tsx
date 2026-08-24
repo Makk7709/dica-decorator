@@ -1,7 +1,30 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { authService, type AuthState } from "@/lib/supabase";
+import { toast } from "sonner";
 import type { User, Session } from "@supabase/supabase-js";
+
+export const DEACTIVATED_MESSAGE =
+  "Votre compte a été désactivé par un administrateur. Contactez le support pour le réactiver.";
+
+/** Vérifie le statut du compte ; déconnecte immédiatement si désactivé. */
+export const enforceActiveAccount = async (userId: string): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("is_active")
+    .eq("id", userId)
+    .maybeSingle();
+
+  // En cas d'erreur réseau/RLS on ne bloque pas l'utilisateur
+  if (error || !data) return true;
+
+  if (data.is_active === false) {
+    await supabase.auth.signOut();
+    return false;
+  }
+  return true;
+};
+
 
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<void>;
@@ -56,6 +79,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Vérifie le statut actif et déconnecte si le compte est désactivé
+  const guardActive = useCallback(async (userId: string) => {
+    const active = await enforceActiveAccount(userId);
+    if (!active) {
+      setUserRole(null);
+      roleCache.current.clear();
+      toast.error(DEACTIVATED_MESSAGE, { duration: 9000 });
+    }
+    return active;
+  }, []);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -70,7 +104,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Fetch user role when authenticated
         if (session?.user) {
-          fetchUserRole(session.user.id);
+          const userId = session.user.id;
+          fetchUserRole(userId);
+          // Déféré : évite d'appeler Supabase dans le callback onAuthStateChange
+          setTimeout(() => { void guardActive(userId); }, 0);
         } else {
           setUserRole(null);
         }
@@ -85,11 +122,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         fetchUserRole(session.user.id);
+        void guardActive(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchUserRole]);
+  }, [fetchUserRole, guardActive]);
+
 
   const signIn = useCallback(async (email: string, password: string) => {
     await authService.signIn(email, password);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, enforceActiveAccount, DEACTIVATED_MESSAGE } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,8 +122,17 @@ const Auth = () => {
 
     try {
       await signIn(loginData.email, loginData.password);
+
+      // Blocage immédiat des comptes désactivés par un administrateur
+      const { data: { user: signedInUser } } = await supabase.auth.getUser();
+      if (signedInUser && !(await enforceActiveAccount(signedInUser.id))) {
+        toast.error(DEACTIVATED_MESSAGE, { duration: 9000 });
+        return;
+      }
+
       toast.success("Connexion réussie !");
       navigate("/dashboard");
+
     } catch (error: unknown) {
       const err = error as { code?: string; message?: string } | null;
       if (err?.code === "email_not_confirmed" || (err?.message ?? "").toLowerCase().includes("not confirmed")) {
