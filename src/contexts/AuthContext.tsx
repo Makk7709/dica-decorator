@@ -79,6 +79,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Vérifie le statut actif et déconnecte si le compte est désactivé
+  const guardActive = useCallback(async (userId: string) => {
+    const active = await enforceActiveAccount(userId);
+    if (!active) {
+      setUserRole(null);
+      roleCache.current.clear();
+      toast.error(DEACTIVATED_MESSAGE, { duration: 9000 });
+    }
+    return active;
+  }, []);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -93,7 +104,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Fetch user role when authenticated
         if (session?.user) {
-          fetchUserRole(session.user.id);
+          const userId = session.user.id;
+          fetchUserRole(userId);
+          // Déféré : évite d'appeler Supabase dans le callback onAuthStateChange
+          setTimeout(() => { void guardActive(userId); }, 0);
         } else {
           setUserRole(null);
         }
@@ -108,11 +122,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         fetchUserRole(session.user.id);
+        void guardActive(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchUserRole]);
+  }, [fetchUserRole, guardActive]);
+
 
   const signIn = useCallback(async (email: string, password: string) => {
     await authService.signIn(email, password);
