@@ -1,7 +1,30 @@
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { authService, type AuthState } from "@/lib/supabase";
+import { toast } from "sonner";
 import type { User, Session } from "@supabase/supabase-js";
+
+export const DEACTIVATED_MESSAGE =
+  "Votre compte a été désactivé par un administrateur. Contactez le support pour le réactiver.";
+
+/** Vérifie le statut du compte ; déconnecte immédiatement si désactivé. */
+export const enforceActiveAccount = async (userId: string): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("is_active")
+    .eq("id", userId)
+    .maybeSingle();
+
+  // En cas d'erreur réseau/RLS on ne bloque pas l'utilisateur
+  if (error || !data) return true;
+
+  if (data.is_active === false) {
+    await supabase.auth.signOut();
+    return false;
+  }
+  return true;
+};
+
 
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<void>;
