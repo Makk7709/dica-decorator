@@ -269,7 +269,11 @@ Consommé par `src/services/magazine-deco-pdf.service.ts`.
 **Fichier** : `supabase/functions/get-analytics/index.ts`
 
 **Rôle** : Agrégation de métriques produit pour le dashboard admin
-(`/admin/analytics`).
+(`/admin/analytics`). Le chargement des lignes est paginé (pas de plafond
+PostgREST à 1000 lignes) ; tout le calcul est fait par la fonction pure
+`aggregateAnalytics` de `supabase/functions/_shared/analytics-aggregate.ts`
+(testée dans `_shared/__tests__/analytics-aggregate.test.ts`). Les
+regroupements temporels sont en heure de Paris.
 
 ### Accès — get-analytics
 
@@ -284,34 +288,28 @@ Consommé par `src/services/magazine-deco-pdf.service.ts`.
 | Champ | Type | Obligatoire | Description |
 |---|---|---|---|
 | `period` | string | Non | `7d`, `30d` (défaut), `90d`, `year` |
+| `excludeAdmins` | boolean | Non | Exclut l'activité des comptes admin (défaut `true`) |
+
+Fenêtres : les périodes glissantes démarrent à minuit (Paris) et sont
+comparées à la durée équivalente juste avant ; `year` est comparée à la même
+plage de l'année précédente. Granularité des séries : jour (7d, 30d),
+semaine (90d), mois (year).
 
 ### Réponse succès (200) — get-analytics
 
-```json
-{
-  "metrics": {
-    "totalProjects": 0,
-    "totalRenders": 0,
-    "totalUsers": 0,
-    "activeUsers": 0,
-    "totalDecors": 0,
-    "avgRendersPerProject": 0,
-    "engagementRate": 0
-  },
-  "trends": {
-    "renders": {
-      "data": [{ "date": "", "value": 0 }],
-      "direction": "up",
-      "percentageChange": 0
-    },
-    "projects": { "data": [], "direction": "", "percentageChange": 0 },
-    "users": { "data": [], "direction": "stable", "percentageChange": 0 }
-  },
-  "topDecors": [{ "id": "", "name": "", "code": "", "value": 0 }],
-  "topUsers": [{ "id": "", "name": "", "value": 0 }],
-  "usageData": [{ "name": "", "value": 0 }]
-}
-```
+Type TypeScript de référence : `AnalyticsResponse` (ré-exporté côté front par
+`src/types/analytics.types.ts`). Structure :
+
+| Clé | Contenu |
+|---|---|
+| `meta` | période, granularité, bornes courante/précédente, exclusion admin |
+| `kpis` | `signups`, `activeUsers`, `projects`, `photos`, `renders`, `favorites`, `aiCreations`, `activationRate`, `rendersPerActiveUser`, `favoriteRate` — chacun `{ value, previous, percentageChange, direction }` |
+| `totals` | comptes, comptes activés, décors actifs, jamais de rendu, connectés 7 j / 30 j, dormants |
+| `timeseries` | un point par bucket : rendus, projets, photos, inscriptions, utilisateurs actifs, favoris, créations IA |
+| `weekdayActivity` / `hourActivity` | rendus par jour de semaine / par heure |
+| `funnel` | entonnoir des inscrits de la période : inscription → projet → photo → rendu → favori → retour un autre jour |
+| `decors` | top 10 (part, utilisateurs, tendance), décors en progression, catégories, cas d'usage, décors actifs inutilisés |
+| `users` | segments (nouveaux, fidèles, réactivés, perdus), top 20 utilisateurs, top sociétés, alertes quota ≥ 80 % |
 
 ### Réponses erreur — get-analytics
 

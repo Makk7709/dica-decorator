@@ -43,6 +43,10 @@ export interface AnalyticsChartProps {
   className?: string;
   /** Est en chargement */
   isLoading?: boolean;
+  /** Barres d'une seule couleur (séries ordonnées : heures, jours...) */
+  singleColor?: boolean;
+  /** Sous-titre sous le titre */
+  subtitle?: string;
 }
 
 // ============================================================================
@@ -117,7 +121,8 @@ const BarChartComponent: React.FC<{
   data: ChartDataItem[];
   dataKey: string;
   showGrid: boolean;
-}> = ({ data, dataKey, showGrid }) => (
+  singleColor: boolean;
+}> = ({ data, dataKey, showGrid, singleColor }) => (
   <ResponsiveContainer width="100%" height="100%">
     <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
       {showGrid && <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />}
@@ -133,7 +138,7 @@ const BarChartComponent: React.FC<{
       <Tooltip content={<CustomTooltip />} />
       <Bar dataKey={dataKey} radius={[4, 4, 0, 0]}>
         {data.map((_, index) => (
-          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          <Cell key={`cell-${index}`} fill={singleColor ? COLORS[0] : COLORS[index % COLORS.length]} />
         ))}
       </Bar>
     </BarChart>
@@ -182,32 +187,42 @@ export const AnalyticsChart: React.FC<Readonly<AnalyticsChartProps>> = ({
   showGrid = true,
   className,
   isLoading = false,
+  singleColor = false,
+  subtitle,
 }) => {
   if (isLoading) {
     return (
       <div className={cn('rounded-xl border bg-card p-6 shadow-sm', className)}>
         <div className="animate-pulse">
           <div className="h-5 w-32 bg-muted rounded mb-4" />
-          <div className="h-[300px] bg-muted rounded" />
+          <div className="bg-muted rounded" style={{ height }} />
         </div>
       </div>
     );
   }
 
+  const isEmpty = data.length === 0 || data.every((d) => !Number(d[dataKey]));
+
   return (
     <div className={cn('rounded-xl border bg-card p-6 shadow-sm', className)}>
-      <h3 className="font-semibold text-lg mb-4">{title}</h3>
+      <h3 className={cn('font-semibold text-lg', subtitle ? 'mb-0' : 'mb-4')}>{title}</h3>
+      {subtitle && <p className="text-sm text-muted-foreground mb-4">{subtitle}</p>}
       <div style={{ height }}>
-        {type === 'line' && (
+        {isEmpty && (
+          <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+            Aucune donnée sur la période
+          </div>
+        )}
+        {!isEmpty && type === 'line' && (
           <LineChartComponent data={data} dataKey={dataKey} showGrid={showGrid} />
         )}
-        {type === 'bar' && (
-          <BarChartComponent data={data} dataKey={dataKey} showGrid={showGrid} />
+        {!isEmpty && type === 'bar' && (
+          <BarChartComponent data={data} dataKey={dataKey} showGrid={showGrid} singleColor={singleColor} />
         )}
-        {type === 'pie' && (
+        {!isEmpty && type === 'pie' && (
           <PieChartComponent data={data} dataKey={dataKey} showLegend={showLegend} />
         )}
-        {type === 'area' && (
+        {!isEmpty && type === 'area' && (
           <LineChartComponent data={data} dataKey={dataKey} showGrid={showGrid} />
         )}
       </div>
