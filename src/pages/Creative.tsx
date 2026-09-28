@@ -849,7 +849,7 @@ ${exampleRefs}
   };
 
   return (
-    <PremiumLayout backgroundImage="/images/assistant-creatif.webp">
+    <PremiumLayout backgroundImage={creativeBackground.url}>
       <header className="header-premium sticky top-0 z-50">
         <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
