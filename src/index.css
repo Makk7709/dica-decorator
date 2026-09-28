@@ -10,74 +10,81 @@
 
 @layer base {
   :root {
-    /* ─── Core — Light ─── */
-    --background: 220 14% 96.5%;
-    --foreground: 222 22% 11%;
+    /* ─── Core — Jour : papier minéral chaud, encre profonde ─── */
+    --background: 36 14% 94.5%;
+    --foreground: 224 30% 9%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 22% 11%;
+    --card: 40 20% 99.5%;
+    --card-foreground: 224 30% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 22% 11%;
+    --popover-foreground: 224 30% 9%;
 
     /* ─── Brand — DICA Red ─── */
-    --primary: 356 80% 50%;
+    --primary: 356 78% 48%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 356 82% 44%;
+    --primary-hover: 356 80% 42%;
 
-    --secondary: 222 12% 42%;
+    --secondary: 222 12% 40%;
     --secondary-foreground: 0 0% 100%;
 
     /* ─── Neutrals ─── */
-    --muted: 220 14% 93%;
-    --muted-foreground: 220 9% 44%;
+    --muted: 36 12% 90%;
+    --muted-foreground: 224 10% 36%;
 
-    --accent: 220 14% 94%;
-    --accent-foreground: 222 22% 11%;
+    --accent: 36 12% 91%;
+    --accent-foreground: 224 30% 9%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 87%;
-    --input: 220 13% 85%;
-    --ring: 356 80% 50%;
+    --border: 32 10% 82%;
+    --input: 32 10% 80%;
+    --ring: 356 78% 48%;
 
     --radius: 0.25rem;
     --chamfer: 10px;
 
     /* ─── Ink — surface « commande » (CTA, bulles utilisateur) ─── */
-    --ink: 222 24% 10%;
-    --ink-2: 222 20% 15%;
-    --ink-foreground: 220 14% 95%;
+    --ink: 224 30% 9%;
+    --ink-2: 224 24% 15%;
+    --ink-foreground: 36 20% 96%;
+
+    /* ─── Verre ─── */
+    --glass-bg: 40 25% 99%;
+    --glass-alpha: 0.7;
+    --glass-edge: 0 0% 100% / 0.75;
+    --glass-outline: 224 30% 9% / 0.07;
+    --glass-highlight: 0 0% 100% / 0.9;
 
     /* ─── Sidebar ─── */
-    --sidebar-background: 222 24% 9%;
+    --sidebar-background: 224 28% 9%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 356 80% 50%;
+    --sidebar-primary: 356 78% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 20% 15%;
+    --sidebar-accent: 224 20% 15%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 222 18% 17%;
-    --sidebar-ring: 356 80% 50%;
+    --sidebar-border: 224 18% 17%;
+    --sidebar-ring: 356 78% 48%;
 
     /* ─── Extended ─── */
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 220 16% 94%;
+    --surface-sunken: 36 12% 91%;
 
-    --success: 152 60% 36%;
+    --success: 152 58% 32%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 36 90% 46%;
     --warning-foreground: 0 0% 100%;
 
-    /* ─── Shadows — discrètes ─── */
-    --shadow-xs: 0 1px 2px hsl(222 30% 10% / 0.04);
-    --shadow-sm: 0 1px 2px hsl(222 30% 10% / 0.05);
-    --shadow-md: 0 4px 14px -6px hsl(222 30% 10% / 0.12);
-    --shadow-lg: 0 12px 32px -12px hsl(222 30% 10% / 0.18);
-    --shadow-xl: 0 24px 56px -20px hsl(222 30% 10% / 0.24);
-    --shadow-card: 0 1px 2px hsl(222 30% 10% / 0.04);
-    --shadow-card-hover: 0 10px 30px -14px hsl(222 30% 10% / 0.18);
-    --shadow-float: 0 18px 48px -18px hsl(222 30% 10% / 0.22);
+    /* ─── Ombres : définies mais douces ─── */
+    --shadow-xs: 0 1px 2px hsl(224 30% 9% / 0.05);
+    --shadow-sm: 0 1px 2px hsl(224 30% 9% / 0.06), 0 1px 1px hsl(224 30% 9% / 0.03);
+    --shadow-md: 0 1px 2px hsl(224 30% 9% / 0.05), 0 8px 24px -12px hsl(224 30% 9% / 0.16);
+    --shadow-lg: 0 2px 4px hsl(224 30% 9% / 0.04), 0 18px 40px -16px hsl(224 30% 9% / 0.22);
+    --shadow-xl: 0 30px 70px -24px hsl(224 30% 9% / 0.3);
+    --shadow-card: 0 1px 2px hsl(224 30% 9% / 0.05), 0 6px 18px -10px hsl(224 30% 9% / 0.12);
+    --shadow-card-hover: 0 2px 4px hsl(224 30% 9% / 0.05), 0 18px 40px -18px hsl(224 30% 9% / 0.26);
+    --shadow-float: 0 24px 56px -20px hsl(224 30% 9% / 0.28);
     --shadow-glow: 0 0 0 1px hsl(var(--primary) / 0.25);
 
     /* ─── Transitions ─── */
@@ -88,56 +95,63 @@
     --transition-slow: 450ms var(--ease-out);
 
     /* ─── Stratifié ─── */
-    --stratifie-light: 220 14% 95%;
-    --stratifie-medium: 220 12% 90%;
-    --stratifie-warm: 220 10% 93%;
-    --stratifie-dark: 220 8% 80%;
-    --stratifie-edge: 220 10% 70%;
+    --stratifie-light: 36 14% 94%;
+    --stratifie-medium: 36 10% 89%;
+    --stratifie-warm: 36 12% 92%;
+    --stratifie-dark: 36 6% 78%;
+    --stratifie-edge: 36 6% 68%;
   }
 
   .dark {
-    --background: 220 22% 6%;
-    --foreground: 200 10% 94%;
-    --card: 220 20% 9.5%;
-    --card-foreground: 200 10% 94%;
-    --popover: 220 20% 10%;
-    --popover-foreground: 200 10% 94%;
-    --primary: 356 76% 53%;
+    /* ─── Nuit : graphite feutré, ivoire chaud, rouge profond ─── */
+    --background: 30 4% 7%;
+    --foreground: 38 14% 90%;
+    --card: 30 4% 10%;
+    --card-foreground: 38 14% 90%;
+    --popover: 30 4% 11%;
+    --popover-foreground: 38 14% 90%;
+    --primary: 356 66% 52%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 356 80% 60%;
-    --secondary: 220 16% 20%;
-    --secondary-foreground: 200 10% 92%;
-    --muted: 220 16% 13%;
-    --muted-foreground: 210 8% 66%;
-    --accent: 220 16% 14%;
-    --accent-foreground: 200 10% 92%;
-    --destructive: 0 72% 52%;
+    --primary-hover: 356 70% 58%;
+    --secondary: 30 4% 18%;
+    --secondary-foreground: 38 14% 88%;
+    --muted: 30 4% 13%;
+    --muted-foreground: 36 6% 60%;
+    --accent: 30 4% 14%;
+    --accent-foreground: 38 14% 88%;
+    --destructive: 0 62% 52%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 18%;
-    --input: 220 13% 20%;
-    --ring: 356 76% 53%;
-    --surface-elevated: 220 20% 11%;
-    --surface-sunken: 220 26% 4%;
+    --border: 30 4% 16%;
+    --input: 30 4% 19%;
+    --ring: 356 66% 52%;
+    --surface-elevated: 30 4% 11%;
+    --surface-sunken: 30 5% 5%;
 
-    --ink: 220 20% 11%;
-    --ink-2: 220 18% 15%;
-    --ink-foreground: 200 10% 95%;
+    --ink: 30 5% 12%;
+    --ink-2: 30 4% 17%;
+    --ink-foreground: 38 16% 93%;
 
-    --shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.3);
-    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.35);
-    --shadow-md: 0 6px 16px -6px hsl(0 0% 0% / 0.5);
-    --shadow-lg: 0 14px 36px -12px hsl(0 0% 0% / 0.6);
-    --shadow-xl: 0 26px 60px -20px hsl(0 0% 0% / 0.7);
-    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.3);
-    --shadow-card-hover: 0 14px 36px -14px hsl(0 0% 0% / 0.6);
-    --shadow-float: 0 20px 50px -18px hsl(0 0% 0% / 0.7);
+    --glass-bg: 30 5% 11%;
+    --glass-alpha: 0.62;
+    --glass-edge: 38 20% 100% / 0.08;
+    --glass-outline: 0 0% 0% / 0.4;
+    --glass-highlight: 38 30% 100% / 0.07;
+
+    --shadow-xs: 0 1px 2px hsl(0 0% 0% / 0.35);
+    --shadow-sm: 0 1px 2px hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 10px 28px -12px hsl(0 0% 0% / 0.6);
+    --shadow-lg: 0 20px 44px -16px hsl(0 0% 0% / 0.7);
+    --shadow-xl: 0 32px 72px -24px hsl(0 0% 0% / 0.75);
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.35), 0 10px 26px -14px hsl(0 0% 0% / 0.55);
+    --shadow-card-hover: 0 22px 48px -20px hsl(0 0% 0% / 0.75);
+    --shadow-float: 0 26px 60px -20px hsl(0 0% 0% / 0.75);
     --shadow-glow: 0 0 0 1px hsl(var(--primary) / 0.35);
 
-    --stratifie-light: 220 18% 9%;
-    --stratifie-medium: 220 16% 12%;
-    --stratifie-warm: 220 14% 10%;
-    --stratifie-dark: 220 12% 15%;
-    --stratifie-edge: 220 14% 17%;
+    --stratifie-light: 30 4% 9%;
+    --stratifie-medium: 30 4% 12%;
+    --stratifie-warm: 30 4% 10%;
+    --stratifie-dark: 30 4% 15%;
+    --stratifie-edge: 30 4% 17%;
   }
 }
 
@@ -154,6 +168,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    accent-color: hsl(var(--primary));
   }
 
   body {
@@ -276,9 +291,15 @@
   .card-premium {
     position: relative;
     border-radius: 2px !important;
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: var(--shadow-card);
+    background:
+      linear-gradient(180deg, hsl(var(--glass-bg) / calc(var(--glass-alpha) + 0.12)) 0%, hsl(var(--glass-bg) / var(--glass-alpha)) 100%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid hsl(var(--glass-edge));
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glass-highlight)),
+      0 0 0 1px hsl(var(--glass-outline)),
+      var(--shadow-card);
     transition:
       border-color var(--transition-base),
       box-shadow var(--transition-smooth);
@@ -309,8 +330,10 @@
   }
 
   .card-premium:hover {
-    border-color: hsl(var(--foreground) / 0.16);
-    box-shadow: var(--shadow-card-hover);
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glass-highlight)),
+      0 0 0 1px hsl(var(--foreground) / 0.14),
+      var(--shadow-card-hover);
   }
 
   .card-premium:hover::before,
@@ -320,10 +343,54 @@
 
   /* ─── En-tête ─── */
   .header-premium {
-    background: hsl(var(--background) / 0.82);
-    border-bottom: 1px solid hsl(var(--border) / 0.8);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    backdrop-filter: blur(16px) saturate(140%);
+    background: hsl(var(--glass-bg) / calc(var(--glass-alpha) - 0.05));
+    border-bottom: 1px solid hsl(var(--glass-outline));
+    box-shadow: inset 0 -1px 0 hsl(var(--glass-highlight));
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    backdrop-filter: blur(24px) saturate(170%);
+  }
+
+  /* ─── Fond photographique : image nette, voile dégradé selon le thème ─── */
+  .scenic-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .scenic-backdrop-image {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center 25%;
+    background-repeat: no-repeat;
+  }
+
+  .scenic-backdrop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg,
+        hsl(var(--background) / 0.05) 0%,
+        hsl(var(--background) / 0.35) 38%,
+        hsl(var(--background) / 0.8) 78%,
+        hsl(var(--background) / 0.94) 100%);
+  }
+
+  .dark .scenic-backdrop-image {
+    filter: brightness(0.5) contrast(1.12) saturate(0.8) sepia(0.12);
+  }
+
+  .dark .scenic-backdrop::after {
+    background:
+      radial-gradient(ellipse 120% 80% at 50% 10%, transparent 30%, hsl(var(--background) / 0.55) 100%),
+      linear-gradient(180deg,
+        hsl(var(--background) / 0.1) 0%,
+        hsl(var(--background) / 0.5) 42%,
+        hsl(var(--background) / 0.88) 80%,
+        hsl(var(--background) / 0.96) 100%);
   }
 
   /* ─── CTA « commande » : corps encre, liseré rouge, bloc flèche ─── */
@@ -418,8 +485,11 @@
 
   .bubble-assistant {
     color: hsl(var(--foreground));
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
+    background: hsl(var(--glass-bg) / calc(var(--glass-alpha) + 0.15));
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid hsl(var(--glass-edge));
+    box-shadow: inset 0 1px 0 hsl(var(--glass-highlight)), 0 0 0 1px hsl(var(--glass-outline));
   }
 
   .bubble-assistant::before {
@@ -463,16 +533,15 @@
   .glass,
   .liquid-glass {
     position: relative;
-    background: hsl(var(--card) / 0.86);
-    -webkit-backdrop-filter: blur(14px) saturate(130%);
-    backdrop-filter: blur(14px) saturate(130%);
-    border: 1px solid hsl(var(--border) / 0.9);
-    box-shadow: var(--shadow-md);
-  }
-
-  .dark .glass,
-  .dark .liquid-glass {
-    background: hsl(var(--card) / 0.78);
+    background:
+      linear-gradient(180deg, hsl(var(--glass-bg) / calc(var(--glass-alpha) + 0.1)) 0%, hsl(var(--glass-bg) / var(--glass-alpha)) 100%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    backdrop-filter: blur(22px) saturate(170%);
+    border: 1px solid hsl(var(--glass-edge));
+    box-shadow:
+      inset 0 1px 0 hsl(var(--glass-highlight)),
+      0 0 0 1px hsl(var(--glass-outline)),
+      var(--shadow-md);
   }
 
   /* Anciennes variantes « glass » des boutons : alignées sur la nouvelle grammaire */

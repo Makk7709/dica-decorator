@@ -22,14 +22,12 @@ export function PremiumLayout({
     <div className={cn("min-h-screen bg-stratifie relative", className)}>
       {/* Background image optionnel */}
       {backgroundImage && (
-        <div 
-          className="fixed inset-0 bg-cover bg-no-repeat z-0 opacity-50"
-          style={{ 
-            backgroundImage: `url('${backgroundImage}')`,
-            backgroundPosition: 'center 30px'
-          }}
-          aria-hidden="true"
-        />
+        <div className="scenic-backdrop" aria-hidden="true">
+          <div
+            className="scenic-backdrop-image"
+            style={{ backgroundImage: `url('${backgroundImage}')` }}
+          />
+        </div>
       )}
       
       {/* Plaques de stratifié décoratives */}

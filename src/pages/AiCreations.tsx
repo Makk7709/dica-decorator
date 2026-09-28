@@ -76,7 +76,7 @@ export default function AiCreations() {
   };
 
   return (
-    <PremiumLayout backgroundImage="/images/assistant-creatif.png" showPlates={false}>
+    <PremiumLayout backgroundImage="/images/assistant-creatif.webp" showPlates={false}>
       <header className="header-premium sticky top-0 z-50 border-b">
         <ContentContainer className="flex h-16 md:h-20 items-center justify-between">
           <div className="flex items-center gap-3">

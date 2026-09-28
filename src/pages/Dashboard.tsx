@@ -209,7 +209,7 @@ const Dashboard = () => {
   };
 
   return (
-    <PremiumLayout backgroundImage="/images/page-projets.png">
+    <PremiumLayout backgroundImage="/images/page-projets.webp">
       {/* Header */}
       <motion.header 
         className="header-premium sticky top-0 z-50"
@@ -292,16 +292,16 @@ const Dashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => navigate("/mon-cobranding")}
-                  className="hidden sm:flex items-center gap-2 text-primary hover:text-primary hover:bg-primary/5 rounded-xl"
+                  className="hidden sm:flex items-center gap-2 text-muted-foreground hover:text-foreground"
                 >
                   <Building2 className="h-4 w-4" />
-                  <span className="hidden md:inline font-medium">Co-branding</span>
+                  <span className="hidden md:inline">Co-branding</span>
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate("/mon-cobranding")}
-                  className="sm:hidden text-primary rounded-xl"
+                  className="sm:hidden text-muted-foreground hover:text-foreground"
                   title="Mon co-branding"
                 >
                   <Building2 className="h-5 w-5" />
@@ -397,22 +397,31 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            onClick={() => navigate("/mon-cobranding")}
           >
-            <div className="card-premium p-6 cursor-pointer group flex items-center gap-5 border-l-4 border-primary/60 hover:border-primary transition-all">
-              <div className="w-14 h-14 rounded-2xl bg-primary/8 flex items-center justify-center group-hover:bg-primary/12 transition-colors">
-                <Building2 className="h-7 w-7 text-primary" />
+            <button
+              type="button"
+              onClick={() => navigate("/mon-cobranding")}
+              className="card-premium group w-full text-left px-6 py-5 sm:px-7 flex flex-col sm:flex-row sm:items-center gap-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            >
+              <div className="brackets flex h-12 w-12 shrink-0 items-center justify-center border border-foreground/10 bg-background/40">
+                <Building2 className="h-5 w-5 text-foreground/80 transition-colors group-hover:text-primary" strokeWidth={1.5} />
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">
-                  Mon Co-branding
+              <div className="flex-1 min-w-0 space-y-1">
+                <p className="eyebrow">
+                  Espace revendeur <span className="text-primary">/</span> <span className="text-foreground/80">Co-branding</span>
+                </p>
+                <h3 className="font-display text-lg font-semibold tracking-tight">
+                  Vos supports, à votre image
                 </h3>
                 <p className="text-sm text-muted-foreground line-clamp-2">
-                  Personnalisez vos plaquettes et magazines DECO avec votre logo et vos coordonnées.
+                  Ajoutez votre logo et vos coordonnées aux plaquettes et magazines DECO.
                 </p>
               </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
-            </div>
+              <span className="inline-flex shrink-0 items-center gap-2 self-start border-b border-foreground/20 pb-1 font-mono text-[11px] uppercase tracking-[0.14em] text-foreground/80 transition-colors group-hover:border-primary group-hover:text-primary sm:self-center">
+                Personnaliser
+                <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </button>
           </motion.div>
         )}
 
