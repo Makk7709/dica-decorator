@@ -190,14 +190,28 @@ export function VoiceAssistant({ onTranscript, onCompose }: Props) {
   return (
     <>
       {state === "live" ? (
-        <Button type="button" variant="destructive" onClick={stop} title="Raccrocher">
-          <PhoneOff className="h-4 w-4 mr-2" /> Raccrocher
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          onClick={stop}
+          title="Raccrocher"
+          aria-label="Raccrocher"
+          className="h-9 gap-2 px-3"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+          </span>
+          <PhoneOff className="h-4 w-4" />
+          <span className="hidden sm:inline">Raccrocher</span>
         </Button>
       ) : (
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="icon"
+          className="h-9 w-9 text-muted-foreground hover:text-foreground"
           onClick={() => setConfirmOpen(true)}
           disabled={state === "connecting"}
           title="Parler à l'assistant"

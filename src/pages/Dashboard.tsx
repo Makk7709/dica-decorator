@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WelcomeModal, WhatsNewDialog, useOnboarding, useWhatsNew } from "@/components/onboarding";
-import { Plus, LogOut, Settings, FolderOpen, Wand2, BookOpen, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart, Building2, MoreHorizontal, Moon, Sun } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen, MessagesSquare, Images, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart, Building2, MoreHorizontal, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -240,60 +240,39 @@ const Dashboard = () => {
           {/* Actions */}
           <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
               onClick={() => navigate("/creative")}
-              className="hidden sm:flex items-center gap-2 text-primary hover:text-primary hover:bg-primary/5 rounded-xl"
+              className="h-9 gap-2 px-2.5 sm:px-3"
+              aria-label="Studio créatif"
+              title="Studio créatif"
             >
-              <Wand2 className="h-4 w-4" />
-              <span className="hidden md:inline font-medium">Assistant Créatif</span>
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/creative")}
-              className="sm:hidden text-primary rounded-xl"
-            >
-              <Wand2 className="h-5 w-5" />
+              <MessagesSquare className="h-4 w-4" />
+              <span className="hidden md:inline font-medium">Studio créatif</span>
             </Button>
 
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/ai-creations")}
-              className="hidden sm:flex items-center gap-2 text-primary hover:text-primary hover:bg-primary/5 rounded-xl"
+              className="h-9 gap-2 px-2.5 text-muted-foreground hover:text-foreground sm:px-3"
+              aria-label="Mes créations"
+              title="Mes créations"
             >
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden md:inline font-medium">Créations IA</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/ai-creations")}
-              className="sm:hidden text-primary rounded-xl"
-            >
-              <BookOpen className="h-5 w-5" />
+              <Images className="h-4 w-4" />
+              <span className="hidden lg:inline">Créations</span>
             </Button>
 
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/favorites")}
-              className="hidden sm:flex items-center gap-2 text-primary hover:text-primary hover:bg-primary/5 rounded-xl"
+              className="h-9 gap-2 px-2.5 text-muted-foreground hover:text-foreground sm:px-3"
+              aria-label="Favoris"
+              title="Favoris"
             >
-              <Heart className="h-4 w-4 fill-current" />
-              <span className="hidden md:inline font-medium">Favoris</span>
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/favorites")}
-              className="sm:hidden text-primary rounded-xl"
-            >
-              <Heart className="h-5 w-5 fill-current" />
+              <Heart className="h-4 w-4" />
+              <span className="hidden lg:inline">Favoris</span>
             </Button>
 
             {coBrandingEnabled && (

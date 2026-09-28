@@ -48,7 +48,7 @@ const FEATURES: Feature[] = [
   },
   {
     icon: Image,
-    title: 'Assistant Créatif',
+    title: 'Studio créatif',
     description: 'Créez des mood boards, combinez plusieurs images et laissez l\'IA imaginer.',
   },
   {

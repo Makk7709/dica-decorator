@@ -1,5 +1,5 @@
 /**
- * @fileoverview Page dédiée aux créations IA générées via l'Assistant Créatif.
+ * @fileoverview Page dédiée aux créations IA générées via le Studio créatif.
  * Galerie globale (table ai_creations) avec zoom, export et suppression.
  */
 
@@ -92,7 +92,7 @@ export default function AiCreations() {
                   Mes Créations IA
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  Générées par l'Assistant Créatif
+                  Générées par le Studio créatif
                 </p>
               </div>
             </div>
@@ -119,12 +119,12 @@ export default function AiCreations() {
             </div>
             <h2 className="text-xl font-semibold mb-2">Aucune création pour le moment</h2>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Lancez votre première génération depuis l'Assistant Créatif. Toutes vos images
+              Lancez votre première génération depuis le Studio créatif. Toutes vos images
               y seront automatiquement enregistrées.
             </p>
             <Button onClick={() => navigate("/creative")} className="gap-2">
               <Wand2 className="h-4 w-4" />
-              Ouvrir l'Assistant Créatif
+              Ouvrir le Studio créatif
             </Button>
           </div>
         ) : (

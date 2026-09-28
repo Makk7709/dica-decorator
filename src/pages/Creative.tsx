@@ -6,10 +6,13 @@ import { safeImageFileName, UploadValidationError } from "@/lib/safe-upload";
 import { Button } from "@/components/ui/button";
 
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, Wand2, Loader2, Heart, Star, FolderPlus, ImagePlus, X, Home, Maximize2 } from "lucide-react";
+import { ArrowLeft, Loader2, Heart, FolderPlus, X, Maximize2, History, SquarePen, Images, Cloud, CloudOff } from "lucide-react";
 import { toast } from "sonner";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PremiumLayout, ContentContainer } from "@/components/ui/premium-layout";
@@ -17,25 +20,17 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ImageExportDropdown } from "@/components/ui/image-export-dropdown";
 import { SafeImage } from "@/components/ui/safe-image";
 import { VoiceAssistant, type ComposeResult } from "@/components/creative/VoiceAssistant";
+import { ChatComposer, MAX_ATTACHMENTS, type ComposerAttachment } from "@/components/creative/ChatComposer";
+import { ChatMessageItem, AssistantTyping } from "@/components/creative/ChatMessageItem";
+import { ChatEmptyState } from "@/components/creative/ChatEmptyState";
+import { ConversationHistory } from "@/components/creative/ConversationHistory";
+import { useCreativeConversation, type ChatMessage } from "@/hooks/use-creative-conversation";
 
-interface DecorReference {
-  reference: string;
-  label: string;
-}
+type Message = ChatMessage;
+type UploadedImage = ComposerAttachment;
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  imageUrl?: string;
-  sourceImageUrls?: string[];  // Support multiple images
-  sourceImageUrl?: string;     // Keep for backward compat
-  decorReferences?: DecorReference[];  // References des décors DICA utilisés
-}
-
-interface UploadedImage {
-  url: string;
-  label: string;
-}
+/** Historique transmis au serveur (le serveur refuse au-delà de 60 messages). */
+const MAX_HISTORY_SENT = 40;
 
 interface Decor {
   id: string;
@@ -64,12 +59,19 @@ interface Project {
 const Creative = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Bonjour ! Je suis votre assistant créatif DICA. Je peux vous aider à créer des mood boards, des plaquettes de présentation, et visualiser vos décors de manière créative. Que souhaitez-vous imaginer aujourd'hui ?"
-    }
-  ]);
+  const {
+    messages,
+    setMessages,
+    conversationId,
+    conversations,
+    isRestoring,
+    syncState,
+    startNew,
+    openConversation,
+    deleteConversation,
+  } = useCreativeConversation(user?.id);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [decors, setDecors] = useState<Decor[]>([]);
@@ -88,12 +90,12 @@ const Creative = () => {
   const [isSavingToProject, setIsSavingToProject] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [currentImageLabel, setCurrentImageLabel] = useState<string>("");
   const [showReferences, setShowReferences] = useState<boolean>(true); // Afficher les références DICA
   const [zoomedImage, setZoomedImage] = useState<string | null>(null); // Image en plein écran
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const threadRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+  const lastScrollTopRef = useRef(0);
 
   useEffect(() => {
     if (!user) {
@@ -106,9 +108,36 @@ const Creative = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
 
+  const hasThread = messages.length > 0 || isLoading;
+
+  // Nouveau message ou conversation rouverte : on revient en bas.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    stickToBottomRef.current = true;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length, isRestoring, conversationId]);
+
+  // Texte en streaming, images qui finissent de charger : on reste collé en bas tant que l'utilisateur n'a pas remonté.
+  useEffect(() => {
+    const el = scrollRef.current;
+    const thread = threadRef.current;
+    if (!el || !thread || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      if (stickToBottomRef.current) el.scrollTop = el.scrollHeight;
+    });
+    observer.observe(thread);
+    return () => observer.disconnect();
+  }, [isRestoring, hasThread]);
+
+  // Seul un défilement vers le haut détache le fil : le contenu qui grandit (image chargée) ne doit pas le faire.
+  const handleThreadScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (nearBottom) stickToBottomRef.current = true;
+    else if (el.scrollTop < lastScrollTopRef.current) stickToBottomRef.current = false;
+    lastScrollTopRef.current = el.scrollTop;
+  };
 
   const loadFavorites = async () => {
     if (!user) return;
@@ -335,8 +364,8 @@ ${exampleRefs}
       return;
     }
 
-    if (uploadedImages.length >= 5) {
-      toast.error("Maximum 5 images par génération");
+    if (uploadedImages.length >= MAX_ATTACHMENTS) {
+      toast.error(`Maximum ${MAX_ATTACHMENTS} photos par génération`);
       return;
     }
 
@@ -353,24 +382,23 @@ ${exampleRefs}
         .from("project-photos")
         .getPublicUrl(`${user.id}/${fileName}`);
 
-      // Add image with label
-      const label = currentImageLabel.trim() || `Image ${uploadedImages.length + 1}`;
+      const label = file.name.replace(/\.[^.]+$/, "").slice(0, 40) || `Photo ${uploadedImages.length + 1}`;
       setUploadedImages(prev => [...prev, { url: publicUrl, label }]);
-      setCurrentImageLabel("");
-      toast.success(`${label} uploadée`);
     } catch (error: unknown) {
       console.error("Error uploading image:", error);
       toast.error(error instanceof UploadValidationError ? error.message : "Erreur lors de l'upload");
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      e.target.value = '';
     }
   };
 
   const removeUploadedImage = (index: number) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const renameUploadedImage = (index: number, label: string) => {
+    setUploadedImages(prev => prev.map((img, i) => (i === index ? { ...img, label } : img)));
   };
 
   const streamChat = async (
@@ -398,7 +426,9 @@ ${exampleRefs}
         Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ 
-        messages: [...messages, { role: "user", content: userMessage }],
+        messages: [...messages, { role: "user", content: userMessage } as Message]
+          .slice(-MAX_HISTORY_SENT)
+          .map(({ role, content, sourceImageUrls }) => ({ role, content, sourceImageUrls })),
         decorContext,
         sourceImageUrls,  // Array of image URLs
         imageLabels,      // Array of labels for each image
@@ -434,10 +464,13 @@ ${exampleRefs}
             decorReferences: data.decorReferences || [],
           },
         ]);
-        // Auto-save to AI creations gallery (fire-and-forget)
-        autoSaveCreation(data.imageUrl, userMessage).catch((e) =>
-          console.error("Auto-save AI creation failed:", e)
-        );
+        // Enregistre le visuel dans la galerie, puis remplace le base64 par l'URL de stockage
+        // pour que la conversation puisse être sauvegardée.
+        void autoSaveCreation(data.imageUrl, userMessage).then((storedUrl) => {
+          if (storedUrl && storedUrl !== data.imageUrl) {
+            setMessages((prev) => prev.map((m) => (m.imageUrl === data.imageUrl ? { ...m, imageUrl: storedUrl } : m)));
+          }
+        });
         return data.imageUrl ? "image" : "text";
       }
 
@@ -546,17 +579,18 @@ ${exampleRefs}
       console.error("Error:", error);
       const message = error instanceof Error ? error.message : "Erreur lors de la communication avec l'IA";
       toast.error(message);
-      // Remove the empty assistant message on error
-      setMessages(prev => prev.slice(0, -1));
+      // Retire le message envoyé (et la réponse vide éventuelle) et le remet dans le champ pour réessayer.
+      setMessages(prev => {
+        const next = [...prev];
+        const last = next[next.length - 1];
+        if (last?.role === "assistant" && !last.content && !last.imageUrl) next.pop();
+        if (next[next.length - 1]?.role === "user" && next[next.length - 1]?.content === userMessage) next.pop();
+        return next;
+      });
+      setInput(userMessage);
+      setUploadedImages(sourceImages);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
     }
   };
 
@@ -564,8 +598,8 @@ ${exampleRefs}
   // qui supporte PNG, JPEG et WebP avec choix du format
 
   // Auto-save AI creation to dedicated gallery (table ai_creations)
-  const autoSaveCreation = async (imageUrl: string, promptText: string) => {
-    if (!user || !imageUrl) return;
+  const autoSaveCreation = async (imageUrl: string, promptText: string): Promise<string | null> => {
+    if (!user || !imageUrl) return null;
     try {
       let storedUrl = imageUrl;
       if (imageUrl.startsWith("data:image")) {
@@ -590,9 +624,10 @@ ${exampleRefs}
         prompt: promptText.slice(0, 2000),
       });
       if (error) throw error;
-      console.log("AI creation auto-saved to gallery");
+      return storedUrl;
     } catch (err) {
       console.error("autoSaveCreation error:", err);
+      return null;
     }
   };
 
@@ -759,515 +794,280 @@ ${exampleRefs}
     }
   };
 
+  const lastMessage = messages[messages.length - 1];
+  const isStreamingText = isLoading && lastMessage?.role === "assistant" && !!lastMessage.content;
+  const visibleMessages = messages.filter((m) => m.role === "user" || m.content || m.imageUrl);
+  const activeTitle = conversations.find((c) => c.id === conversationId)?.title;
+
+  const catalogStatus = isDecorsLoading ? (
+    <span className="inline-flex items-center gap-1.5 font-mono text-[10.5px] text-muted-foreground">
+      <Loader2 className="h-3 w-3 animate-spin" /> Catalogue…
+    </span>
+  ) : decorsLoadError ? (
+    <button
+      type="button"
+      onClick={loadDecors}
+      className="inline-flex items-center gap-1.5 font-mono text-[10.5px] text-destructive hover:underline"
+      title={decorsLoadError}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-destructive" /> Catalogue indisponible · réessayer
+    </button>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 font-mono text-[10.5px] text-muted-foreground">
+      <span className="h-1.5 w-1.5 rounded-full bg-success" /> {decors.length} décors
+    </span>
+  );
+
+  const syncLabel = {
+    idle: null,
+    saving: { icon: Loader2, text: "Enregistrement…", spin: true },
+    saved: { icon: Cloud, text: "Enregistré", spin: false },
+    offline: { icon: CloudOff, text: "Hors ligne · copie locale", spin: false },
+  }[syncState];
+
+  const handleNewConversation = () => {
+    if (isLoading) return;
+    startNew();
+    setInput("");
+    setUploadedImages([]);
+    setHistoryOpen(false);
+  };
+
+  const handleOpenConversation = async (id: string) => {
+    if (isLoading) return;
+    setHistoryOpen(false);
+    const ok = await openConversation(id);
+    if (!ok) toast.error("Impossible d'ouvrir cette conversation");
+  };
+
+  const confirmDeleteConversation = async () => {
+    if (!pendingDeleteId) return;
+    const ok = await deleteConversation(pendingDeleteId);
+    setPendingDeleteId(null);
+    toast[ok ? "success" : "error"](ok ? "Conversation supprimée" : "Suppression impossible");
+  };
+
   return (
     <PremiumLayout backgroundImage="/images/assistant-creatif.webp">
-      {/* Header Premium */}
       <header className="header-premium sticky top-0 z-50">
-        <div className="container mx-auto flex h-16 md:h-20 items-center justify-between px-4 sm:px-6">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate("/dashboard")} 
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Retour</span>
-          </Button>
-          
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Wand2 className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+        <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label="Retour au tableau de bord"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-0">
+              <p className="eyebrow leading-none">Studio créatif</p>
+              <h1 className="mt-1 truncate font-display text-base font-semibold leading-tight text-foreground sm:text-lg">
+                {activeTitle ?? (messages.length > 0 ? "Conversation en cours" : "Nouvelle conversation")}
+              </h1>
             </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">Assistant Créatif</h1>
-              <p className="text-xs text-muted-foreground">Powered by DICA AI</p>
-            </div>
+            {syncLabel && (
+              <span
+                className="hidden shrink-0 items-center gap-1.5 font-mono text-[10.5px] text-muted-foreground md:inline-flex"
+                aria-live="polite"
+              >
+                <syncLabel.icon className={`h-3 w-3 ${syncLabel.spin ? "animate-spin" : ""}`} />
+                {syncLabel.text}
+              </span>
+            )}
           </div>
-          
-          <div className="flex items-center gap-1">
+
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setHistoryOpen(true)}
+              className="text-muted-foreground hover:text-foreground"
+              title="Historique des conversations"
+            >
+              <History className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Historique</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNewConversation}
+              disabled={isLoading}
+              className="text-muted-foreground hover:text-foreground"
+              title="Nouvelle conversation"
+            >
+              <SquarePen className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Nouvelle</span>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/ai-creations")}
-              className="text-primary hover:text-primary hover:bg-primary/5"
+              className="text-muted-foreground hover:text-foreground"
+              title="Mes créations"
             >
-              <ImagePlus className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Mes créations</span>
+              <Images className="h-4 w-4 lg:mr-2" />
+              <span className="hidden lg:inline">Mes créations</span>
             </Button>
             <ThemeToggle className="text-muted-foreground" />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate("/dashboard")}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Home className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Accueil</span>
-            </Button>
           </div>
         </div>
       </header>
 
-      <ContentContainer className="max-w-4xl pb-20">
+      <ConversationHistory
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        conversations={conversations}
+        activeId={conversationId}
+        onSelect={handleOpenConversation}
+        onNew={handleNewConversation}
+        onDelete={setPendingDeleteId}
+      />
+
+      <ContentContainer className="max-w-4xl py-4 pb-8 md:py-6">
         <Tabs defaultValue="chat" className="w-full">
-          {/* Tabs Navigation Premium */}
-          <div className="flex justify-center mb-8">
-            <TabsList className="h-12 p-1 bg-muted/50 backdrop-blur-sm rounded-xl">
-              <TabsTrigger 
-                value="chat" 
-                className="h-10 px-6 rounded-lg text-foreground data-[state=active]:bg-card data-[state=active]:shadow-sm"
+          <TabsList className="mb-4">
+            <TabsTrigger value="chat">Studio</TabsTrigger>
+            <TabsTrigger value="favorites">
+              Favoris
+              <span className="ml-2 font-mono text-[10.5px] text-muted-foreground">{favorites.length}</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="chat" className="mt-0">
+            <div className="card-premium flex h-[calc(100dvh-10.5rem)] min-h-[460px] flex-col md:h-[calc(100dvh-12rem)]">
+              <div
+                ref={scrollRef}
+                onScroll={handleThreadScroll}
+                className="scrollbar-minimal min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6"
               >
-                <Wand2 className="mr-2 h-4 w-4" />
-                Nouvelle création
-              </TabsTrigger>
-              <TabsTrigger 
-                value="favorites" 
-                className="h-10 px-6 rounded-lg text-foreground data-[state=active]:bg-card data-[state=active]:shadow-sm"
-              >
-                <Heart className="mr-2 h-4 w-4" />
-                Favoris ({favorites.length})
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="chat" className="animate-fade-in">
-            <div className="card-premium p-6 md:p-8">
-              {/* Header */}
-              <div className="mb-6 pb-6 border-b border-border/50">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-                    <Wand2 className="h-6 w-6 text-primary" />
+                {isRestoring ? (
+                  <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Chargement de la conversation…
                   </div>
-                  <div>
-                    <h2 className="text-xl font-semibold mb-1">Studio Créatif DICA</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Créez des mood boards, plaquettes et visualisations avec vos décors
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Catalogue status */}
-              <div className="mb-6">
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/60 px-4 py-3">
-                  {(() => {
-                    let catalogStatusNode: React.ReactNode;
-                    if (isDecorsLoading) {
-                      catalogStatusNode = (
-                        <span className="inline-flex items-center gap-2 text-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Chargement…
-                        </span>
-                      );
-                    } else if (decorsLoadError) {
-                      catalogStatusNode = <span className="text-destructive">Indisponible</span>;
-                    } else {
-                      catalogStatusNode = <span className="text-foreground">{decors.length} disponibles</span>;
-                    }
-                    return (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Catalogue décors :</span>{" "}
-                    {catalogStatusNode}
-                    {decorsLoadError ? (
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {decorsLoadError}
-                      </div>
-                    ) : null}
-                  </div>
-                    );
-                  })()}
-
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={loadDecors}
-                    disabled={isDecorsLoading}
-                  >
-                    Recharger
-                  </Button>
-                </div>
-              </div>
-
-              {/* Chat Area */}
-              <div className="space-y-6">
-                <ScrollArea className="h-[450px] pr-4 scrollbar-minimal">
-                    <div className="space-y-4">
-                      {messages.map((message, index) => (
-                        <div
+                ) : visibleMessages.length === 0 && !isLoading ? (
+                  <ChatEmptyState
+                    onPick={setInput}
+                    recent={conversations}
+                    onOpenConversation={handleOpenConversation}
+                  />
+                ) : (
+                  <div ref={threadRef} className="space-y-6">
+                    {messages.map((message, index) =>
+                      message.role === "assistant" && !message.content && !message.imageUrl ? null : (
+                        <ChatMessageItem
                           key={index}
-                          className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-                        >
-                          <div className={`flex flex-col gap-2 max-w-[80%] ${message.role === "user" ? "items-end" : "items-start"}`}>
-                            <div
-                              className={`bubble ${
-                                message.role === "user" ? "bubble-user" : "bubble-assistant"
-                              }`}
-                            >
-                              {message.sourceImageUrls && message.sourceImageUrls.length > 0 && message.role === "user" && (
-                                <div className="mb-2 flex flex-wrap gap-2">
-                                  {message.sourceImageUrls.map((url, idx) => (
-                                    <SafeImage 
-                                      key={idx}
-                                      src={url} 
-                                      alt={`Photo source ${idx + 1}`} 
-                                      className="rounded-lg h-16 w-16 object-cover"
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                              {message.sourceImageUrl && !message.sourceImageUrls && message.role === "user" && (
-                                <div className="mb-2">
-                                  <SafeImage 
-                                    src={message.sourceImageUrl} 
-                                    alt="Photo source" 
-                                    className="rounded-lg max-h-40 w-auto"
-                                  />
-                                </div>
-                              )}
-                              {message.imageUrl ? (
-                                <div className="space-y-3">
-                                  <p className="whitespace-pre-wrap text-sm text-foreground">{message.content}</p>
-                                  <div className="space-y-2">
-                                    {/* Image avec overlay de zoom */}
-                                    <div 
-                                      role="button"
-                                      tabIndex={0}
-                                      className="relative group cursor-pointer"
-                                      onClick={() => setZoomedImage(message.imageUrl ?? null)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          e.preventDefault();
-                                          setZoomedImage(message.imageUrl ?? null);
-                                        }
-                                      }}
-                                    >
-                                      <SafeImage 
-                                        src={message.imageUrl} 
-                                        alt="Visualisation générée" 
-                                        className="rounded-lg w-full max-w-2xl transition-transform hover:scale-[1.02]"
-                                      />
-                                      {/* Overlay avec icône zoom */}
-                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all rounded-lg flex items-center justify-center">
-                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-black/90 rounded-full p-3 shadow-lg">
-                                          <Maximize2 className="h-6 w-6 text-primary" />
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                      {/* Bouton Zoom */}
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setZoomedImage(message.imageUrl ?? null)}
-                                      >
-                                        <Maximize2 className="h-4 w-4 mr-2" />
-                                        Agrandir
-                                      </Button>
-                                      <ImageExportDropdown
-                                        imageUrl={message.imageUrl}
-                                        filename={`dica-creative-${Date.now()}`}
-                                        variant="outline"
-                                        size="sm"
-                                      />
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          setSelectedImageUrl(message.imageUrl ?? null);
-                                          setSaveToProjectDialogOpen(true);
-                                        }}
-                                      >
-                                        <FolderPlus className="h-4 w-4 mr-2" />
-                                        Enregistrer dans un projet
-                                      </Button>
-                                    </div>
-                                    
-                                    {/* Références DICA utilisées */}
-                                    {message.decorReferences && message.decorReferences.length > 0 && (
-                                      <div className="mt-3 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20">
-                                        <p className="text-xs font-semibold text-primary mb-2 flex items-center gap-1.5">
-                                          <span className="text-sm">🏷️</span>
-                                          Décors DICA utilisés
-                                        </p>
-                                        <div className="flex flex-wrap gap-2">
-                                          {message.decorReferences.map((decor, idx) => (
-                                            <div
-                                              key={idx}
-                                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white dark:bg-black/40 border border-border/50 shadow-sm"
-                                            >
-                                              <span className="text-xs font-medium text-foreground">{decor.label}</span>
-                                              <span className="text-[10px] text-muted-foreground font-mono bg-muted/50 px-1.5 py-0.5 rounded">
-                                                {decor.reference}
-                                              </span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : (
-                                <p className="whitespace-pre-wrap text-sm text-foreground">{message.content}</p>
-                              )}
-                            </div>
-                            {message.role === "assistant" && index > 0 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="self-start"
-                                onClick={() => {
-                                  setSelectedMessageIndex(index);
-                                  setSaveDialogOpen(true);
-                                }}
-                              >
-                                <Heart className="h-4 w-4 mr-2" />
-                                Sauvegarder en favori
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  </ScrollArea>
-
-                  {/* Multi-image preview */}
-                  {uploadedImages.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">
-                        📷 Images à combiner ({uploadedImages.length}/5) :
-                      </p>
-                      <div className="flex flex-wrap gap-3">
-                        {uploadedImages.map((img, index) => (
-                          <div key={index} className="relative group">
-                            <SafeImage 
-                              src={img.url} 
-                              alt={img.label} 
-                              className="rounded-lg h-20 w-20 object-cover border-2 border-primary"
-                            />
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs px-1 py-0.5 rounded-b-lg truncate">
-                              {img.label}
-                            </div>
-                            <Button
-                              variant="destructive"
-                              size="icon"
-                              className="absolute -top-2 -right-2 h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => removeUploadedImage(index)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Image upload with label */}
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                      <Input
-                        value={currentImageLabel}
-                        onChange={(e) => setCurrentImageLabel(e.target.value)}
-                        placeholder="Étiquette (ex: Van, Décor bois, Personnes...)"
-                        disabled={isLoading || isUploading || uploadedImages.length >= 5}
-                        className="w-48"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isLoading || isUploading || uploadedImages.length >= 5}
-                        title="Ajouter une image"
-                      >
-                        {isUploading ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <ImagePlus className="h-4 w-4 mr-2" />
-                        )}
-                        Ajouter
-                      </Button>
-                    </div>
+                          message={message}
+                          canFavorite={message.role === "assistant" && index > 0}
+                          onZoom={setZoomedImage}
+                          onSaveToProject={(url) => {
+                            setSelectedImageUrl(url);
+                            setSaveToProjectDialogOpen(true);
+                          }}
+                          onFavorite={() => {
+                            setSelectedMessageIndex(index);
+                            setSaveDialogOpen(true);
+                          }}
+                        />
+                      ),
+                    )}
+                    {isLoading && !isStreamingText && <AssistantTyping />}
                   </div>
-
-                  {/* Message input */}
-                  <div className="flex gap-2">
-                    <Input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder={uploadedImages.length > 0 
-                        ? "Décrivez comment combiner ces éléments..."
-                        : "Ex: Créer un mood board des décors marbre pour une salle de bain..."}
-                      disabled={isLoading}
-                      className="flex-1"
-                    />
-                    <VoiceAssistant
-                      onTranscript={(role, text) => setMessages((prev) => [...prev, { role, content: text }])}
-                      onCompose={handleVoiceCompose}
-                    />
-                    <Button 
-                      onClick={handleSend} 
-                      disabled={isLoading || !input.trim()}
-                      size="icon"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Option références DICA */}
-                  <div className="flex items-center space-x-3 p-3 rounded-xl bg-muted/30 border border-border/50">
-                    <input
-                      type="checkbox"
-                      id="show-references-creative"
-                      checked={showReferences}
-                      onChange={(e) => setShowReferences(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <div className="flex-1">
-                      <label htmlFor="show-references-creative" className="cursor-pointer text-sm font-medium text-foreground">
-                        🏷️ Afficher les références DICA
-                      </label>
-                      <p className="text-xs text-muted-foreground">
-                        Ajoute les noms et codes des décors sur l'image générée
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Tips */}
-                  <div className="p-4 rounded-xl bg-muted/50 text-xs text-muted-foreground space-y-2">
-                    <p className="font-medium text-foreground">💡 Astuces</p>
-                    <p>Uploadez plusieurs images (décor, van, personnes...) et demandez à l'IA de les combiner en une scène créative.</p>
-                    <p>🏷️ <span className="font-medium">Étiquettes</span> : Nommez chaque image avant de l'ajouter (ex: "Van", "Décor bois", "Client") pour aider l'IA à comprendre le rôle de chaque élément dans la composition.</p>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-          <TabsContent value="favorites" className="animate-fade-in">
-            <div className="card-premium p-6 md:p-8">
-              {/* Header */}
-              <div className="mb-6 pb-6 border-b border-border/50">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
-                    <Star className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold mb-1">Mes créations favorites</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Retrouvez toutes vos générations sauvegardées
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Content */}
+              <ChatComposer
+                value={input}
+                onChange={setInput}
+                onSend={handleSend}
+                isBusy={isLoading}
+                attachments={uploadedImages}
+                onAttach={handleImageUpload}
+                onRemoveAttachment={removeUploadedImage}
+                onRenameAttachment={renameUploadedImage}
+                isUploading={isUploading}
+                showReferences={showReferences}
+                onToggleReferences={() => setShowReferences((v) => !v)}
+                catalogStatus={catalogStatus}
+                voiceControl={
+                  <VoiceAssistant
+                    onTranscript={(role, text) => setMessages((prev) => [...prev, { role, content: text }])}
+                    onCompose={handleVoiceCompose}
+                  />
+                }
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="favorites" className="mt-0">
+            <div className="card-premium p-5 md:p-7">
+              <div className="mb-6 space-y-1">
+                <h2 className="font-display text-xl font-semibold">Favoris</h2>
+                <p className="text-sm text-muted-foreground">Les réponses et visuels que vous avez mis de côté.</p>
+              </div>
+
               {favorites.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-muted flex items-center justify-center">
-                    <Heart className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-lg font-medium mb-2">Aucun favori</p>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                    Enregistrez vos créations préférées en cliquant sur le cœur pour les retrouver ici.
+                <div className="py-14 text-center">
+                  <Heart className="mx-auto mb-4 h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
+                  <p className="mb-1 font-medium">Aucun favori</p>
+                  <p className="mx-auto max-w-sm text-sm text-muted-foreground">
+                    Utilisez « Favori » sous une réponse ou un visuel pour le retrouver ici.
                   </p>
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {favorites.map((favorite, index) => (
-                    <div 
-                      key={favorite.id} 
-                      className="rounded-xl border border-border/50 bg-card hover:shadow-md transition-all overflow-hidden animate-slide-up"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      {/* Image si présente */}
+                  {favorites.map((favorite) => (
+                    <div key={favorite.id} className="overflow-hidden border border-border bg-card">
                       {favorite.image_data && (
-                        <div 
-                          role="button"
-                          tabIndex={0}
-                          className="relative group cursor-pointer"
+                        <button
+                          type="button"
+                          className="block w-full cursor-zoom-in"
                           onClick={() => setZoomedImage(favorite.image_data)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              setZoomedImage(favorite.image_data);
-                            }
-                          }}
+                          aria-label={`Agrandir ${favorite.title}`}
                         >
-                          <SafeImage 
-                            src={favorite.image_data} 
-                            alt={favorite.title}
-                            className="w-full aspect-square object-cover"
-                          />
-                          {/* Badge favori */}
-                          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                            <Heart className="h-3 w-3 fill-current" />
-                            Favori
-                          </div>
-                          {/* Overlay au survol */}
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                            <div className="flex gap-2">
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                className="h-8 px-3 bg-white hover:bg-white shadow-md"
-                              >
-                                <Maximize2 className="h-3.5 w-3.5 mr-1.5 text-foreground" />
-                                <span className="text-foreground text-xs">Agrandir</span>
-                              </Button>
-                              <ImageExportDropdown
-                                imageUrl={favorite.image_data || ''}
-                                filename={`dica-favorite-${favorite.id}`}
-                                variant="secondary"
-                                size="sm"
-                                className="h-8 px-3 bg-white hover:bg-white shadow-md"
-                              />
-                            </div>
-                          </div>
-                        </div>
+                          <SafeImage src={favorite.image_data} alt={favorite.title} className="aspect-square w-full object-cover" />
+                        </button>
                       )}
-                      
-                      {/* Infos */}
                       <div className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-foreground truncate">{favorite.title}</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">
+                        <div className="mb-2 flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="truncate font-medium text-foreground">{favorite.title}</h3>
+                            <p className="mt-0.5 font-mono text-[10.5px] text-muted-foreground">
                               {new Date(favorite.created_at).toLocaleDateString("fr-FR", {
                                 day: "numeric",
                                 month: "short",
-                                year: "numeric"
+                                year: "numeric",
                               })}
                             </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteFavorite(favorite.id)}
-                            className="text-red-500 hover:text-red-600 hover:bg-red-50 shrink-0 h-8 w-8 p-0"
-                          >
-                            <Heart className="h-4 w-4 fill-current" />
-                          </Button>
-                        </div>
-                        
-                        {/* Prompt */}
-                        <p className="text-xs text-muted-foreground line-clamp-2">{favorite.prompt}</p>
-                        
-                        {/* Message si pas d'image */}
-                        {!favorite.image_data && (
-                          <div className="mt-3 p-3 rounded-lg bg-muted/50">
-                            <p className="text-xs text-muted-foreground line-clamp-3">{favorite.response}</p>
+                          <div className="flex shrink-0 items-center">
+                            {favorite.image_data && (
+                              <ImageExportDropdown
+                                imageUrl={favorite.image_data}
+                                filename={`dica-favori-${favorite.id}`}
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                              />
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteFavorite(favorite.id)}
+                              className="h-8 w-8 text-primary hover:text-primary"
+                              aria-label="Retirer des favoris"
+                              title="Retirer des favoris"
+                            >
+                              <Heart className="h-4 w-4 fill-current" />
+                            </Button>
                           </div>
+                        </div>
+                        <p className="line-clamp-2 text-xs text-muted-foreground">{favorite.prompt}</p>
+                        {!favorite.image_data && (
+                          <p className="mt-3 line-clamp-3 border-l-2 border-border pl-3 text-xs text-muted-foreground">
+                            {favorite.response}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1277,6 +1077,21 @@ ${exampleRefs}
             </div>
           </TabsContent>
         </Tabs>
+
+        <AlertDialog open={!!pendingDeleteId} onOpenChange={(open) => !open && setPendingDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Supprimer cette conversation ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Les messages seront effacés. Les visuels restent disponibles dans « Mes créations ».
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteConversation}>Supprimer</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Save Dialog */}
         <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
