@@ -69,7 +69,6 @@ const Auth = () => {
         "Si un compte existe pour cet e-mail, vous allez recevoir un lien de réinitialisation. Pensez à vérifier vos courriers indésirables. Inscrit avec Google ? Utilisez « Continuer avec Google ».",
         { duration: 12000 },
       );
-    } finally {
       setIsLoading(false);
     }
   };
