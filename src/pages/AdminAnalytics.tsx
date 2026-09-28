@@ -35,6 +35,9 @@ const fetchAnalytics = async (period: AnalyticsPeriod, excludeAdmins: boolean): 
   });
 
   if (error) throw error;
+  if (!data?.meta || !data?.kpis) {
+    throw new Error("Réponse get-analytics au format obsolète : l'edge function doit être redéployée");
+  }
   return data;
 };
 

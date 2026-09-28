@@ -345,7 +345,9 @@ Le champ `action` détermine l'opération (défaut : `list_users`).
 
 #### Action : `list_users` (défaut)
 
-Pas de champs supplémentaires.
+Pas de champs supplémentaires. Charge tous les comptes (pagination Auth et
+PostgREST par 1000) en un nombre fixe de requêtes. Au passage, bannit dans
+Supabase Auth les comptes désactivés qui ne l'étaient pas encore.
 
 **Réponse (200)** :
 
@@ -356,9 +358,15 @@ Pas de champs supplémentaires.
     "email": "",
     "first_name": null,
     "last_name": null,
+    "company_name": null,
+    "phone": null,
+    "city": null,
     "is_active": true,
     "cobranding_enabled": false,
     "created_at": "",
+    "last_sign_in_at": null,
+    "email_confirmed": true,
+    "providers": ["email"],
     "quota_limit": 50,
     "quota_used": 0,
     "project_count": 0,
@@ -367,56 +375,17 @@ Pas de champs supplémentaires.
 }
 ```
 
-#### Action : `confirm_user`
+Les actions ci-dessous prennent toutes `userId` (string, obligatoire).
 
-| Champ | Type | Obligatoire |
-|---|---|---|
-| `userId` | string | Oui |
-
-Confirme l'email via `auth.admin.updateUserById({ email_confirm: true })`.
-
-**Réponse** : `{ "success": true }`
-
-#### Action : `delete_user`
-
-| Champ | Type | Obligatoire |
-|---|---|---|
-| `userId` | string | Oui |
-
-Supprime l'utilisateur via Auth Admin.
-
-**Réponse** : `{ "success": true }`
-
-#### Action : `toggle_active`
-
-| Champ | Type | Obligatoire |
-|---|---|---|
-| `userId` | string | Oui |
-
-Inverse `profiles.is_active`.
-
-**Réponse** : `{ "success": true, "is_active": boolean }`
-
-#### Action : `toggle_cobranding`
-
-| Champ | Type | Obligatoire |
-|---|---|---|
-| `userId` | string | Oui |
-
-Inverse `profiles.cobranding_enabled`.
-
-**Réponse** : `{ "success": true, "cobranding_enabled": boolean }`
-
-#### Action : `update_role`
-
-| Champ | Type | Obligatoire |
-|---|---|---|
-| `userId` | string | Oui |
-| `role` | string | Oui — `admin` ou `client` |
-
-Met à jour `user_roles.role`. Impossible de retirer son propre rôle admin.
-
-**Réponse** : `{ "success": true }`
+| Action | Champs en plus | Effet | Réponse |
+|---|---|---|---|
+| `confirm_user` | — | Confirme l'email (`email_confirm: true`) | `{ success }` |
+| `send_password_reset` | — | Envoie un lien de réinitialisation | `{ success, googleOnly }` |
+| `toggle_active` | — | Inverse `profiles.is_active` **et** bannit / débannit le compte dans Supabase Auth (connexion et renouvellement de session bloqués). Interdit sur son propre compte | `{ success, is_active }` |
+| `toggle_cobranding` | — | Inverse `profiles.cobranding_enabled` | `{ success, cobranding_enabled }` |
+| `update_role` | `role` : `admin` \| `client` | Remplace le rôle (le nouveau est posé avant de retirer l'ancien). Impossible de retirer son propre rôle admin | `{ success }` |
+| `update_quota` | `quotaLimit` (entier 0–100 000, optionnel), `resetUsed` (booléen, optionnel) | Modifie la limite et/ou remet `quota_used` à 0 (crée la ligne si absente) | `{ success, quota_limit, quota_used }` |
+| `delete_user` | — | Supprime le compte Auth (cascade sur les données). Uniquement pour un compte désactivé, jamais le sien | `{ success }` |
 
 ### Réponses erreur — get-users-admin
 
@@ -424,7 +393,7 @@ Met à jour `user_roles.role`. Impossible de retirer son propre rôle admin.
 |---|---|
 | 401 | Non authentifié |
 | 403 | Non admin |
-| 400 | Paramètres manquants ou auto-dégradation admin |
+| 400 | Paramètres invalides, action inconnue ou action interdite sur son propre compte |
 | 500 | Erreur Supabase |
 
 ---
