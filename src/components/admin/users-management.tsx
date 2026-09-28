@@ -390,7 +390,7 @@ export const UsersManagement = () => {
                           <Badge className="bg-amber-500 hover:bg-amber-600"><ShieldCheck className="mr-1 h-3 w-3" />Admin</Badge>
                         )}
                         {!u.email_confirmed && <Badge variant="outline" className="border-orange-400 text-orange-600">Non confirmé</Badge>}
-                        {u.providers.includes("google") && <Badge variant="outline">Google</Badge>}
+                        {u.providers?.includes("google") && <Badge variant="outline">Google</Badge>}
                         {u.cobranding_enabled && <Badge variant="outline">Co-branding</Badge>}
                       </div>
                     </TableCell>
