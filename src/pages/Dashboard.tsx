@@ -11,8 +11,16 @@ import {
   ContentContainer 
 } from "@/components/ui/premium-layout";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useTheme } from "@/contexts/ThemeContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { WelcomeModal, useOnboarding } from "@/components/onboarding";
-import { Plus, LogOut, Settings, FolderOpen, Wand2, BookOpen, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart, Building2 } from "lucide-react";
+import { Plus, LogOut, Settings, FolderOpen, Wand2, BookOpen, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart, Building2, MoreHorizontal, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -52,6 +60,7 @@ const Dashboard = () => {
   const [coBrandingEnabled, setCoBrandingEnabled] = useState(false);
   
   const { showWelcome, completeWelcome } = useOnboarding();
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const loadCoBrandingStatus = async () => {
@@ -219,16 +228,16 @@ const Dashboard = () => {
       >
         <div className="container mx-auto flex h-16 md:h-18 items-center justify-between px-4 sm:px-6">
           {/* Logo */}
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 shrink items-center gap-3">
             <img 
               src="/images/dica-logo.png" 
               alt="DICA Visual Studio" 
-              className="h-18 md:h-20 w-auto" 
+              className="h-14 sm:h-18 md:h-20 w-auto max-w-full object-contain object-left" 
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -297,15 +306,6 @@ const Dashboard = () => {
                   <Building2 className="h-4 w-4" />
                   <span className="hidden md:inline">Co-branding</span>
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate("/mon-cobranding")}
-                  className="sm:hidden text-muted-foreground hover:text-foreground"
-                  title="Mon co-branding"
-                >
-                  <Building2 className="h-5 w-5" />
-                </Button>
               </>
             )}
 
@@ -323,13 +323,13 @@ const Dashboard = () => {
             
             <div className="w-px h-5 bg-border/60 mx-1 hidden sm:block" />
             
-            <ThemeToggle className="text-muted-foreground rounded-xl" />
+            <ThemeToggle className="hidden sm:inline-flex text-muted-foreground" />
             
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate("/help")}
-              className="text-muted-foreground hover:text-foreground rounded-xl"
+              className="hidden sm:inline-flex text-muted-foreground hover:text-foreground"
               title="Aide"
             >
               <HelpCircle className="h-4 w-4" />
@@ -339,11 +339,51 @@ const Dashboard = () => {
               variant="ghost" 
               size="sm" 
               onClick={handleLogout}
-              className="text-muted-foreground hover:text-foreground rounded-xl"
+              className="hidden sm:inline-flex text-muted-foreground hover:text-foreground"
             >
-              <LogOut className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Déconnexion</span>
+              <LogOut className="h-4 w-4 mr-2" />
+              Déconnexion
             </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="sm:hidden text-muted-foreground hover:text-foreground"
+                  aria-label="Plus d'options"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {coBrandingEnabled && (
+                  <DropdownMenuItem onSelect={() => navigate("/mon-cobranding")}>
+                    <Building2 className="mr-2 h-4 w-4" />
+                    Mon co-branding
+                  </DropdownMenuItem>
+                )}
+                {userRole === "admin" && (
+                  <DropdownMenuItem onSelect={() => navigate("/admin")}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Admin
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onSelect={() => navigate("/help")}>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Aide
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={toggleTheme}>
+                  {resolvedTheme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                  {resolvedTheme === "dark" ? "Mode jour" : "Mode nuit"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Déconnexion
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </motion.header>
