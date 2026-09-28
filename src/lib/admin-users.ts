@@ -143,7 +143,7 @@ export function usersToCsv(users: AdminUser[]): string {
     u.role === 'admin' ? 'Admin' : 'Client',
     u.is_active ? 'Actif' : 'Désactivé',
     u.email_confirmed ? 'Oui' : 'Non',
-    u.providers.includes('google') ? 'Google' : 'Email',
+    u.providers?.includes('google') ? 'Google' : 'Email',
     csvDate(u.created_at), csvDate(u.last_sign_in_at),
     u.project_count, u.quota_used, u.quota_limit,
     u.cobranding_enabled ? 'Oui' : 'Non',

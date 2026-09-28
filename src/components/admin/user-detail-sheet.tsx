@@ -40,7 +40,7 @@ export const UserDetailSheet = ({ user, onOpenChange, children }: UserDetailShee
               <Badge variant={user.is_active ? "default" : "secondary"}>{user.is_active ? "Actif" : "Désactivé"}</Badge>
               <Badge variant="outline">{user.role === "admin" ? "Administrateur" : "Client"}</Badge>
               {!user.email_confirmed && <Badge variant="destructive">Email non confirmé</Badge>}
-              {user.providers.includes("google") && <Badge variant="outline">Google</Badge>}
+              {user.providers?.includes("google") && <Badge variant="outline">Google</Badge>}
             </div>
           </SheetHeader>
 
