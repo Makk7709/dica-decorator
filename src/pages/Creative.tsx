@@ -16,6 +16,7 @@ import { PremiumLayout, ContentContainer } from "@/components/ui/premium-layout"
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ImageExportDropdown } from "@/components/ui/image-export-dropdown";
 import { SafeImage } from "@/components/ui/safe-image";
+import { VoiceAssistant } from "@/components/creative/VoiceAssistant";
 
 interface DecorReference {
   reference: string;
@@ -1081,6 +1082,9 @@ ${exampleRefs}
                         : "Ex: Créer un mood board des décors marbre pour une salle de bain..."}
                       disabled={isLoading}
                       className="flex-1"
+                    />
+                    <VoiceAssistant
+                      onTranscript={(role, text) => setMessages((prev) => [...prev, { role, content: text }])}
                     />
                     <Button 
                       onClick={handleSend} 
