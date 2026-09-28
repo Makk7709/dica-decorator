@@ -560,7 +560,7 @@ const Auth = () => {
               to="/mentions-legales" 
               className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
             >
-              Mentions légales & CGU
+              Mentions légales, CGU & CGV
             </Link>
           </div>
         </div>
