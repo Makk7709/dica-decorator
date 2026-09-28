@@ -4,8 +4,9 @@
  * Assigne directement aux catalogues contextualisés (Parois, Sol, Évasion, Compact, Autre)
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isSupportedImage, MAX_IMAGE_BYTES, safeImageFileName } from "@/lib/safe-upload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +20,7 @@ import { toast } from "sonner";
 
 interface FileToUpload {
   file: File;
+  previewUrl: string;
   name: string;
   referenceCode: string;
   selected: boolean;
@@ -70,6 +72,12 @@ export const BulkDecorUpload = ({ onComplete }: Readonly<BulkDecorUploadProps>) 
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadedCount, setUploadedCount] = useState(0);
+  const filesRef = useRef(files);
+  filesRef.current = files;
+
+  useEffect(() => () => {
+    filesRef.current.forEach(f => URL.revokeObjectURL(f.previewUrl));
+  }, []);
 
   // Charger les catalogues
   useEffect(() => {
@@ -99,14 +107,18 @@ export const BulkDecorUpload = ({ onComplete }: Readonly<BulkDecorUploadProps>) 
     const selectedFiles = e.target.files;
     if (!selectedFiles) return;
 
-    const imageFiles = Array.from(selectedFiles).filter(file => 
-      file.type.startsWith('image/')
+    const imageFiles = Array.from(selectedFiles).filter(file =>
+      isSupportedImage(file) && file.size <= MAX_IMAGE_BYTES
     );
+    if (imageFiles.length < selectedFiles.length) {
+      toast.warning(`${selectedFiles.length - imageFiles.length} fichier(s) ignoré(s) : format non supporté ou plus de 15 Mo`);
+    }
 
     const filesToUpload: FileToUpload[] = imageFiles.map(file => {
       const { name, referenceCode } = parseFileName(file.name);
       return {
         file,
+        previewUrl: URL.createObjectURL(file),
         name,
         referenceCode,
         selected: true,
@@ -114,7 +126,10 @@ export const BulkDecorUpload = ({ onComplete }: Readonly<BulkDecorUploadProps>) 
       };
     });
 
-    setFiles(filesToUpload);
+    setFiles(prev => {
+      prev.forEach(f => URL.revokeObjectURL(f.previewUrl));
+      return filesToUpload;
+    });
     setProgress(0);
     setUploadedCount(0);
   }, []);
@@ -130,14 +145,16 @@ export const BulkDecorUpload = ({ onComplete }: Readonly<BulkDecorUploadProps>) 
   };
 
   const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+    setFiles(prev => {
+      URL.revokeObjectURL(prev[index]?.previewUrl ?? "");
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const uploadSingleDecor = async (fileToUpload: FileToUpload, displayOrder: number): Promise<boolean> => {
     try {
       // 1. Upload image to storage
-      const fileExt = fileToUpload.file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const fileName = safeImageFileName(fileToUpload.file);
       
       const { error: uploadError } = await supabase.storage
         .from('decor-textures')
@@ -363,7 +380,7 @@ export const BulkDecorUpload = ({ onComplete }: Readonly<BulkDecorUploadProps>) 
                     {/* Preview */}
                     <div className="w-10 h-10 rounded overflow-hidden bg-muted flex-shrink-0">
                       <img
-                        src={URL.createObjectURL(file.file)}
+                        src={file.previewUrl}
                         alt={file.name}
                         className="w-full h-full object-cover"
                       />

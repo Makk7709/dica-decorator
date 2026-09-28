@@ -217,7 +217,7 @@ export class ImageStorageService {
    */
   generateStoragePath(userId: string, photoId: string, extension: string): string {
     const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const randomSuffix = crypto.randomUUID().slice(0, 8);
     return `${userId}/${photoId}/render-${timestamp}-${randomSuffix}.${extension}`;
   }
 

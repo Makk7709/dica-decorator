@@ -83,10 +83,9 @@ une photographie via Google Gemini (`gemini-3-pro-image-preview`).
 
 | Champ | Type | Obligatoire | Description |
 |---|---|---|---|
-| `photoUrl` | string | Oui | URL de la photo source (Storage ou absolue) |
-| `textureUrl` | string | Oui* | URL texture du décor (* sauf mode mu |
-| `photoId` | string | Oui | ID `project_photos` |
-| `decorId` | string | Oui | ID décor principal |
+| `photoId` | uuid | Oui | ID `project_photos` (doit appartenir à l'appelant, sinon 404 ; les admins passent) |
+| `decorId` | uuid | Oui | ID décor principal |
+| `photoUrl`, `textureUrl` | string | Ignorés | Conservés pour compatibilité : les URLs sont relues en base (`project_photos.original_image_url`, `decors.texture_image_url`) |
 | `useCase` | string | Oui | `ascenseur`, `van`, `terrasse`, `autre` |
 | `renderCount` | number | Non | Nombre de rendus (défaut 1, max 2) |
 | `format` | string | Non | `square`, `portrait`, `landscape`, `original |
@@ -102,6 +101,9 @@ une photographie via Google Gemini (`gemini-3-pro-image-preview`).
 | Taille image max | 12 Mo |
 | Rendus max / requête | 2 |
 | Timeout fetch | 30 s |
+| `allDecors` | 4 entrées max, `id` UUID |
+
+Un compte désactivé reçoit 403. Le quota est débité après validation et remboursé (`refund_quota`) si le rendu échoue.
 
 ### Réponse succès (200) — apply-decor
 

@@ -433,7 +433,7 @@ describe('Fallback de téléchargement', () => {
       ImageExportService.downloadImage('https://example.com/image.png', { format: 'png' })
     ).rejects.toThrow('Téléchargement impossible');
 
-    expect(window.open).toHaveBeenCalledWith('https://example.com/image.png', '_blank');
+    expect(window.open).toHaveBeenCalledWith('https://example.com/image.png', '_blank', 'noopener,noreferrer');
 
     mockConvert.mockRestore();
   });

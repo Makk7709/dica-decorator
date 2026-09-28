@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { safeImageFileName, UploadValidationError } from "@/lib/safe-upload";
 import { Button } from "@/components/ui/button";
 
 import { Input } from "@/components/ui/input";
@@ -340,7 +341,7 @@ ${exampleRefs}
 
     setIsUploading(true);
     try {
-      const fileName = `source-${Date.now()}.${file.name.split('.').pop()}`;
+      const fileName = `source-${safeImageFileName(file, 10 * 1024 * 1024)}`;
       const { error: uploadError } = await supabase.storage
         .from("project-photos")
         .upload(`${user.id}/${fileName}`, file);
@@ -358,7 +359,7 @@ ${exampleRefs}
       toast.success(`${label} uploadée`);
     } catch (error: unknown) {
       console.error("Error uploading image:", error);
-      toast.error("Erreur lors de l'upload");
+      toast.error(error instanceof UploadValidationError ? error.message : "Erreur lors de l'upload");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {

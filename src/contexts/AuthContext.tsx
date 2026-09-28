@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import { supabase } from "@/integrations/supabase/client";
 import { authService, type AuthState } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import type { User, Session } from "@supabase/supabase-js";
 
 export const DEACTIVATED_MESSAGE =
@@ -46,6 +47,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,6 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (event === 'PASSWORD_RECOVERY') {
           setIsPasswordRecovery(true);
         }
+        // Évite qu'un compte suivant sur le même navigateur voie les données en cache.
+        if (event === 'SIGNED_OUT') {
+          queryClient.clear();
+        }
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -127,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchUserRole, guardActive]);
+  }, [fetchUserRole, guardActive, queryClient]);
 
 
   const signIn = useCallback(async (email: string, password: string) => {

@@ -5,6 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { assertSafeFetchUrl } from "../_shared/ssrf-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -279,6 +280,32 @@ function detectImageDimensions(bytes: Uint8Array, mimeType: string): { width: nu
   return null;
 }
 
+// Hôtes autorisés pour résoudre une texture en chemin relatif via l'origine
+// de la requête (l'en-tête Origin est contrôlé par le client).
+const TRUSTED_ORIGIN_SUFFIXES = ["dicadecor.fr", "lovable.app", "lovableproject.com"];
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: unknown): v is string => typeof v === "string" && UUID_RE.test(v);
+
+function jsonError(status: number, error: string) {
+  return new Response(JSON.stringify({ error }), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+/** Origine de la requête, uniquement si elle appartient à un domaine de l'app. */
+function trustedRequestOrigin(req: Request): string {
+  const raw = req.headers.get("origin") || req.headers.get("referer") || "";
+  try {
+    const url = new URL(raw);
+    assertSafeFetchUrl(url.origin, { allowedHostSuffixes: TRUSTED_ORIGIN_SUFFIXES });
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+
 // ============================================================================
 // Main Handler
 // ============================================================================
@@ -287,6 +314,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Rembourse le quota si aucun rendu n'a pu être produit.
+  let refundQuota: () => Promise<void> = async () => {};
 
   try {
     // ========================================================================
@@ -319,11 +349,51 @@ serve(async (req) => {
     const user = verifiedUser;
     console.log("Authenticated user:", user.id);
 
+    const supabase = supabaseAdmin;
+
+    const {
+      photoId,
+      decorId,
+      useCase,
+      renderCount = 1,
+      format = "square",
+      showReferences = false,
+      originalWidth: _origW,
+      originalHeight: _origH,
+      // Nouveau: Support multi-décor (Parois + Sol pour ascenseur)
+      allDecors
+    } = await req.json();
+
+    // ========================================================================
+    // Validation + autorisation : la photo doit appartenir à l'utilisateur.
+    // Les URLs de photo et de texture sont relues en base, jamais prises du client.
+    // ========================================================================
+    if (!isUuid(photoId) || !isUuid(decorId)) {
+      return jsonError(400, "Paramètres invalides");
+    }
+    if (allDecors !== undefined && (!Array.isArray(allDecors) || allDecors.length > 4 || !allDecors.every((d) => isUuid(d?.id)))) {
+      return jsonError(400, "Paramètres invalides");
+    }
+
+    const [{ data: photoRow }, { data: profileRow }, { data: adminRole }] = await Promise.all([
+      supabase.from("project_photos").select("original_image_url, projects!inner(user_id)").eq("id", photoId).maybeSingle(),
+      supabase.from("profiles").select("is_active").eq("id", user.id).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle(),
+    ]);
+
+    if (profileRow?.is_active === false) {
+      return jsonError(403, "Compte désactivé");
+    }
+    // deno-lint-ignore no-explicit-any
+    const photoOwner = (photoRow as any)?.projects?.user_id ?? (photoRow as any)?.projects?.[0]?.user_id;
+    if (!photoRow || (photoOwner !== user.id && !adminRole)) {
+      return jsonError(404, "Photo introuvable");
+    }
+    const photoUrl: string = photoRow.original_image_url;
+
     // ========================================================================
     // Quota Pre-Check - Atomic check before expensive AI call
     // ========================================================================
-    const supabase = supabaseAdmin;
-
     const { data: quotaAllowed, error: quotaCheckError } = await supabase.rpc(
       'check_and_increment_quota',
       { p_user_id: user.id }
@@ -337,28 +407,18 @@ serve(async (req) => {
       );
     }
 
-    // ========================================================================
-    const { 
-      photoUrl, 
-      textureUrl, 
-      photoId, 
-      decorId, 
-      useCase, 
-      renderCount = 1, 
-      format = "square", 
-      showReferences = false, 
-      originalWidth: _origW, 
-      originalHeight: _origH,
-      // Nouveau: Support multi-décor (Parois + Sol pour ascenseur)
-      allDecors 
-    } = await req.json();
-    
+    refundQuota = async () => {
+      const { error } = await supabase.rpc("refund_quota", { p_user_id: user.id });
+      if (error) console.error("Quota refund failed:", error.message);
+      refundQuota = async () => {};
+    };
+
     // Mutable dimensions (can be auto-detected from photo)
     let originalWidth = _origW;
     let originalHeight = _origH;
     
     // Get origin from request headers for constructing absolute URLs
-    const requestOrigin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, '') || "";
+    const requestOrigin = trustedRequestOrigin(req);
     
     // Limit render count to avoid resource exhaustion
     const safeRenderCount = Math.min(renderCount, RESOURCE_LIMITS.maxRenderCount);
@@ -369,8 +429,6 @@ serve(async (req) => {
     const isElevatorWithCatalogInfo = allDecors && Array.isArray(allDecors) && allDecors.length >= 1 && useCase === "ascenseur";
     
     console.log("Applying decor:", {
-      photoUrl,
-      textureUrl,
       photoId,
       decorId,
       useCase,
@@ -414,7 +472,7 @@ serve(async (req) => {
       for (const decorData of allDecors) {
         const { data: decorInfo, error: decorInfoError } = await supabase
           .from("decors")
-          .select("name, reference_code, category")
+          .select("name, reference_code, category, texture_image_url")
           .eq("id", decorData.id)
           .single();
           
@@ -456,7 +514,7 @@ serve(async (req) => {
             name: decorInfo.name,
             reference_code: decorInfo.reference_code,
             category: decorInfo.category,
-            textureUrl: decorData.textureUrl,
+            textureUrl: decorInfo.texture_image_url,
             surfaceType,
           });
         }
@@ -467,7 +525,7 @@ serve(async (req) => {
       // Mode simple décor
       const { data: decor, error: decorError } = await supabase
         .from("decors")
-        .select("name, reference_code, category")
+        .select("name, reference_code, category, texture_image_url")
         .eq("id", decorId)
         .single();
 
@@ -481,7 +539,7 @@ serve(async (req) => {
         name: decor.name,
         reference_code: decor.reference_code,
         category: decor.category,
-        textureUrl: textureUrl,
+        textureUrl: decor.texture_image_url,
         surfaceType: 'general',
       });
     }
@@ -1019,7 +1077,7 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
       const textureFilename = url.split('/').pop() || '';
       
       // Strategy 1: Try Supabase Storage bucket (most reliable)
-      const supabaseStorageUrl = `https://urkftxznsynmvkskytih.supabase.co/storage/v1/object/public/decor-textures/${textureFilename}`;
+      const supabaseStorageUrl = `${supabaseUrl}/storage/v1/object/public/decor-textures/${encodeURIComponent(textureFilename)}`;
       console.log("Trying Supabase Storage URL:", supabaseStorageUrl);
       
       try {
@@ -1065,6 +1123,7 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
         console.log("Trying original absolute URL:", url);
         
         try {
+          assertSafeFetchUrl(url);
           const response = await fetchWithTimeout(url);
           const contentType = response.headers.get("content-type") ?? "";
           
@@ -1096,7 +1155,8 @@ L'image générée DOIT être au format CARRÉ (ratio 1:1).
           mimeType = storageResult.mimeType;
         } else {
           // Fallback: plain HTTP fetch for non-storage URLs
-          console.log("Fetching original photo via HTTP:", photoUrl);
+          console.log("Fetching original photo via HTTP");
+          assertSafeFetchUrl(photoUrl);
           const photoResponse = await fetchWithTimeout(photoUrl);
           if (!photoResponse.ok) {
             console.error("Failed to fetch photo:", photoResponse.status);
@@ -1228,6 +1288,7 @@ L'annotation doit être:
           });
         } else {
           console.error(`CRITICAL: Failed to load texture for ${decorInfo.name}`);
+          await refundQuota();
           return new Response(
             JSON.stringify({
               success: false,
@@ -1244,6 +1305,7 @@ L'annotation doit être:
       console.log(`Loaded ${textures.length} texture(s) successfully`);
     } catch (e) {
       console.error("Error fetching textures:", e);
+      await refundQuota();
       return new Response(
         JSON.stringify({
           success: false,
@@ -1530,6 +1592,7 @@ L'annotation doit être:
     );
   } catch (error) {
     console.error("Error in apply-decor function:", error);
+    await refundQuota();
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : "Erreur inconnue",

@@ -5,32 +5,46 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { orchestrateDicaPrompt, type OrchestratorInput, FORMAT_PRESETS } from "./orchestrator.ts";
 
+const MAX_MESSAGES = 60;
+const MAX_MESSAGE_CHARS = 8000;
+const MAX_SOURCE_IMAGES = 10;
+
 /**
- * Convertit une URL Supabase Storage publique d'un bucket privé
- * en URL signée temporaire (TTL 5min) pour que l'AI gateway puisse la fetch.
+ * N'accepte que les images Storage de ce projet : fichiers de l'utilisateur
+ * (buckets privés, signés 5 min pour que l'AI gateway puisse les lire) ou
+ * textures du catalogue. Toute autre URL est ignorée (SSRF / accès croisé).
  */
-async function signPrivateStorageUrl(
-  url: string,
+async function resolveSourceImage(
+  url: unknown,
+  userId: string,
+  supabaseUrl: string,
   // deno-lint-ignore no-explicit-any
   supabaseAdmin: any,
-): Promise<string> {
-  if (!url) return url;
-  const match = url.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/([^?]+)/);
-  if (!match) return url;
+): Promise<string | null> {
+  if (typeof url !== "string" || url.length > 2048) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (parsed.origin !== new URL(supabaseUrl).origin) return null;
+
+  const match = parsed.pathname.match(/^\/storage\/v1\/object\/(?:public|sign|authenticated)\/([^/]+)\/(.+)$/);
+  if (!match) return null;
   const bucket = match[1];
   const path = decodeURIComponent(match[2]);
-  if (bucket !== "project-photos" && bucket !== "render-results") return url;
-  try {
-    const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 300);
-    if (error || !data?.signedUrl) {
-      console.warn("[creative-chat] createSignedUrl failed:", error?.message);
-      return url;
-    }
-    return data.signedUrl;
-  } catch (e) {
-    console.warn("[creative-chat] createSignedUrl exception:", e instanceof Error ? e.message : e);
-    return url;
+  if (path.includes("..")) return null;
+
+  if (bucket === "decor-textures") return url;
+  if ((bucket !== "project-photos" && bucket !== "render-results") || !path.startsWith(`${userId}/`)) return null;
+
+  const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) {
+    console.warn("[creative-chat] createSignedUrl failed:", error?.message);
+    return null;
   }
+  return data.signedUrl;
 }
 
 const corsHeaders = {
@@ -148,6 +162,24 @@ serve(async (req) => {
     // ========================================================================
 
     const { messages, decorContext: _legacyDecorContext, sourceImageUrls, imageLabels, showReferences = false } = await req.json();
+
+    const invalidMessages = !Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES ||
+      messages.some((m) => typeof m?.content !== "string" || m.content.length > MAX_MESSAGE_CHARS);
+    if (invalidMessages) {
+      return new Response(
+        JSON.stringify({ error: "Conversation invalide ou trop longue" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: profileRow } = await supabaseAdmin
+      .from("profiles").select("is_active").eq("id", user.id).maybeSingle();
+    if (profileRow?.is_active === false) {
+      return new Response(
+        JSON.stringify({ error: "Compte désactivé" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     console.log('Creative chat request received');
     console.log('- Messages:', messages.length);
     console.log('- Source images URLs:', sourceImageUrls?.length || 0);
@@ -240,22 +272,24 @@ ${catalogSections.join('\n')}
     console.log('- Decor context length:', decorContext?.length || 0, 'characters');
     
     // Collect all source images (current + history)
-    const allSourceImages: string[] = [...(sourceImageUrls || [])];
-    const allImageLabels: string[] = [...(imageLabels || [])];
+    const requestedImages: unknown[] = [...(Array.isArray(sourceImageUrls) ? sourceImageUrls : [])];
+    const allImageLabels: string[] = (Array.isArray(imageLabels) ? imageLabels : [])
+      .filter((l: unknown): l is string => typeof l === "string")
+      .map((l: string) => l.slice(0, 200));
     
     // Also find images from conversation history
     for (const m of messages) {
-      if (m.role === 'user' && m.sourceImageUrls) {
-        allSourceImages.push(...m.sourceImageUrls);
+      if (m.role === 'user' && Array.isArray(m.sourceImageUrls)) {
+        requestedImages.push(...m.sourceImageUrls);
       }
     }
-    console.log('- Total source images:', allSourceImages.length);
 
-    // Signer toutes les URLs venant des buckets Supabase Storage privés
-    // pour que l'AI gateway (et Gemini) puisse les télécharger
-    for (let i = 0; i < allSourceImages.length; i++) {
-      allSourceImages[i] = await signPrivateStorageUrl(allSourceImages[i], supabaseAdmin);
+    const allSourceImages: string[] = [];
+    for (const url of requestedImages.slice(0, MAX_SOURCE_IMAGES)) {
+      const resolved = await resolveSourceImage(url, user.id, supabaseUrl, supabaseAdmin);
+      if (resolved) allSourceImages.push(resolved);
     }
+    console.log('- Total source images:', allSourceImages.length, '/', requestedImages.length);
     
     console.log('- Decor context preview:', decorContext?.substring(0, 200));
 
@@ -600,6 +634,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       // Call AI gateway for image generation
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
+        signal: AbortSignal.timeout(120_000),
         headers: {
           "Authorization": `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
@@ -742,6 +777,7 @@ Réponds en français de manière claire et professionnelle.`;
     
     const response = await fetch(geminiUrl, {
       method: "POST",
+      signal: AbortSignal.timeout(60_000),
       headers: {
         "Content-Type": "application/json",
       },

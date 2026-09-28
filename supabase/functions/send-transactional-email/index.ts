@@ -16,6 +16,13 @@ const SENDER_DOMAIN = "notify.www.dicadecor.fr"
 // even though actual sending uses the subdomain above.
 const FROM_DOMAIN = "notify.www.dicadecor.fr"
 
+// Logs keep only the first character and the domain of an address.
+function redactEmail(email: string | undefined): string {
+  if (!email) return ''
+  const [local, domain] = email.split('@')
+  return `${local?.[0] ?? ''}***@${domain ?? ''}`
+}
+
 // Generate a cryptographically random 32-byte hex token
 function generateToken(): string {
   const bytes = new Uint8Array(32)
@@ -25,9 +32,40 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Auth: verify_jwt = true only proves the JWT is signed by the project — the
+// public anon key passes too, which would turn this function into an open
+// relay (any recipient, our sender domain). Callers must be the backend
+// (service_role) or an authenticated admin.
+function jwtRole(token: string): string | null {
+  try {
+    const payload = token.split('.')[1]
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(json).role ?? null
+  } catch {
+    return null
+  }
+}
+
+async function isAuthorizedCaller(
+  req: Request,
+  supabaseUrl: string,
+  serviceKey: string,
+): Promise<boolean> {
+  const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '')
+  if (!token) return false
+  if (token === serviceKey || jwtRole(token) === 'service_role') return true
+
+  const admin = createClient(supabaseUrl, serviceKey)
+  const { data: { user } } = await admin.auth.getUser(token)
+  if (!user) return false
+  const { data: role } = await admin
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('role', 'admin')
+    .maybeSingle()
+  return !!role
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -44,6 +82,16 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: 'Server configuration error' }),
       {
         status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  if (!(await isAuthorizedCaller(req, supabaseUrl, supabaseServiceKey))) {
+    return new Response(
+      JSON.stringify({ error: 'Forbidden' }),
+      {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
@@ -132,7 +180,7 @@ Deno.serve(async (req) => {
   if (suppressionError) {
     console.error('Suppression check failed — refusing to send', {
       error: suppressionError,
-      effectiveRecipient,
+      recipient: redactEmail(effectiveRecipient),
     })
     return new Response(
       JSON.stringify({ error: 'Failed to verify suppression status' }),
@@ -152,7 +200,7 @@ Deno.serve(async (req) => {
       status: 'suppressed',
     })
 
-    console.log('Email suppressed', { effectiveRecipient, templateName })
+    console.log('Email suppressed', { recipient: redactEmail(effectiveRecipient), templateName })
     return new Response(
       JSON.stringify({ success: false, reason: 'email_suppressed' }),
       {
@@ -176,7 +224,7 @@ Deno.serve(async (req) => {
   if (tokenLookupError) {
     console.error('Token lookup failed', {
       error: tokenLookupError,
-      email: normalizedEmail,
+      email: redactEmail(normalizedEmail),
     })
     await supabase.from('email_send_log').insert({
       message_id: messageId,
@@ -238,7 +286,7 @@ Deno.serve(async (req) => {
     if (reReadError || !storedToken) {
       console.error('Failed to read back unsubscribe token after upsert', {
         error: reReadError,
-        email: normalizedEmail,
+        email: redactEmail(normalizedEmail),
       })
       await supabase.from('email_send_log').insert({
         message_id: messageId,
@@ -260,7 +308,7 @@ Deno.serve(async (req) => {
     // Token exists but is already used — email should have been caught by suppression check above.
     // This is a safety fallback; log and skip sending.
     console.warn('Unsubscribe token already used but email not suppressed', {
-      email: normalizedEmail,
+      email: redactEmail(normalizedEmail),
     })
     await supabase.from('email_send_log').insert({
       message_id: messageId,
@@ -327,7 +375,7 @@ Deno.serve(async (req) => {
     console.error('Failed to enqueue email', {
       error: enqueueError,
       templateName,
-      effectiveRecipient,
+      recipient: redactEmail(effectiveRecipient),
     })
 
     await supabase.from('email_send_log').insert({
@@ -344,7 +392,7 @@ Deno.serve(async (req) => {
     })
   }
 
-  console.log('Transactional email enqueued', { templateName, effectiveRecipient })
+  console.log('Transactional email enqueued', { templateName, recipient: redactEmail(effectiveRecipient) })
 
   return new Response(
     JSON.stringify({ success: true, queued: true }),

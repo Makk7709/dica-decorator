@@ -77,7 +77,9 @@ serve(async (req) => {
     const { projectName, projectType, decorLabel, decorReference, decorCategory, imageUrl } = await req.json() as CaptionRequest;
 
     // Validate inputs
-    if (!projectName || !projectType) {
+    const tooLong = [projectName, projectType, decorLabel, decorReference, decorCategory]
+      .some((v) => v !== undefined && v !== null && (typeof v !== "string" || v.length > 300));
+    if (!projectName || !projectType || tooLong) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -194,8 +196,20 @@ Retourne un JSON avec {headline, subheadline, slugline, caption, article}.`
       }
     ];
 
+    // Image : uniquement une URL du Storage de ce projet (signée par le client
+    // avec ses propres droits) ou une data URL, jamais une URL arbitraire.
+    const isAllowedImage = (u: unknown): u is string => {
+      if (typeof u !== "string") return false;
+      if (u.startsWith("data:image/")) return u.length <= 15_000_000;
+      try {
+        return u.length <= 4096 && new URL(u).origin === new URL(supabaseUrl).origin;
+      } catch {
+        return false;
+      }
+    };
+
     // Add image if provided
-    if (imageUrl) {
+    if (isAllowedImage(imageUrl)) {
       userMessageContent.push({
         type: "image_url",
         image_url: { url: imageUrl }
@@ -205,12 +219,13 @@ Retourne un JSON avec {headline, subheadline, slugline, caption, article}.`
     // Call AI gateway with tool calling for structured output (with image analysis)
     const response = await fetch(AI_GATEWAY_URL, {
       method: "POST",
+      signal: AbortSignal.timeout(60_000),
       headers: {
         "Authorization": `Bearer ${AI_GATEWAY_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: imageUrl ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash", // Pro for vision
+        model: isAllowedImage(imageUrl) ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash", // Pro for vision
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessageContent }

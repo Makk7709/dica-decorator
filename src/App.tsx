@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 
 // Lazy load all pages for better performance
@@ -51,117 +52,119 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/project/new"
-                  element={
-                    <ProtectedRoute>
-                      <NewProject />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/project/:id"
-                  element={
-                    <ProtectedRoute>
-                      <ProjectDetail />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <Admin />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/creative"
-                  element={
-                    <ProtectedRoute>
-                      <Creative />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/analytics"
-                  element={
-                    <ProtectedRoute requireAdmin>
-                      <AdminAnalytics />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/presentation/:projectId"
-                  element={
-                    <ProtectedRoute>
-                      <Presentation />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/help"
-                  element={
-                    <ProtectedRoute>
-                      <Help />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/favorites"
-                  element={
-                    <ProtectedRoute>
-                      <Favorites />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/ai-creations"
-                  element={
-                    <ProtectedRoute>
-                      <AiCreations />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/mon-cobranding"
-                  element={
-                    <ProtectedRoute>
-                      <MyCoBranding />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="/mentions-legales" element={<Legal />} />
-                <Route path="/unsubscribe" element={<Unsubscribe />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/project/new"
+                    element={
+                      <ProtectedRoute>
+                        <NewProject />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/project/:id"
+                    element={
+                      <ProtectedRoute>
+                        <ProjectDetail />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute requireAdmin>
+                        <Admin />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/creative"
+                    element={
+                      <ProtectedRoute>
+                        <Creative />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/analytics"
+                    element={
+                      <ProtectedRoute requireAdmin>
+                        <AdminAnalytics />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/presentation/:projectId"
+                    element={
+                      <ProtectedRoute>
+                        <Presentation />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/help"
+                    element={
+                      <ProtectedRoute>
+                        <Help />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/favorites"
+                    element={
+                      <ProtectedRoute>
+                        <Favorites />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/ai-creations"
+                    element={
+                      <ProtectedRoute>
+                        <AiCreations />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/mon-cobranding"
+                    element={
+                      <ProtectedRoute>
+                        <MyCoBranding />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/mentions-legales" element={<Legal />} />
+                  <Route path="/unsubscribe" element={<Unsubscribe />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
