@@ -69,23 +69,37 @@ export function VoiceAssistant({ onTranscript, onCompose }: Props) {
   const streamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<number | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
+  const liveRef = useRef(false);
 
-  const stop = () => {
+  const stop = (reason?: string) => {
+    const wasLive = liveRef.current;
+    liveRef.current = false;
     if (timerRef.current) window.clearTimeout(timerRef.current);
+    if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
+    timerRef.current = null;
+    reconnectTimerRef.current = null;
     pcRef.current?.close();
     pcRef.current = null;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     if (audioRef.current) audioRef.current.srcObject = null;
     setState("idle");
+    if (reason && wasLive) toast.error(reason);
   };
 
-  useEffect(() => stop, []);
+  useEffect(() => () => stop(), []);
 
   const start = async () => {
     setConfirmOpen(false);
     setState("connecting");
     try {
+      // Micro d'abord : un refus ne doit pas consommer un appel du quota quotidien.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      streamRef.current = stream;
+
       const { data, error } = await supabase.functions.invoke("realtime-session");
       if (error || !data?.value) {
         let serverMessage: string | undefined = data?.error;
@@ -95,68 +109,177 @@ export function VoiceAssistant({ onTranscript, onCompose }: Props) {
         }
         throw new Error(serverMessage ?? "Impossible de démarrer la session vocale");
       }
+      if (!streamRef.current) return; // annulé pendant la connexion
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
       if (!audioRef.current) {
-        audioRef.current = document.createElement("audio");
-        audioRef.current.autoplay = true;
+        const audio = document.createElement("audio");
+        audio.autoplay = true;
+        audio.setAttribute("playsinline", "");
+        audioRef.current = audio;
       }
-      pc.ontrack = (e) => { if (audioRef.current) audioRef.current.srcObject = e.streams[0]; };
-      pc.addTrack(stream.getTracks()[0], stream);
+      pc.ontrack = (e) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        audio.srcObject = e.streams[0];
+        void audio.play().catch(() => undefined);
+      };
+      pc.addTrack(stream.getAudioTracks()[0], stream);
 
       const dc = pc.createDataChannel("oai-events");
-      const sendToolOutput = (callId: string, output: unknown) => {
-        dc.send(JSON.stringify({
-          type: "conversation.item.create",
-          item: { type: "function_call_output", call_id: callId, output: JSON.stringify(output) },
-        }));
-        dc.send(JSON.stringify({ type: "response.create" }));
+      const send = (event: unknown) => {
+        if (dc.readyState === "open") dc.send(JSON.stringify(event));
+      };
+
+      // Une seule réponse à la fois : relancer pendant une réponse active est rejeté par l'API.
+      let responseActive = false;
+      let responseRequested = false;
+      const requestResponse = () => {
+        if (responseActive) responseRequested = true;
+        else send({ type: "response.create" });
       };
       const notifyAssistant = (text: string) => {
-        if (dc.readyState !== "open") return;
-        dc.send(JSON.stringify({
+        send({
           type: "conversation.item.create",
           item: { type: "message", role: "system", content: [{ type: "input_text", text }] },
-        }));
-        dc.send(JSON.stringify({ type: "response.create" }));
+        });
+        requestResponse();
       };
-      dc.onmessage = (ev) => {
-        let msg: any;
-        try { msg = JSON.parse(ev.data); } catch { return; }
-        if (msg.type === "conversation.item.input_audio_transcription.completed" && msg.transcript?.trim()) {
-          transcriptRef.current("user", `🎤 ${msg.transcript.trim()}`);
-        } else if (msg.type === "response.output_audio_transcript.done" && msg.transcript?.trim()) {
-          transcriptRef.current("assistant", msg.transcript.trim());
-        } else if (msg.type === "response.function_call_arguments.done" && msg.name === "search_decors") {
-          let args = {};
-          try { args = JSON.parse(msg.arguments || "{}"); } catch { /* ignore */ }
-          sendToolOutput(msg.call_id, { decors: searchDecors(decorsRef.current, args) });
-        } else if (msg.type === "response.function_call_arguments.done" && msg.name === "create_composition") {
-          let args: { description?: unknown; references?: unknown } = {};
-          try { args = JSON.parse(msg.arguments || "{}"); } catch { /* ignore */ }
-          const brief = typeof args.description === "string" ? args.description.trim().slice(0, 1000) : "";
-          const { found, unknown } = resolveReferences(decorsRef.current, args.references);
-          if (!brief || found.length === 0) {
-            sendToolOutput(msg.call_id, {
-              statut: "refuse",
-              raison: !brief ? "Brief manquant." : "Aucune référence reconnue dans le catalogue. Utilise search_decors.",
-              references_inconnues: unknown,
-            });
-            return;
-          }
-          const references = found.map((d) => d.reference_code);
-          sendToolOutput(msg.call_id, { statut: "en_cours", references, references_inconnues: unknown });
-          void composeRef.current(brief, references).then((result) => {
+
+      // La transcription de l'utilisateur arrive souvent après la réponse : on garde l'ordre de la conversation.
+      const pendingUser = new Map<string, string | null>();
+      const heldAssistant: string[] = [];
+      const flushTranscripts = () => {
+        for (const [id, text] of pendingUser) {
+          if (text === null) break;
+          if (text) transcriptRef.current("user", `🎤 ${text}`);
+          pendingUser.delete(id);
+        }
+        if (pendingUser.size === 0) {
+          heldAssistant.splice(0).forEach((text) => transcriptRef.current("assistant", text));
+        }
+      };
+      const settleUser = (itemId: string, text: string) => {
+        if (!pendingUser.has(itemId)) {
+          if (text) transcriptRef.current("user", `🎤 ${text}`);
+          return;
+        }
+        pendingUser.set(itemId, text);
+        flushTranscripts();
+      };
+
+      let composing = false;
+      const handledCalls = new Set<string>();
+      const runTool = (call: { call_id: string; name: string; arguments?: string }): unknown => {
+        let args: Record<string, unknown> = {};
+        try { args = JSON.parse(call.arguments || "{}"); } catch { /* arguments invalides : objet vide */ }
+
+        if (call.name === "search_decors") {
+          return { decors: searchDecors(decorsRef.current, args as { query?: string; category?: string; usage?: string }) };
+        }
+        if (call.name !== "create_composition") return { statut: "refuse", raison: "Outil inconnu." };
+
+        const brief = typeof args.description === "string" ? args.description.trim().slice(0, 1000) : "";
+        const { found, unknown } = resolveReferences(decorsRef.current, args.references);
+        if (composing) return { statut: "refuse", raison: "Une composition est déjà en cours, attends qu'elle soit affichée." };
+        if (!brief || found.length === 0) {
+          return {
+            statut: "refuse",
+            raison: !brief ? "Brief manquant." : "Aucune référence reconnue dans le catalogue. Utilise search_decors.",
+            references_inconnues: unknown,
+          };
+        }
+        const references = found.map((d) => d.reference_code);
+        composing = true;
+        void composeRef.current(brief, references)
+          .catch((e: unknown): ComposeResult => ({ ok: false, error: e instanceof Error ? e.message : "erreur inconnue" }))
+          .then((result) => {
+            composing = false;
+            if (!liveRef.current) return;
             notifyAssistant(result.ok
               ? "La composition est maintenant affichée dans le chat. Annonce-le en une phrase et propose un ajustement."
               : `La composition n'a pas pu être créée : ${result.error}. Explique-le brièvement au client.`);
           });
-        } else if (msg.type === "error") {
-          console.error("Realtime error", msg.error?.message);
+        return { statut: "en_cours", references, references_inconnues: unknown };
+      };
+
+      dc.onmessage = (ev) => {
+        let msg: any;
+        try { msg = JSON.parse(ev.data); } catch { return; }
+        switch (msg.type) {
+          case "input_audio_buffer.committed":
+            if (msg.item_id) {
+              const itemId: string = msg.item_id;
+              pendingUser.set(itemId, null);
+              window.setTimeout(() => {
+                if (pendingUser.get(itemId) === null) settleUser(itemId, "");
+              }, 5000);
+            }
+            break;
+          case "conversation.item.input_audio_transcription.completed":
+            settleUser(msg.item_id, (msg.transcript ?? "").trim());
+            break;
+          case "conversation.item.input_audio_transcription.failed":
+            settleUser(msg.item_id, "");
+            break;
+          case "response.output_audio_transcript.done":
+            if (msg.transcript?.trim()) {
+              heldAssistant.push(msg.transcript.trim());
+              flushTranscripts();
+            }
+            break;
+          case "response.created":
+            responseActive = true;
+            break;
+          case "response.done": {
+            responseActive = false;
+            const calls = (msg.response?.output ?? []).filter(
+              (item: { type?: string; call_id?: string }) =>
+                item.type === "function_call" && item.call_id && !handledCalls.has(item.call_id),
+            );
+            for (const call of calls) {
+              handledCalls.add(call.call_id);
+              send({
+                type: "conversation.item.create",
+                item: { type: "function_call_output", call_id: call.call_id, output: JSON.stringify(runTool(call)) },
+              });
+            }
+            if (calls.length > 0 || responseRequested) {
+              responseRequested = false;
+              send({ type: "response.create" });
+            }
+            break;
+          }
+          case "error":
+            if (msg.error?.code === "conversation_already_has_active_response") {
+              responseRequested = true;
+            } else {
+              console.error("Realtime error", msg.error?.code, msg.error?.message);
+              if (msg.error?.code === "session_expired") stop("La session vocale a expiré.");
+            }
+            break;
+        }
+      };
+      dc.onclose = () => {
+        if (liveRef.current) stop("L'appel vocal a été interrompu.");
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pcRef.current !== pc) return;
+        const cs = pc.connectionState;
+        if (cs === "connected" && reconnectTimerRef.current) {
+          window.clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        } else if (cs === "disconnected" && !reconnectTimerRef.current) {
+          // Coupure réseau passagère (changement de Wi-Fi, 4G) : on laisse le temps à la connexion de revenir.
+          reconnectTimerRef.current = window.setTimeout(() => {
+            reconnectTimerRef.current = null;
+            if (pcRef.current === pc && pc.connectionState !== "connected") stop("Connexion perdue, l'appel a été coupé.");
+          }, 8000);
+        } else if (cs === "failed") {
+          stop("Connexion perdue, l'appel a été coupé.");
         }
       };
 
@@ -167,23 +290,29 @@ export function VoiceAssistant({ onTranscript, onCompose }: Props) {
         body: offer.sdp,
         headers: { Authorization: `Bearer ${data.value}`, "Content-Type": "application/sdp" },
       });
-      if (!sdpRes.ok) throw new Error("Connexion vocale refusée");
+      if (!sdpRes.ok) throw new Error("Connexion vocale refusée, réessayez dans un instant.");
+      if (pcRef.current !== pc) return;
       await pc.setRemoteDescription({ type: "answer", sdp: await sdpRes.text() });
 
-      pc.onconnectionstatechange = () => {
-        if (["failed", "disconnected", "closed"].includes(pc.connectionState)) stop();
-      };
       timerRef.current = window.setTimeout(() => {
         toast.info("Durée maximale de l'appel atteinte (10 min).");
         stop();
       }, MAX_SESSION_MS);
+      liveRef.current = true;
       setState("live");
     } catch (e) {
       stop();
+      const name = e instanceof DOMException ? e.name : "";
       const m = e instanceof Error ? e.message : "";
-      toast.error(m.includes("Permission") || m.includes("NotAllowed")
-        ? "Accès au micro refusé. Autorisez-le dans votre navigateur."
-        : m || "Impossible de démarrer la commande vocale");
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        toast.error("Accès au micro refusé. Autorisez-le dans votre navigateur.");
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        toast.error("Aucun micro détecté sur cet appareil.");
+      } else if (name === "NotReadableError") {
+        toast.error("Le micro est déjà utilisé par une autre application.");
+      } else {
+        toast.error(m || "Impossible de démarrer la commande vocale");
+      }
     }
   };
 
@@ -194,7 +323,7 @@ export function VoiceAssistant({ onTranscript, onCompose }: Props) {
           type="button"
           variant="destructive"
           size="sm"
-          onClick={stop}
+          onClick={() => stop()}
           title="Raccrocher"
           aria-label="Raccrocher"
           className="h-9 gap-2 px-3"

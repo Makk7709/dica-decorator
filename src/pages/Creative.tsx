@@ -495,8 +495,9 @@ ${exampleRefs}
     let streamDone = false;
     let assistantContent = "";
 
-    // Add empty assistant message that we'll update
-    setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+    // Mis à jour par identité : des transcriptions vocales peuvent s'intercaler pendant le streaming.
+    let streamed: Message = { role: "assistant", content: "" };
+    setMessages(prev => [...prev, streamed]);
 
     while (!streamDone) {
       const { done, value } = await reader.read();
@@ -523,14 +524,10 @@ ${exampleRefs}
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) {
             assistantContent += content;
-            setMessages(prev => {
-              const newMessages = [...prev];
-              newMessages[newMessages.length - 1] = {
-                role: "assistant",
-                content: assistantContent
-              };
-              return newMessages;
-            });
+            const previous = streamed;
+            streamed = { role: "assistant", content: assistantContent };
+            const next = streamed;
+            setMessages(prev => prev.map(m => (m === previous ? next : m)));
           }
         } catch {
           textBuffer = line + "\n" + textBuffer;

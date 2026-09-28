@@ -14,7 +14,8 @@ const json = (body: unknown, status = 200) =>
   });
 
 const DEFAULT_DAILY_LIMIT = 5;
-const MAX_OUTPUT_TOKENS = 1500;
+// Les tokens audio comptent : ~50 par seconde de parole. 1500 coupait les réponses vers 30 s.
+const MAX_OUTPUT_TOKENS = 4096;
 
 const dailyLimit = () => {
   const n = Number.parseInt(Deno.env.get("VOICE_DAILY_LIMIT") ?? "", 10);
@@ -123,7 +124,13 @@ Deno.serve(async (req) => {
           audio: {
             input: {
               transcription: { model: "gpt-4o-mini-transcribe", language: "fr" },
-              turn_detection: { type: "server_vad" },
+              noise_reduction: { type: "far_field" },
+              turn_detection: {
+                type: "server_vad",
+                threshold: 0.6,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 700,
+              },
             },
             output: { voice: "marin" },
           },
