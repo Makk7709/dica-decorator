@@ -129,6 +129,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let refundQuota = async () => {};
+
   try {
     // ========================================================================
     // Authentication Check - Verify user is logged in
@@ -419,6 +421,23 @@ ${catalogSections.join('\n')}
       // STEP 2: IMAGE GENERATION - Use orchestrated prompt with Nano Banana
       // ========================================================================
       
+      // 1 image générée = 1 rendu de quota, remboursé si la génération échoue.
+      const { data: quotaAllowed, error: quotaError } = await supabaseAdmin.rpc(
+        "check_and_increment_quota",
+        { p_user_id: user.id },
+      );
+      if (quotaError || quotaAllowed === false) {
+        return new Response(
+          JSON.stringify({ error: "Quota de rendus épuisé. Contactez votre administrateur." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      refundQuota = async () => {
+        refundQuota = async () => {};
+        const { error } = await supabaseAdmin.rpc("refund_quota", { p_user_id: user.id });
+        if (error) console.error("Quota refund failed:", error.message);
+      };
+
       console.log("✅ Request validated, proceeding with image generation");
       console.log("Using orchestrated prompt:", orchestrationResult.finalPromptForImageModel?.substring(0, 200));
       
@@ -677,6 +696,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       
       if (!imageUrl) {
         console.warn("⚠️ No image in response! Full response structure:", JSON.stringify(data).substring(0, 2000));
+        await refundQuota();
       }
 
       // Build decor references for frontend display
@@ -860,6 +880,7 @@ Réponds en français de manière claire et professionnelle.`;
     });
   } catch (e) {
     console.error("Creative chat error:", e);
+    await refundQuota();
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Erreur inconnue" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

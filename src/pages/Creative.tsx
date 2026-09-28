@@ -402,11 +402,10 @@ ${exampleRefs}
     });
 
     if (!resp.ok) {
-      if (resp.status === 429 || resp.status === 402) {
-        const errorData = await resp.json();
-        throw new Error(errorData.error);
-      }
-      throw new Error("Échec de la connexion au service IA");
+      const errorData = await resp.json().catch(() => null);
+      throw new Error(
+        typeof errorData?.error === "string" ? errorData.error : "Échec de la connexion au service IA"
+      );
     }
 
     const contentType = resp.headers.get("content-type") || "";
