@@ -36,6 +36,7 @@ import { projectDeletionService } from "@/services/project-deletion.service";
 import { projectRenameService } from "@/services/project-rename.service";
 import { AppFooter } from "@/components/ui/app-footer";
 import { useProjects } from "@/hooks/use-projects";
+import projectsBackground from "@/assets/projects-background.png.asset.json";
 
 interface Project {
   id: string;
@@ -219,7 +220,7 @@ const Dashboard = () => {
   };
 
   return (
-    <PremiumLayout backgroundImage="/images/page-projets.webp">
+    <PremiumLayout backgroundImage={projectsBackground.url}>
       {/* Header */}
       <motion.header 
         className="header-premium sticky top-0 z-50"
