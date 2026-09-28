@@ -121,14 +121,14 @@ const ProjectDetail = () => {
         .eq("id", user.id)
         .single();
 
-      console.log("[Branding] Profile data loaded:", { data, error, userId: user.id });
+      console.log("[Branding] Profile data loaded", { hasData: !!data, hasError: !!error });
 
       if (!error && data) {
         const coBrandingEnabled = data.cobranding_enabled ?? false;
         setUserCoBrandingEnabled(coBrandingEnabled);
         
         console.log("[Branding] Co-branding enabled:", coBrandingEnabled);
-        console.log("[Branding] Company name:", data.company_name);
+        console.log("[Branding] Company name set");
         
         // Construire l'objet branding si co-branding activé et nom de société fourni
         if (coBrandingEnabled && data.company_name?.trim()) {
@@ -149,7 +149,7 @@ const ProjectDetail = () => {
           console.log("[Branding] Setting reseller branding:", branding);
           setResellerBranding(branding);
         } else {
-          console.log("[Branding] No branding set - enabled:", coBrandingEnabled, "companyName:", data.company_name);
+          console.log("[Branding] No branding set - enabled:", coBrandingEnabled, "hasCompanyName:", !!data.company_name);
           setResellerBranding(null);
         }
       } else {
@@ -185,7 +185,7 @@ const ProjectDetail = () => {
     }
 
     const isFavorite = favoriteRenderIds.has(renderId);
-    console.log(`[Favorites] Toggle: ${renderId}, isFavorite: ${isFavorite}, userId: ${user.id}`);
+    console.log(`[Favorites] Toggle: ${renderId}, isFavorite: ${isFavorite}`);
 
     try {
       if (isFavorite) {

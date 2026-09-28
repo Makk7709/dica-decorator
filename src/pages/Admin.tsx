@@ -916,7 +916,7 @@ const Admin = () => {
                   setResellerBranding(branding);
                   toast.success("Configuration du co-branding sauvegardée avec succès");
                   
-                  console.log("[Admin] Branding saved successfully for user:", user.id, branding);
+                  console.log("[Admin] Branding saved");
                 } catch (error: unknown) {
                   console.error("[Admin] Error saving branding:", error);
                   const message = error instanceof Error ? error.message : "Impossible de sauvegarder";
