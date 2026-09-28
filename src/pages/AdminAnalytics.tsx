@@ -135,7 +135,7 @@ const AdminAnalytics: React.FC = () => {
                 Analytics DICA
               </h1>
               <p className="text-muted-foreground mt-1">
-                {data
+                {data?.meta
                   ? `Du ${formatDay(data.meta.start)} au ${formatDay(data.meta.end)} · comparé au ${formatDay(data.meta.previousStart)} – ${formatDay(data.meta.previousEnd)}`
                   : 'Tableau de bord des statistiques et performances'}
               </p>
