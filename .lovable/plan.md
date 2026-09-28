@@ -1,29 +1,18 @@
-# Rendre effective la désactivation d'un compte par l'administrateur
+# Fiabiliser la récupération de compte (mot de passe oublié)
 
-## Constat (vérifié)
+Un bouton « Mot de passe oublié ? » existe déjà sur la page de connexion, mais les clients s'y perdent. Objectif : un parcours clair, des e-mails à vos couleurs, et un moyen pour l'admin de dépanner un client.
 
-Le bouton « Désactiver » de la page Admin appelle la fonction `get-users-admin` qui **se contente d'inverser le champ `is_active` du profil**. Rien n'exploite ensuite cette valeur :
+## Ce qui change pour les clients
+1. **E-mails à l'image DICA** : l'e-mail de réinitialisation (ainsi que confirmation d'inscription, lien magique, changement d'e-mail) part depuis votre domaine dicadecor.fr, en français, avec votre logo et vos couleurs, au lieu de l'e-mail générique actuel.
+2. **Page dédiée « Nouveau mot de passe »** : le lien de l'e-mail ouvre une page simple pour choisir le nouveau mot de passe (avec l'indicateur de force déjà utilisé à l'inscription), puis redirige vers le tableau de bord. Message clair si le lien a expiré, avec un bouton pour en redemander un.
+3. **Message de confirmation neutre** après la demande : « Si un compte existe pour cet e-mail, vous allez recevoir un lien » + rappel de vérifier les indésirables. Délai anti-spam de 60 s sur le bouton renvoyer.
+4. **Comptes Google** : rappel visible sur l'écran « mot de passe oublié » : « Vous vous êtes inscrit avec Google ? Utilisez Continuer avec Google » (cas de Jean-Pierre Brousset).
 
-- aucune politique de sécurité base de données ne filtre sur `is_active` pour les données utilisateur (seuls les décors, catégories et catalogues l'utilisent) ;
-- la protection des routes (`ProtectedRoute`) ne vérifie que « connecté » et « admin », jamais `is_active` ;
-- aucune session n'est révoquée et le compte d'authentification n'est pas bloqué (`banned_until` vide pour tous).
-
-Résultat : un compte « désactivé » continue de se connecter et d'utiliser l'app normalement. Le drapeau n'est aujourd'hui qu'un indicateur d'affichage.
-
-## Ce qui va être fait
-
-1. **Blocage réel côté authentification** — lors d'une désactivation, la fonction admin bloquera aussi le compte d'authentification et révoquera ses sessions en cours : l'utilisateur est déconnecté immédiatement et ne peut plus se reconnecter. La réactivation lève le blocage.
-2. **Filet de sécurité côté base de données** — les écritures des tables métier (projets, photos, rendus, créations IA, favoris) seront conditionnées à un profil actif, afin qu'un jeton encore valide ne puisse pas créer de données.
-3. **Message clair côté app** — si un compte désactivé garde une page ouverte, il est redirigé vers l'écran de connexion avec le message « Votre compte a été désactivé. Contactez l'administrateur. », au lieu d'un échec silencieux.
-4. **Protection contre l'auto-blocage** — un administrateur ne pourra pas désactiver son propre compte.
+## Ce qui change pour l'admin
+5. Dans la liste des utilisateurs (page Admin), un bouton **« Envoyer un lien de réinitialisation »** par compte, qui déclenche l'e-mail pour le client.
 
 ## Détails techniques
-
-- `supabase/functions/get-users-admin` (action `toggle_active`) : en plus du `update` sur `profiles`, appel de l'API admin d'authentification pour poser/retirer un bannissement et invalider les sessions (`ban_duration`, déconnexion globale). Refus si `userId` = appelant.
-- Migration : fonction `SECURITY DEFINER` `public.is_profile_active(uuid)` (stable, `search_path` figé), utilisée dans les clauses `WITH CHECK` des politiques INSERT/UPDATE de `projects`, `project_photos`, `render_results`, `ai_creations`, `render_favorites`, `creative_favorites`. La lecture reste autorisée pour ne pas casser une éventuelle réactivation.
-- `AuthContext` : lecture de `profiles.is_active` en même temps que le rôle ; si `false`, `signOut()` puis redirection `/auth` avec le message. `ProtectedRoute` s'appuie sur cet état.
-- Page Admin : le libellé du bouton reflète l'état réel après retour de la fonction.
-
-## Point à confirmer
-
-Aucun compte n'est désactivé aujourd'hui, donc la mise en place ne coupe l'accès à personne. Si tu veux en plus une **liste noire d'emails** empêchant la recréation d'un compte après désactivation, dis-le : ce n'est pas inclus dans ce plan.
+- Générer les modèles d'e-mails d'authentification gérés (domaine notify.www.dicadecor.fr déjà configuré), les styler (couleurs de index.css, logo public/images/dica-logo.png via un bucket email-assets), textes en français, puis déployer auth-email-hook.
+- Nouvelle route publique `/reset-password` (src/pages/ResetPassword.tsx) : détecte la session de récupération, appelle `updateUser({ password })` ; `resetPasswordForEmail` dans Auth.tsx redirige vers `${origin}/reset-password`. Retirer le mode récupération inline actuel de Auth.tsx.
+- Bouton admin : action ajoutée à la fonction get-users-admin (vérification rôle admin côté serveur) qui appelle `resetPasswordForEmail` pour l'e-mail ciblé.
+- Vérifier le plafond d'envoi d'e-mails d'authentification et l'augmenter si besoin.
