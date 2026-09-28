@@ -12,7 +12,33 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    {
+      // CSP injected only in production builds (dev HMR needs inline scripts)
+      name: "inject-csp",
+      apply: "build",
+      transformIndexHtml(html: string) {
+        const csp = [
+          "default-src 'self'",
+          "script-src 'self' https://cdn.gpteng.co https://*.lovable.app https://*.lovable.dev",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          "font-src 'self' data: https://fonts.gstatic.com",
+          "img-src 'self' data: blob: https:",
+          "media-src 'self' data: blob: https:",
+          "connect-src 'self' https: wss://*.supabase.co",
+          "worker-src 'self' blob:",
+          "frame-src 'self' https://accounts.google.com",
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self' https://accounts.google.com",
+        ].join("; ");
+        return html.replace(
+          "<head>",
+          `<head>\n    <meta http-equiv="Content-Security-Policy" content="${csp}" />`,
+        );
+      },
+    },
   ],
+  esbuild: mode === "production" ? { drop: ["debugger"], pure: ["console.log", "console.info", "console.debug"] } : undefined,
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

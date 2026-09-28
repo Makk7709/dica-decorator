@@ -152,7 +152,7 @@ const Creative = () => {
       const assistantMessage = messages[selectedMessageIndex];
       
       console.log("Saving favorite - selectedIndex:", selectedMessageIndex);
-      console.log("User message:", userMessage?.content?.substring(0, 100));
+      console.log("User message length:", userMessage?.content?.length ?? 0);
       console.log("Assistant message:", assistantMessage?.content?.substring(0, 100));
       console.log("Image URL present:", !!assistantMessage.imageUrl);
       

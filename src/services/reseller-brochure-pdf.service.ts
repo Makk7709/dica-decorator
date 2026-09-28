@@ -123,9 +123,9 @@ export class ResellerBrochurePdfService {
     console.log("📖 Brochure Revendeur - Starting PDF generation");
     console.log("🏢 Reseller branding object:", JSON.stringify(options.resellerBranding, null, 2));
     console.log("🏢 Reseller branding enabled:", options.resellerBranding?.enabled);
-    console.log("🏢 Reseller branding companyName:", options.resellerBranding?.companyName || 'NONE');
+    console.log("🏢 Reseller branding:", !!options.resellerBranding?.companyName);
     console.log("🏢 getCoverTitle result:", this.getCoverTitle(options.resellerBranding));
-    console.log("👤 Client name:", options.clientName || '(none)');
+    console.log("👤 Client name set:", !!options.clientName);
     
     try {
       // Validate inputs
