@@ -55,7 +55,7 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 // Move a message to the dead letter queue and log the reason.
 type QueueClient = {
   from: (table: string) => any
-  rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: any; error: any }>
+  rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: any; error: any }>
 }
 
 interface QueueMessage {
