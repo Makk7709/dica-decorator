@@ -25,6 +25,7 @@ import { ChatMessageItem, AssistantTyping } from "@/components/creative/ChatMess
 import { ChatEmptyState } from "@/components/creative/ChatEmptyState";
 import { ConversationHistory } from "@/components/creative/ConversationHistory";
 import { useCreativeConversation, type ChatMessage } from "@/hooks/use-creative-conversation";
+import creativeBackground from "@/assets/creative-background.png.asset.json";
 
 type Message = ChatMessage;
 type UploadedImage = ComposerAttachment;
@@ -848,7 +849,7 @@ ${exampleRefs}
   };
 
   return (
-    <PremiumLayout backgroundImage="/images/assistant-creatif.webp">
+    <PremiumLayout backgroundImage={creativeBackground.url}>
       <header className="header-premium sticky top-0 z-50">
         <div className="container mx-auto flex h-16 items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
