@@ -10,9 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDecors, type Decor } from "@/hooks/use-decors";
 
 const MAX_SESSION_MS = 10 * 60 * 1000;
+const MAX_COMPOSITION_DECORS = 4;
+
+export interface ComposeResult { ok: boolean; error?: string }
 
 interface Props {
   onTranscript: (role: "user" | "assistant", text: string) => void;
+  onCompose: (brief: string, references: string[]) => Promise<ComposeResult>;
 }
 
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -35,12 +39,29 @@ function searchDecors(decors: Decor[], args: { query?: string; category?: string
   return scored.map(({ d }) => ({ nom: d.name, reference: d.reference_code, categorie: d.category }));
 }
 
-export function VoiceAssistant({ onTranscript }: Props) {
+const compact = (s: string) => norm(s).replace(/[^a-z0-9]/g, "");
+
+export function resolveReferences(decors: Decor[], refs: unknown): { found: Decor[]; unknown: string[] } {
+  const requested = Array.isArray(refs) ? refs.filter((r): r is string => typeof r === "string" && r.trim() !== "") : [];
+  const byCode = new Map(decors.map((d) => [compact(d.reference_code), d] as const));
+  const found: Decor[] = [];
+  const unknown: string[] = [];
+  for (const ref of requested) {
+    const decor = byCode.get(compact(ref));
+    if (!decor) unknown.push(ref);
+    else if (!found.includes(decor)) found.push(decor);
+  }
+  return { found: found.slice(0, MAX_COMPOSITION_DECORS), unknown };
+}
+
+export function VoiceAssistant({ onTranscript, onCompose }: Props) {
   const { data: decors = [] } = useDecors();
   const decorsRef = useRef<Decor[]>([]);
   decorsRef.current = decors;
   const transcriptRef = useRef(onTranscript);
   transcriptRef.current = onTranscript;
+  const composeRef = useRef(onCompose);
+  composeRef.current = onCompose;
 
   const [state, setState] = useState<"idle" | "connecting" | "live">("idle");
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -66,7 +87,14 @@ export function VoiceAssistant({ onTranscript }: Props) {
     setState("connecting");
     try {
       const { data, error } = await supabase.functions.invoke("realtime-session");
-      if (error || !data?.value) throw new Error(data?.error ?? "Impossible de démarrer la session vocale");
+      if (error || !data?.value) {
+        let serverMessage: string | undefined = data?.error;
+        const context = (error as { context?: Response } | null)?.context;
+        if (!serverMessage && context && typeof context.json === "function") {
+          serverMessage = await context.json().then((b: { error?: string }) => b?.error).catch(() => undefined);
+        }
+        throw new Error(serverMessage ?? "Impossible de démarrer la session vocale");
+      }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -81,6 +109,21 @@ export function VoiceAssistant({ onTranscript }: Props) {
       pc.addTrack(stream.getTracks()[0], stream);
 
       const dc = pc.createDataChannel("oai-events");
+      const sendToolOutput = (callId: string, output: unknown) => {
+        dc.send(JSON.stringify({
+          type: "conversation.item.create",
+          item: { type: "function_call_output", call_id: callId, output: JSON.stringify(output) },
+        }));
+        dc.send(JSON.stringify({ type: "response.create" }));
+      };
+      const notifyAssistant = (text: string) => {
+        if (dc.readyState !== "open") return;
+        dc.send(JSON.stringify({
+          type: "conversation.item.create",
+          item: { type: "message", role: "system", content: [{ type: "input_text", text }] },
+        }));
+        dc.send(JSON.stringify({ type: "response.create" }));
+      };
       dc.onmessage = (ev) => {
         let msg: any;
         try { msg = JSON.parse(ev.data); } catch { return; }
@@ -91,12 +134,27 @@ export function VoiceAssistant({ onTranscript }: Props) {
         } else if (msg.type === "response.function_call_arguments.done" && msg.name === "search_decors") {
           let args = {};
           try { args = JSON.parse(msg.arguments || "{}"); } catch { /* ignore */ }
-          const results = searchDecors(decorsRef.current, args);
-          dc.send(JSON.stringify({
-            type: "conversation.item.create",
-            item: { type: "function_call_output", call_id: msg.call_id, output: JSON.stringify({ decors: results }) },
-          }));
-          dc.send(JSON.stringify({ type: "response.create" }));
+          sendToolOutput(msg.call_id, { decors: searchDecors(decorsRef.current, args) });
+        } else if (msg.type === "response.function_call_arguments.done" && msg.name === "create_composition") {
+          let args: { description?: unknown; references?: unknown } = {};
+          try { args = JSON.parse(msg.arguments || "{}"); } catch { /* ignore */ }
+          const brief = typeof args.description === "string" ? args.description.trim().slice(0, 1000) : "";
+          const { found, unknown } = resolveReferences(decorsRef.current, args.references);
+          if (!brief || found.length === 0) {
+            sendToolOutput(msg.call_id, {
+              statut: "refuse",
+              raison: !brief ? "Brief manquant." : "Aucune référence reconnue dans le catalogue. Utilise search_decors.",
+              references_inconnues: unknown,
+            });
+            return;
+          }
+          const references = found.map((d) => d.reference_code);
+          sendToolOutput(msg.call_id, { statut: "en_cours", references, references_inconnues: unknown });
+          void composeRef.current(brief, references).then((result) => {
+            notifyAssistant(result.ok
+              ? "La composition est maintenant affichée dans le chat. Annonce-le en une phrase et propose un ajustement."
+              : `La composition n'a pas pu être créée : ${result.error}. Explique-le brièvement au client.`);
+          });
         } else if (msg.type === "error") {
           console.error("Realtime error", msg.error?.message);
         }

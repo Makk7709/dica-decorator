@@ -8,5 +8,6 @@
 export { WelcomeModal } from './WelcomeModal';
 export { OnboardingChecklist, getDefaultChecklistItems } from './OnboardingChecklist';
 export { useOnboarding } from './useOnboarding';
+export { WhatsNewDialog, useWhatsNew } from './WhatsNewDialog';
 export type { ChecklistItem } from './OnboardingChecklist';
 

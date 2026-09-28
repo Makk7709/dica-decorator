@@ -13,12 +13,20 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+const DEFAULT_DAILY_LIMIT = 5;
+const MAX_OUTPUT_TOKENS = 1500;
+
+const dailyLimit = () => {
+  const n = Number.parseInt(Deno.env.get("VOICE_DAILY_LIMIT") ?? "", 10);
+  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_DAILY_LIMIT;
+};
+
 const RULES = `
 RÈGLES STRICTES (non négociables) :
 1. Périmètre : tu parles UNIQUEMENT de DICA France, Compactop, du stratifié HPL, du compact HPL, de leurs usages, de l'aménagement avec ces matériaux et du choix de décors. Pour tout autre sujet, réponds poliment que tu es limité à ce domaine et recentre la conversation.
 2. Normes : le contexte est français et européen (ex. familles de normes NF / EN pour les stratifiés, classements de réaction au feu européens). Tu ne cites JAMAIS une norme précise, un classement feu, une certification, une épaisseur, une résistance, un prix, un délai ou une disponibilité que tu ne peux pas vérifier. Dans ce cas, dis clairement que tu ne peux pas le confirmer et invite à consulter la fiche technique ou un conseiller DICA France. Ne cite jamais de normes non européennes comme référence.
 3. Décors : quand tu proposes un décor ou une combinaison, appelle TOUJOURS l'outil search_decors et ne cite que des décors renvoyés par l'outil (nom + référence). N'invente jamais de référence.
-4. Tu ne génères pas d'images. Si le client veut un rendu, invite-le à décrire son projet dans le champ texte de l'assistant créatif.
+4. Compositions visuelles : si le client veut un visuel (mood board, planche, mise en situation, projet avec certaines références), appelle d'abord search_decors pour obtenir les références exactes, récapitule en une phrase le type d'espace et les décors retenus (1 à 4), puis appelle create_composition. Chaque composition consomme un rendu du quota du client. Tant que tu n'as pas reçu la confirmation que l'image est affichée, dis seulement qu'elle est en cours de création. Tu ne décris jamais une image que tu n'as pas vue.
 5. Tu parles français, de façon professionnelle, simple et concise (réponses orales courtes, 2 à 4 phrases), puis tu poses une question utile pour qualifier le besoin.
 `;
 
@@ -39,6 +47,30 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    type: "function",
+    name: "create_composition",
+    description:
+      "Lance la génération d'une composition visuelle dans le chat à partir de décors DICA réels (textures du catalogue). Uniquement avec des références renvoyées par search_decors.",
+    parameters: {
+      type: "object",
+      properties: {
+        description: {
+          type: "string",
+          description: "Brief du visuel en français : type d'espace ou de support, ambiance, emplacement de chaque décor, format (ex. 'cuisine contemporaine, façades en chêne clair, plan de travail marbre blanc').",
+        },
+        references: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+          maxItems: 4,
+          description: "Références exactes des décors à utiliser (1 à 4), telles que renvoyées par search_decors.",
+        },
+      },
+      required: ["description", "references"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 Deno.serve(async (req) => {
@@ -56,6 +88,26 @@ Deno.serve(async (req) => {
     const { data: profile } = await admin.from("profiles").select("is_active").eq("id", user.id).maybeSingle();
     if (profile && profile.is_active === false) return json({ error: "Compte désactivé" }, 403);
 
+    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+    let sessionId: string | null = null;
+    if (!isAdmin) {
+      const { data: claimed, error: claimError } = await admin.rpc("claim_voice_session", {
+        _user_id: user.id,
+        _daily_limit: dailyLimit(),
+      });
+      if (claimError) {
+        console.error("claim_voice_session", claimError.message);
+        return json({ error: "Erreur serveur" }, 500);
+      }
+      if (!claimed) {
+        return json({ error: "Limite quotidienne d'appels vocaux atteinte. Réessayez demain." }, 429);
+      }
+      sessionId = claimed as string;
+    }
+    const releaseSession = async () => {
+      if (sessionId) await admin.from("voice_sessions").delete().eq("id", sessionId);
+    };
+
     const res = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -67,6 +119,7 @@ Deno.serve(async (req) => {
           instructions: `${DICA_KNOWLEDGE}\n${RULES}`,
           tools: TOOLS,
           tool_choice: "auto",
+          max_output_tokens: MAX_OUTPUT_TOKENS,
           audio: {
             input: {
               transcription: { model: "gpt-4o-mini-transcribe", language: "fr" },
@@ -80,7 +133,8 @@ Deno.serve(async (req) => {
     const data = await res.json();
     if (!res.ok) {
       console.error("OpenAI realtime error", res.status, data?.error?.message);
-      return json({ error: data?.error?.message ?? "Erreur OpenAI" }, res.status);
+      await releaseSession();
+      return json({ error: "Le service vocal est momentanément indisponible." }, 502);
     }
     return json({ value: data.value, expires_at: data.expires_at });
   } catch (e) {

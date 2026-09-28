@@ -8,6 +8,7 @@ import { orchestrateDicaPrompt, type OrchestratorInput, FORMAT_PRESETS } from ".
 const MAX_MESSAGES = 60;
 const MAX_MESSAGE_CHARS = 8000;
 const MAX_SOURCE_IMAGES = 10;
+const MAX_REQUESTED_DECORS = 4;
 
 /**
  * N'accepte que les images Storage de ce projet : fichiers de l'utilisateur
@@ -163,7 +164,7 @@ serve(async (req) => {
     console.log("Authenticated user:", user.id);
     // ========================================================================
 
-    const { messages, decorContext: _legacyDecorContext, sourceImageUrls, imageLabels, showReferences = false } = await req.json();
+    const { messages, decorContext: _legacyDecorContext, sourceImageUrls, imageLabels, showReferences = false, requestedDecorRefs } = await req.json();
 
     const invalidMessages = !Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES ||
       messages.some((m) => typeof m?.content !== "string" || m.content.length > MAX_MESSAGE_CHARS);
@@ -182,6 +183,31 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    // Références imposées explicitement (ex. commande vocale) : seules les références actives du catalogue sont retenues.
+    const requestedRefCodes: string[] = Array.isArray(requestedDecorRefs)
+      ? [...new Set(
+          requestedDecorRefs
+            .filter((r: unknown): r is string => typeof r === "string" && r.trim().length > 0 && r.length <= 60)
+            .map((r: string) => r.trim()),
+        )].slice(0, MAX_REQUESTED_DECORS)
+      : [];
+    let requestedDecors: { reference_code: string; name: string }[] = [];
+    if (requestedRefCodes.length > 0) {
+      const { data: rows } = await supabaseAdmin
+        .from("decors")
+        .select("reference_code, name")
+        .in("reference_code", requestedRefCodes)
+        .eq("is_active", true);
+      const byCode = new Map((rows || []).map((d: { reference_code: string; name: string }) => [d.reference_code, d] as const));
+      requestedDecors = requestedRefCodes.flatMap((code) => byCode.get(code) ?? []);
+      if (requestedDecors.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Aucune des références demandées n'existe dans le catalogue DICA actif." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     console.log('Creative chat request received');
     console.log('- Messages:', messages.length);
     console.log('- Source images URLs:', sourceImageUrls?.length || 0);
@@ -340,7 +366,8 @@ ${catalogSections.join('\n')}
     const mentionsDecors = /uni|bois|métal|metal|marbre|inox|chêne|olive|rouge|noir|blanc|gris|bleu|vert|shiky|3\d{3}/i.test(lastUserMessage);
     
     // FORCE image mode if: user uploaded image AND (mentions decors OR uses action keywords)
-    const wantsImage = hasMultipleImages || 
+    const wantsImage = requestedDecors.length > 0 ||
+                       hasMultipleImages || 
                        (hasAnyImages && mentionsDecors) ||
                        (hasAnyImages && imageKeywords.some(keyword => lastUserMessage.includes(keyword))) ||
                        imageKeywords.some(keyword => lastUserMessage.includes(keyword));
@@ -373,8 +400,11 @@ ${catalogSections.join('\n')}
       
       console.log("🎯 Starting DICA Prompt Orchestrator...");
       
+      const requestedDecorNote = requestedDecors.length > 0
+        ? `\n\nDécors imposés par le client (références vérifiées dans le catalogue DICA, à utiliser toutes et uniquement celles-ci) :\n${requestedDecors.map((d) => `- "${d.reference_code}" = ${d.name}`).join("\n")}`
+        : "";
       const orchestratorInput: OrchestratorInput = {
-        userPrompt: messages[messages.length - 1]?.content || "",
+        userPrompt: (messages[messages.length - 1]?.content || "") + requestedDecorNote,
         decorContext,
         sourceImages: allSourceImages,
         imageLabels: allImageLabels,
@@ -391,6 +421,11 @@ ${catalogSections.join('\n')}
         decorReferences: orchestrationResult.decorReferences,
         nbVariants: orchestrationResult.nbVariants
       });
+
+      if (requestedDecors.length > 0) {
+        orchestrationResult.decorReferences = requestedDecors.map((d) => d.reference_code);
+        orchestrationResult.decorLabels = requestedDecors.map((d) => d.name);
+      }
 
       // Handle orchestration statuses
       if (orchestrationResult.status === "need_clarification") {
@@ -593,7 +628,7 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
       // Add decor texture URLs as image references (no base64 needed!)
       // ======================================================================
       if (orchestrationResult.decorReferences.length > 0) {
-        const limitedRefs = orchestrationResult.decorReferences.slice(0, 2);
+        const limitedRefs = orchestrationResult.decorReferences.slice(0, requestedDecors.length > 0 ? MAX_REQUESTED_DECORS : 2);
         console.log(`Adding ${limitedRefs.length} decor texture URLs...`);
 
         const { data: decorRows, error: decorErr } = await supabaseAdmin

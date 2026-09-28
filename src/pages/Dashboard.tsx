@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { WelcomeModal, useOnboarding } from "@/components/onboarding";
+import { WelcomeModal, WhatsNewDialog, useOnboarding, useWhatsNew } from "@/components/onboarding";
 import { Plus, LogOut, Settings, FolderOpen, Wand2, BookOpen, ChevronRight, Calendar, HelpCircle, Trash2, AlertTriangle, Loader2, Pencil, Check, X, Heart, Building2, MoreHorizontal, Moon, Sun } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -59,7 +59,8 @@ const Dashboard = () => {
   const [isRenaming, setIsRenaming] = useState(false);
   const [coBrandingEnabled, setCoBrandingEnabled] = useState(false);
   
-  const { showWelcome, completeWelcome } = useOnboarding();
+  const { showWelcome, completeWelcome, isNewUser } = useOnboarding();
+  const { showWhatsNew, markWhatsNewSeen } = useWhatsNew();
   const { resolvedTheme, toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -391,8 +392,20 @@ const Dashboard = () => {
       <WelcomeModal
         open={showWelcome}
         onOpenChange={() => {}}
-        onComplete={completeWelcome}
+        onComplete={() => {
+          completeWelcome();
+          markWhatsNewSeen();
+        }}
         userName={user?.email?.split('@')[0]}
+      />
+
+      <WhatsNewDialog
+        open={!isNewUser && showWhatsNew}
+        onClose={markWhatsNewSeen}
+        onTryVoice={() => {
+          markWhatsNewSeen();
+          navigate("/creative");
+        }}
       />
 
       {/* Main Content */}

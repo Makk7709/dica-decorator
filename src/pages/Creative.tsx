@@ -16,7 +16,7 @@ import { PremiumLayout, ContentContainer } from "@/components/ui/premium-layout"
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ImageExportDropdown } from "@/components/ui/image-export-dropdown";
 import { SafeImage } from "@/components/ui/safe-image";
-import { VoiceAssistant } from "@/components/creative/VoiceAssistant";
+import { VoiceAssistant, type ComposeResult } from "@/components/creative/VoiceAssistant";
 
 interface DecorReference {
   reference: string;
@@ -373,7 +373,11 @@ ${exampleRefs}
     setUploadedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const streamChat = async (userMessage: string, sourceImages?: UploadedImage[]) => {
+  const streamChat = async (
+    userMessage: string,
+    sourceImages?: UploadedImage[],
+    requestedDecorRefs?: string[],
+  ): Promise<"image" | "text"> => {
     const decorContext = buildDecorContext();
     const chatUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/creative-chat`;
     
@@ -399,6 +403,7 @@ ${exampleRefs}
         sourceImageUrls,  // Array of image URLs
         imageLabels,      // Array of labels for each image
         showReferences,   // Afficher les références DICA sur l'image
+        requestedDecorRefs,
       }),
     });
 
@@ -433,12 +438,12 @@ ${exampleRefs}
         autoSaveCreation(data.imageUrl, userMessage).catch((e) =>
           console.error("Auto-save AI creation failed:", e)
         );
-        return;
+        return data.imageUrl ? "image" : "text";
       }
 
       if (data?.type === "text" && typeof data?.content === "string") {
         setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
-        return;
+        return "text";
       }
 
       throw new Error("Réponse inattendue du service IA");
@@ -498,6 +503,26 @@ ${exampleRefs}
           break;
         }
       }
+    }
+    return "text";
+  };
+
+  const handleVoiceCompose = async (brief: string, references: string[]): Promise<ComposeResult> => {
+    if (isLoading) return { ok: false, error: "une autre génération est déjà en cours" };
+    const userMessage = `🎤 Composition : ${brief}\nDécors : ${references.join(", ")}`;
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setIsLoading(true);
+    try {
+      const outcome = await streamChat(userMessage, undefined, references);
+      return outcome === "image"
+        ? { ok: true }
+        : { ok: false, error: "l'assistant demande des précisions, affichées dans le chat" };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erreur lors de la génération";
+      toast.error(message);
+      return { ok: false, error: message };
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1085,6 +1110,7 @@ ${exampleRefs}
                     />
                     <VoiceAssistant
                       onTranscript={(role, text) => setMessages((prev) => [...prev, { role, content: text }])}
+                      onCompose={handleVoiceCompose}
                     />
                     <Button 
                       onClick={handleSend} 
