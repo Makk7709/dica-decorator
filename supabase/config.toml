@@ -1,53 +1,31 @@
 project_id = "urkftxznsynmvkskytih"
 
 [auth]
-# Enforcement serveur des règles de mot de passe (miroir des règles client dans
-# src/lib/password-strength.ts). Bloque les signups qui contournent l'UI.
-# Appliquer sur le projet hébergé via `supabase config push` (ou dashboard :
-# Authentication > Sign In / Providers > Password Requirements).
-minimum_password_length = 8
-password_requirements = "lower_upper_letters_digits_symbols"
+  minimum_password_length = 8
+  password_requirements = "lower_upper_letters_digits_symbols"
+  [auth.email]
+    enable_confirmations = true
 
-[auth.email]
-# Confirmation d'email obligatoire à l'inscription. Sans elle, n'importe qui
-# peut créer un compte actif avec l'email d'un tiers (constaté en prod le
-# 2026-07-02 : mailer_autoconfirm était à true).
-# PRÉREQUIS avant push : un SMTP custom configuré dans le dashboard
-# (Settings > Auth > SMTP). Le SMTP intégré Supabase est limité à ~2 emails/h
-# et bloquerait les inscriptions.
-enable_confirmations = true
-
-# verify_jwt = true : la passerelle Supabase valide la signature du JWT avant
-# d'exécuter la fonction (défense en profondeur). Ces 5 fonctions sont toujours
-# appelées depuis le client avec le token de session utilisateur.
-# La vérification cryptographique est aussi refaite dans le handler via
-# supabaseAdmin.auth.getUser(token). Nécessite un redéploiement des fonctions.
-[functions.apply-decor]
-verify_jwt = true
-
-[functions.creative-chat]
-verify_jwt = true
-
-[functions.generate-magazine-captions]
-verify_jwt = true
-
-[functions.get-analytics]
-verify_jwt = true
-
-[functions.get-users-admin]
-verify_jwt = true
-
-[functions.process-email-queue]
-verify_jwt = true
-
-[functions.send-transactional-email]
-verify_jwt = true
-
-[functions.preview-transactional-email]
-verify_jwt = false
-
-[functions.handle-email-unsubscribe]
-verify_jwt = false
-
-[functions.handle-email-suppression]
-verify_jwt = false
+[functions]
+  [functions.apply-decor]
+    verify_jwt = true
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.creative-chat]
+    verify_jwt = true
+  [functions.generate-magazine-captions]
+    verify_jwt = true
+  [functions.get-analytics]
+    verify_jwt = true
+  [functions.get-users-admin]
+    verify_jwt = true
+  [functions.handle-email-suppression]
+    verify_jwt = false
+  [functions.handle-email-unsubscribe]
+    verify_jwt = false
+  [functions.preview-transactional-email]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
+  [functions.send-transactional-email]
+    verify_jwt = true

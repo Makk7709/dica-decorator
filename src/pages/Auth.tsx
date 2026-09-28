@@ -60,15 +60,15 @@ const Auth = () => {
     }
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(loginData.email, {
-        redirectTo: `${globalThis.location.origin}/auth`,
+      await supabase.auth.resetPasswordForEmail(loginData.email, {
+        redirectTo: `${globalThis.location.origin}/reset-password`,
       });
-      if (error) throw error;
-      toast.success("Un email de réinitialisation a été envoyé. Vérifiez votre boîte mail.", { duration: 8000 });
-    } catch {
-      // Message générique
-      toast.success("Si ce compte existe, un email de réinitialisation a été envoyé.", { duration: 8000 });
     } finally {
+      // Message neutre (ne révèle pas si le compte existe)
+      toast.success(
+        "Si un compte existe pour cet e-mail, vous allez recevoir un lien de réinitialisation. Pensez à vérifier vos courriers indésirables. Inscrit avec Google ? Utilisez « Continuer avec Google ».",
+        { duration: 12000 },
+      );
       setIsLoading(false);
     }
   };

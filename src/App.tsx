@@ -12,6 +12,7 @@ import { Loader2 } from "lucide-react";
 // Lazy load all pages for better performance
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const NewProject = lazy(() => import("./pages/NewProject"));
 const ProjectDetail = lazy(() => import("./pages/ProjectDetail"));
@@ -61,6 +62,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route
                   path="/dashboard"
                   element={

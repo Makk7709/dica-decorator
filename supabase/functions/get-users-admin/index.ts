@@ -75,6 +75,28 @@ serve(async (req) => {
       );
     }
 
+    // ====== SEND PASSWORD RESET ======
+    if (action === "send_password_reset") {
+      const { userId } = body;
+      if (typeof userId !== "string" || !userId) {
+        return new Response(
+          JSON.stringify({ error: "userId is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: target, error: getErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (getErr || !target?.user?.email) throw getErr ?? new Error("Utilisateur introuvable");
+      const { error: resetErr } = await supabaseAdmin.auth.resetPasswordForEmail(target.user.email, {
+        redirectTo: "https://www.dicadecor.fr/reset-password",
+      });
+      if (resetErr) throw resetErr;
+      const googleOnly = (target.user.identities ?? []).every((i) => i.provider !== "email");
+      return new Response(
+        JSON.stringify({ success: true, googleOnly }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ====== DELETE USER ======
     if (action === "delete_user") {
       const { userId } = body;
