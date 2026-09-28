@@ -268,6 +268,24 @@ const Admin = () => {
     }
   };
 
+  const handleSendPasswordReset = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("get-users-admin", {
+        method: "POST",
+        body: { action: "send_password_reset", userId },
+      });
+      if (error) throw error;
+      toast.success(
+        data?.googleOnly
+          ? "Lien envoyé. Attention : ce client s'est inscrit avec Google, il peut aussi simplement utiliser « Continuer avec Google »."
+          : "Lien de réinitialisation envoyé au client.",
+        { duration: 8000 },
+      );
+    } catch {
+      toast.error("Impossible d'envoyer le lien de réinitialisation");
+    }
+  };
+
   const handleToggleUserActive = async (userId: string, isActive: boolean) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -784,6 +802,15 @@ const Admin = () => {
                               Modifier quota
                             </Button>
                           )}
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSendPasswordReset(user.id)}
+                          >
+                            <KeyRound className="mr-2 h-4 w-4" />
+                            Lien mot de passe
+                          </Button>
 
                           {/* Toggle Active */}
                           <Button
