@@ -619,6 +619,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      refund_quota: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "client"
