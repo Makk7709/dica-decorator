@@ -25,6 +25,7 @@ import { ChatMessageItem, AssistantTyping } from "@/components/creative/ChatMess
 import { ChatEmptyState } from "@/components/creative/ChatEmptyState";
 import { ConversationHistory } from "@/components/creative/ConversationHistory";
 import { useCreativeConversation, type ChatMessage } from "@/hooks/use-creative-conversation";
+import creativeBackground from "@/assets/creative-background.png.asset.json";
 
 type Message = ChatMessage;
 type UploadedImage = ComposerAttachment;
