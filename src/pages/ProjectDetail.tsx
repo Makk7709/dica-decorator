@@ -881,7 +881,7 @@ const ProjectDetail = () => {
                 asChild 
                 disabled={isUploading} 
                 size="lg" 
-                className="btn-primary-premium h-12 px-6 rounded-xl cursor-pointer"
+                variant="command" className="h-12 px-6 cursor-pointer"
               >
                 <span>
                   {isUploading ? (
@@ -908,15 +908,15 @@ const ProjectDetail = () => {
           <div className="card-premium p-5 md:p-6 mb-6 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-500" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 <h3 className="font-semibold">Créations Assistant IA</h3>
                 {isLoadingRenders ? (
-                  <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="text-xs bg-primary/10 text-primary border border-primary/25 px-2 py-0.5 rounded-sm font-mono text-[10.5px] uppercase tracking-[0.1em] flex items-center gap-1">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Chargement...
                   </span>
                 ) : (
-                  <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                  <span className="text-xs bg-primary/10 text-primary border border-primary/25 px-2 py-0.5 rounded-sm font-mono text-[10.5px] uppercase tracking-[0.1em]">
                     {creativeImports.length}
                   </span>
                 )}
@@ -927,11 +927,11 @@ const ProjectDetail = () => {
             {isLoadingRenders && creativeImports.length === 0 && (
               <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="rounded-xl border border-purple-200 dark:border-purple-800/50 overflow-hidden bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-background animate-pulse">
-                    <div className="aspect-square bg-purple-100 dark:bg-purple-900/30" />
+                  <div key={i} className="rounded-xl border border-border overflow-hidden bg-card animate-pulse">
+                    <div className="aspect-square bg-muted" />
                     <div className="p-2 space-y-2">
-                      <div className="h-4 bg-purple-100 dark:bg-purple-900/30 rounded w-3/4" />
-                      <div className="h-3 bg-purple-100 dark:bg-purple-900/30 rounded w-1/2" />
+                      <div className="h-4 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
                     </div>
                   </div>
                 ))}
@@ -950,7 +950,7 @@ const ProjectDetail = () => {
               {creativeImports.map((creative, index) => (
                 <div 
                   key={creative.id}
-                  className="group rounded-xl border border-purple-200 dark:border-purple-800/50 overflow-hidden bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/20 dark:to-background animate-fade-in"
+                  className="group rounded-xl border border-border overflow-hidden bg-card animate-fade-in"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="relative">
@@ -961,7 +961,7 @@ const ProjectDetail = () => {
                       loading="lazy"
                     />
                     {/* Badge IA */}
-                    <div className="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                    <div className="absolute top-2 left-2 bg-ink/90 text-ink-foreground text-xs px-2 py-1 rounded-sm flex items-center gap-1">
                       <Sparkles className="h-3 w-3" />
                       IA
                     </div>
@@ -1048,7 +1048,7 @@ const ProjectDetail = () => {
                   asChild 
                   disabled={isUploading} 
                   size="lg"
-                  className="btn-primary-premium h-12 px-8 rounded-xl cursor-pointer"
+                  variant="command" className="h-12 px-8 cursor-pointer"
                 >
                   <span>
                     <Upload className="mr-2 h-5 w-5" />
@@ -1114,7 +1114,7 @@ const ProjectDetail = () => {
                         };
                         img.src = photoSignedUrl;
                       }}
-                  className="w-full btn-primary-premium h-11 rounded-xl"
+                  variant="command" className="w-full h-11"
                     >
                   <Sparkles className="mr-2 h-4 w-4" />
                       Appliquer un décor

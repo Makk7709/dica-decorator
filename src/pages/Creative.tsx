@@ -874,10 +874,8 @@ ${exampleRefs}
                         >
                           <div className={`flex flex-col gap-2 max-w-[80%] ${message.role === "user" ? "items-end" : "items-start"}`}>
                             <div
-                              className={`rounded-lg px-4 py-3 ${
-                                message.role === "user"
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-foreground"
+                              className={`bubble ${
+                                message.role === "user" ? "bubble-user" : "bubble-assistant"
                               }`}
                             >
                               {message.sourceImageUrls && message.sourceImageUrls.length > 0 && message.role === "user" && (

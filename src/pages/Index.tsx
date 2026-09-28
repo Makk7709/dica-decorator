@@ -36,9 +36,13 @@ const Index = () => {
         <Button
           size="lg"
           onClick={() => navigate(user ? "/dashboard" : "/auth")}
-          className="h-14 px-24 text-xl font-semibold transition-all duration-300 bg-white text-black hover:bg-white hover:scale-105 w-full max-w-md rounded-full animate-glow-pulse hover:shadow-[0_0_30px_rgba(233,78,93,0.7),0_0_60px_rgba(233,78,93,0.4)]"
+          variant="command"
+          className="h-14 w-full max-w-md text-base [--chamfer:14px] [--ink:222_24%_8%] [--ink-2:222_20%_13%]"
         >
           Entrer
+          <span className="border-l border-ink-foreground/20 pl-3 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-ink-foreground/55">
+            Visual Studio
+          </span>
         </Button>
       </div>
 

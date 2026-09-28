@@ -304,7 +304,7 @@ const Auth = () => {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
+                    className="h-11 rounded-xl bg-muted/30 border-border/50 transition-colors"
                   />
                   <p className="text-xs text-muted-foreground">
                     Min. 8 caractères, majuscule, minuscule, chiffre et caractère spécial
@@ -319,12 +319,12 @@ const Auth = () => {
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     required
-                    className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
+                    className="h-11 rounded-xl bg-muted/30 border-border/50 transition-colors"
                   />
                 </div>
                 <Button 
                   type="submit" 
-                  className="w-full btn-primary-premium h-11 rounded-xl" 
+                  variant="command" className="w-full h-11" 
                   disabled={isLoading}
                 >
                   {isLoading ? (
@@ -339,16 +339,16 @@ const Auth = () => {
               </form>
             ) : (
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 h-11 p-1 bg-muted/50 rounded-xl mb-6">
+              <TabsList className="grid w-full grid-cols-2 h-11 mb-6">
                 <TabsTrigger 
                   value="login" 
-                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  className="rounded-lg"
                 >
                   Connexion
                 </TabsTrigger>
                 <TabsTrigger 
                   value="signup"
-                  className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  className="rounded-lg"
                 >
                   Inscription
                 </TabsTrigger>
@@ -365,7 +365,7 @@ const Auth = () => {
                       value={loginData.email}
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       required
-                      className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
+                      className="h-11 rounded-xl bg-muted/30 border-border/50 transition-colors"
                     />
                   </div>
                   <div className="space-y-2">
@@ -378,7 +378,7 @@ const Auth = () => {
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                         required
-                        className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors pr-10"
+                        className="h-11 rounded-xl bg-muted/30 border-border/50 transition-colors pr-10"
                       />
                       <Button
                         type="button"
@@ -394,7 +394,7 @@ const Auth = () => {
                   </div>
                   <Button
                     type="submit" 
-                    className="w-full btn-primary-premium h-11 rounded-xl" 
+                    variant="command" className="w-full h-11" 
                     disabled={isLoading || isGoogleLoading}
                   >
                     {isLoading ? (
@@ -459,7 +459,7 @@ const Auth = () => {
                       value={signupData.email}
                       onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                       required
-                      className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
+                      className="h-11 rounded-xl bg-muted/30 border-border/50 transition-colors"
                     />
                   </div>
                   <div className="space-y-2">
@@ -472,7 +472,7 @@ const Auth = () => {
                         value={signupData.password}
                         onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                         required
-                        className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors pr-10"
+                        className="h-11 rounded-xl bg-muted/30 border-border/50 transition-colors pr-10"
                       />
                       <Button
                         type="button"
@@ -499,12 +499,12 @@ const Auth = () => {
                       value={signupData.confirmPassword}
                       onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
                       required
-                      className="h-11 rounded-xl bg-muted/30 border-border/50 focus:bg-white transition-colors"
+                      className="h-11 rounded-xl bg-muted/30 border-border/50 transition-colors"
                     />
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full btn-primary-premium h-11 rounded-xl" 
+                    variant="command" className="w-full h-11" 
                     disabled={isLoading || isGoogleLoading || (signupData.password.length > 0 && !signupPasswordValid)}
                   >
                     {isLoading ? (

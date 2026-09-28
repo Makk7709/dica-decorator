@@ -367,6 +367,7 @@ const Dashboard = () => {
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
             <div className="space-y-2">
               <SectionTitle 
+                eyebrow="DICA / Espace projets"
                 title="Mes Projets" 
                 subtitle="Visualisez vos décors DICA sur vos espaces en un clic."
               />
@@ -380,7 +381,7 @@ const Dashboard = () => {
               <Button 
                 onClick={handleCreateProject} 
                 size="lg" 
-                className="btn-primary-premium h-12 px-7 rounded-xl shrink-0"
+                variant="command" className="h-12 px-7 shrink-0"
               >
                 <Plus className="mr-2 h-5 w-5" />
                 Nouveau Projet
@@ -452,7 +453,7 @@ const Dashboard = () => {
                 <Button 
                   onClick={handleCreateProject} 
                   size="lg"
-                  className="btn-primary-premium h-12 px-8 rounded-xl"
+                  variant="command" className="h-12 px-8"
                 >
                   <Plus className="mr-2 h-5 w-5" />
                   Créer mon premier projet

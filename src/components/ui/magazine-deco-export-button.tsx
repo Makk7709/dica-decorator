@@ -194,7 +194,7 @@ export function MagazineDecoExportButton({
                 <BookOpen className="h-5 w-5 text-primary" />
               </div>
               Export Magazine DECO
-              <Badge variant="secondary" className="ml-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-700 border-purple-500/30">
+              <Badge variant="secondary" className="ml-2 border-primary/30 bg-primary/10 text-primary">
                 <Sparkles className="h-3 w-3 mr-1" />
                 Éditorial
               </Badge>

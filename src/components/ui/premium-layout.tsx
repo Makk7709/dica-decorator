@@ -128,6 +128,8 @@ export function PremiumCard({
 interface SectionTitleProps {
   title: string;
   subtitle?: string;
+  /** Fil d'Ariane technique affiché au-dessus du titre, segments séparés par « / ». */
+  eyebrow?: string;
   className?: string;
 }
 
@@ -137,10 +139,22 @@ interface SectionTitleProps {
 export function SectionTitle({ 
   title, 
   subtitle,
+  eyebrow,
   className 
 }: Readonly<SectionTitleProps>) {
+  const segments = eyebrow?.split("/").map((s) => s.trim()).filter(Boolean) ?? [];
   return (
     <div className={cn("space-y-1", className)}>
+      {segments.length > 0 && (
+        <p className="eyebrow mb-3 flex items-center gap-2">
+          {segments.map((segment, i) => (
+            <span key={segment} className="flex items-center gap-2">
+              {i > 0 && <span className="text-primary">/</span>}
+              <span className={i === segments.length - 1 ? "text-foreground/80" : undefined}>{segment}</span>
+            </span>
+          ))}
+        </p>
+      )}
       <h2 className="section-title text-2xl md:text-3xl">{title}</h2>
       {subtitle && (
         <p className="section-subtitle text-base md:text-lg max-w-2xl">

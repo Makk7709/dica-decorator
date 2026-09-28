@@ -457,7 +457,7 @@ export const DecorSelectorDialog = ({
               onClick={onGenerate}
               disabled={!hasSelection || isGenerating}
               size="lg"
-              className="btn-primary-premium"
+              variant="command"
             >
               {isGenerating ? (
                 <>

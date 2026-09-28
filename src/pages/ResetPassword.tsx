@@ -89,7 +89,7 @@ const ResetPassword = () => {
                 Ce lien est invalide ou a expiré. Retournez à la page de connexion, saisissez votre e-mail
                 puis cliquez sur « Mot de passe oublié ? » pour en recevoir un nouveau.
               </p>
-              <Button asChild className="w-full btn-primary-premium h-11 rounded-xl">
+              <Button asChild variant="command" className="w-full h-11">
                 <Link to="/auth">Demander un nouveau lien</Link>
               </Button>
             </div>
@@ -121,7 +121,7 @@ const ResetPassword = () => {
                   className="h-11 rounded-xl"
                 />
               </div>
-              <Button type="submit" className="w-full btn-primary-premium h-11 rounded-xl" disabled={loading}>
+              <Button type="submit" variant="command" className="w-full h-11" disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enregistrer le mot de passe"}
               </Button>
             </form>
