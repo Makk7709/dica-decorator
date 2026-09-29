@@ -318,6 +318,16 @@ ${catalogSections.join('\n')}
       if (resolved) allSourceImages.push(resolved);
     }
     console.log('- Total source images:', allSourceImages.length, '/', requestedImages.length);
+
+    // Dernier rendu généré dans ce chat : base à modifier pour les ajustements du client.
+    let previousRender: string | null = null;
+    for (let i = messages.length - 2; i >= 0 && !previousRender; i--) {
+      const m = messages[i];
+      if (m?.role === 'assistant' && typeof m.imageUrl === 'string') {
+        previousRender = await resolveSourceImage(m.imageUrl, user.id, supabaseUrl, supabaseAdmin);
+      }
+    }
+    console.log('- Previous render in chat:', !!previousRender);
     
     console.log('- Decor context preview:', decorContext?.substring(0, 200));
 
@@ -360,7 +370,7 @@ ${catalogSections.join('\n')}
     
     // Force image mode if user has uploaded images
     const hasMultipleImages = allSourceImages.length > 1;
-    const hasAnyImages = allSourceImages.length > 0;
+    const hasAnyImages = allSourceImages.length > 0 || !!previousRender;
     
     // Check if message mentions decors or colors (indication user wants to apply them)
     const mentionsDecors = /uni|bois|métal|metal|marbre|inox|chêne|olive|rouge|noir|blanc|gris|bleu|vert|shiky|3\d{3}/i.test(lastUserMessage);
@@ -505,6 +515,15 @@ COMBINATION INSTRUCTIONS:
 - INTEGRATE DICA panels visibly and realistically`;
         }
       }
+      if (previousRender) {
+        imageDescription = `
+🔁 PREVIOUS RENDER PROVIDED (FIRST image attached) - this is an UPDATE request:
+- START FROM this previous render and MODIFY it according to the client's new request
+- KEEP everything the client did not ask to change: space, layout, camera angle, lighting, furniture and decors already applied
+- ONLY change the elements explicitly mentioned in the new request
+${imageDescription ? `\nOther reference images follow the previous render:${imageDescription}` : ""}`;
+      }
+      
       
       // Build decor descriptions from orchestrated references
       let decorDescriptions = "";
