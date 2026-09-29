@@ -642,6 +642,9 @@ Photorealistic, commercial catalog quality, natural lighting, NO photo studio.
 
       // Build message content parts for AI gateway
       const contentParts: any[] = [{ type: "text", text: basePrompt }];
+      if (previousRender) {
+        contentParts.push({ type: "image_url", image_url: { url: previousRender } });
+      }
 
       // ======================================================================
       // Add decor texture URLs as image references (no base64 needed!)
