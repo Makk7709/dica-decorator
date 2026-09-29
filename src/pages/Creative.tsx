@@ -429,7 +429,13 @@ ${exampleRefs}
       body: JSON.stringify({ 
         messages: [...messages, { role: "user", content: userMessage } as Message]
           .slice(-MAX_HISTORY_SENT)
-          .map(({ role, content, sourceImageUrls }) => ({ role, content, sourceImageUrls })),
+          .map(({ role, content, sourceImageUrls, imageUrl }) => ({
+            role,
+            content,
+            sourceImageUrls,
+            // Rendu précédent (URL stockée uniquement) pour que l'IA l'ajuste au lieu de repartir de zéro.
+            imageUrl: imageUrl && !imageUrl.startsWith("data:") ? imageUrl : undefined,
+          })),
         decorContext,
         sourceImageUrls,  // Array of image URLs
         imageLabels,      // Array of labels for each image
