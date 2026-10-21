@@ -43,7 +43,16 @@ async function fetchAuthUsers(admin: SupabaseClient): Promise<AuthUserRow[]> {
   for (let page = 1; page <= MAX_ROWS / PAGE_SIZE; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: PAGE_SIZE });
     if (error) throw new Error(error.message);
-    for (const u of data.users) users.push({ id: u.id, last_sign_in_at: u.last_sign_in_at ?? null });
+    const metadataText = (value: unknown): string | null =>
+      typeof value === "string" ? value.trim() || null : null;
+    for (const u of data.users) users.push({
+      id: u.id,
+      last_sign_in_at: u.last_sign_in_at ?? null,
+      email: u.email ?? null,
+      first_name: metadataText(u.user_metadata?.first_name),
+      last_name: metadataText(u.user_metadata?.last_name),
+      full_name: metadataText(u.user_metadata?.full_name) || metadataText(u.user_metadata?.name),
+    });
     if (data.users.length < PAGE_SIZE) break;
   }
   return users;
