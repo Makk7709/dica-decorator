@@ -31,6 +31,10 @@ export interface ProfileRow {
 export interface AuthUserRow {
   id: string;
   last_sign_in_at: string | null;
+  email?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  full_name?: string | null;
 }
 
 export interface QuotaRow {
@@ -444,7 +448,19 @@ function buildContext(input: AnalyticsInput): Context {
     rows.filter((r) => keep(r.user_id)).map((r) => ({ kind, userId: r.user_id, at: ts(r.created_at) }))
   );
 
-  const profiles = input.profiles.filter((p) => keep(p.id));
+  const authById = new Map(input.authUsers.map((u) => [u.id, u]));
+  const nonEmpty = (value: string | null | undefined) => value?.trim() || null;
+  const profiles = input.profiles.filter((p) => keep(p.id)).map((p) => {
+    const auth = authById.get(p.id);
+    const firstName = nonEmpty(p.first_name) || nonEmpty(auth?.first_name);
+    const lastName = nonEmpty(p.last_name) || nonEmpty(auth?.last_name);
+    return {
+      ...p,
+      first_name: firstName || (!lastName ? nonEmpty(auth?.full_name) : null),
+      last_name: lastName,
+      email: nonEmpty(auth?.email) || nonEmpty(p.email),
+    };
+  });
   return {
     input,
     win,

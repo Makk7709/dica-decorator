@@ -88,6 +88,30 @@ describe('compareKpi', () => {
 });
 
 describe('aggregateAnalytics', () => {
+  it('identifie les comptes sans profil renseigné avec leur e-mail de connexion', () => {
+    const result = aggregateAnalytics(baseInput({
+      profiles: [profile('u1', '2026-01-01T00:00:00Z', { email: null })],
+      authUsers: [{ id: 'u1', last_sign_in_at: null, email: 'client@example.fr' }],
+      quotas: [{ user_id: 'u1', quota_used: 5, quota_limit: 5 }],
+      renders: [{ user_id: 'u1', decor_id: null, created_at: '2026-09-26T10:00:00Z' }],
+    }));
+    expect(result.users.top[0]).toMatchObject({ name: 'client@example.fr', email: 'client@example.fr' });
+    expect(result.users.quotaAlerts[0].name).toBe('client@example.fr');
+    expect(result.users.companies[0].name).toBe('Non renseignée');
+  });
+
+  it('reprend le nom Google sans remplacer un nom de profil renseigné', () => {
+    const input = baseInput({
+      profiles: [profile('u1', '2026-01-01T00:00:00Z', { first_name: ' ', email: null })],
+      authUsers: [{ id: 'u1', last_sign_in_at: null, email: 'client@example.fr', full_name: 'Jean Dupont' }],
+      renders: [{ user_id: 'u1', decor_id: null, created_at: '2026-09-26T10:00:00Z' }],
+    });
+    expect(aggregateAnalytics(input).users.top[0].name).toBe('Jean Dupont');
+    input.profiles[0].first_name = 'Ana';
+    input.profiles[0].last_name = 'Martin';
+    expect(aggregateAnalytics(input).users.top[0].name).toBe('Ana Martin');
+  });
+
   const decors = [
     { id: 'd1', name: 'Chêne', reference_code: 'C1', category: 'bois', is_active: true },
     { id: 'd2', name: 'Marbre', reference_code: 'M1', category: 'pierre', is_active: true },
