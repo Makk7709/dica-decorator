@@ -302,6 +302,7 @@ Le catalogue est organisé en GAMMES. Tu DOIS respecter ces règles:
 - → SURFACES AUTORISÉES EXCLUSIVEMENT: dessus de tables, plateaux de table, plans de travail de cuisine
 - → ⚠️ JAMAIS appliquer sur: murs, sols, chaises, pieds de table, parasols, végétation, vaisselle, personnes, façades, mobilier autre que plateau
 - → Le décor Compactop est un REVÊTEMENT DE SURFACE HORIZONTALE (table/comptoir)
+- → ÉPAISSEUR / TRANCHES DES PLATEAUX: le décor va UNIQUEMENT sur la face supérieure. Les chants (bords verticaux) restent NOIR UNI (âme noire), SAUF CARRARE COMPACTOP → chants BLANC UNI (âme blanche). Plateau fin et réaliste (dalle compact), jamais un bloc épais. Écris cette consigne explicitement en anglais dans finalPromptForImageModel.
 
 📦 AUTRE (si aucune gamme ci-dessus ne correspond):
 - → Utilise la GAMME AUTRE (catalogue généraliste DICA)

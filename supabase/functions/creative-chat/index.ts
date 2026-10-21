@@ -589,6 +589,10 @@ ${orchestrationResult.finalPromptForImageModel}
    - ELEVATOR: walls/panels + floor ONLY
    - VAN: cupboards, storage furniture, countertops ONLY (never on cushions/textile/seats)
    - TERRACE/COMPACTOP: table tops and kitchen countertops ONLY (never walls/floors/chairs)
+   - TERRACE TABLE EDGES (THICKNESS): the decor goes ONLY on the TOP horizontal face of each table top.
+     The vertical edges (visible thickness around the top, typically 10-13 mm compact) must NEVER carry the decor pattern.
+     Edges are SOLID BLACK (black compact core) by default. EXCEPTION: CARRARE COMPACTOP → edges SOLID WHITE (white core).
+     Keep the table top thin and realistic (compact laminate slab, not a thick wooden block).
    - OTHER: walls, partitions, decorative panels, panel furniture
 
 3. SPACE FIDELITY:
